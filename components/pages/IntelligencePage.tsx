@@ -133,7 +133,7 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
       </div>
 
       {/* 4 engine layers */}
-      <div className="grid-4 stack-3">
+      <div className="grid-4">
         {layers.map(x => (
           <div className="layer-block" key={x.k}>
             <div className="row-between">
@@ -149,7 +149,7 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
       </div>
 
       {/* Lower 2×2 */}
-      <div className="grid-2 stack-3" style={{ marginTop: '1.25rem' }}>
+      <div className="grid-2" style={{ marginTop: '1.25rem' }}>
         <div className="card">
           <div className="row-between" style={{ marginBottom: '0.875rem' }}>
             <div>

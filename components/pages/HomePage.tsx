@@ -54,7 +54,7 @@ export default function HomePage({ subjects, navigate, programmes, applications 
   return (
     <div className="page-anim">
       {/* KPI strip */}
-      <div className="grid-4 stack-3">
+      <div className="grid-4">
         <div className="card kpi">
           <div className="lbl">APS Score</div>
           <div className="row" style={{ alignItems: 'baseline', gap: '0.375rem' }}>

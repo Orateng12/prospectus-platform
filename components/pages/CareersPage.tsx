@@ -66,7 +66,7 @@ export default function CareersPage({ careers: propCareers }: CareersPageProps) 
         </button>
       </div>
 
-      <div className="grid-3 stack-3">
+      <div className="grid-3">
         {displayed.map(c => (
           <div className="career-card" key={c.name}>
             <div className="row-between">

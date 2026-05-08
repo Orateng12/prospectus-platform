@@ -71,7 +71,7 @@ export default function SkillsPage({ capabilityData }: SkillsPageProps) {
         </div>
       </div>
 
-      <div className="grid-2 stack-3" style={{ gridTemplateColumns: '1.2fr 1fr' }}>
+      <div className="grid-2" style={{ gridTemplateColumns: '1.2fr 1fr' }}>
         <div className="card" style={{ display: 'grid', placeItems: 'center', padding: '1.5rem' }}>
           <RadarChart values={values} labels={labels} size={440} />
         </div>
@@ -117,7 +117,7 @@ export default function SkillsPage({ capabilityData }: SkillsPageProps) {
         </div>
       </div>
 
-      <div className="grid-3 stack-3" style={{ marginTop: '1.25rem' }}>
+      <div className="grid-3" style={{ marginTop: '1.25rem' }}>
         {caps.map(c => (
           <div key={c.l} className="card compact">
             <div className="row-between">

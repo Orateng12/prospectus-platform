@@ -27,7 +27,7 @@ export default function MapPage() {
         </div>
       </div>
 
-      <div className="grid-2 stack-3" style={{ gridTemplateColumns: '1.5fr 1fr' }}>
+      <div className="grid-2" style={{ gridTemplateColumns: '1.5fr 1fr' }}>
         {/* Map */}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{
@@ -160,7 +160,7 @@ export default function MapPage() {
       </div>
 
       {/* Province spotlight cards */}
-      <div className="grid-3 stack-3" style={{ marginTop: '1.25rem' }}>
+      <div className="grid-3" style={{ marginTop: '1.25rem' }}>
         {PROVINCES.filter(p => ['gp', 'wc', 'kzn'].includes(p.id)).map(p => (
           <div className="card" key={p.id}>
             <div className="eyebrow"><span className="dot" />{p.name}</div>

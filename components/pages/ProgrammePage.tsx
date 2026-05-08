@@ -110,7 +110,7 @@ function ProgDetail({
             }
           </p>
 
-          <div className="grid-4 stack-3" style={{ marginTop: '1rem' }}>
+          <div className="grid-4" style={{ marginTop: '1rem' }}>
             <div className="stat-pair"><div className="l">APS required</div><div className="v">{p.aps}</div></div>
             <div className="stat-pair">
               <div className="l">Your APS</div>
@@ -212,7 +212,7 @@ function ProgDetail({
         </div>
       </div>
 
-      <div className="grid-2 stack-3">
+      <div className="grid-2">
         <div className="card">
           <div className="eyebrow"><span className="dot" />Programme structure</div>
           <h3 className="subheading" style={{ marginTop: '0.25rem' }}>3 years · 360 credits</h3>
@@ -415,7 +415,7 @@ export default function ProgrammePage({
           )}
         </div>
       ) : (
-        <div className="grid-3 stack-3">
+        <div className="grid-3">
           {sorted.map((p, i) => {
             const eligible = p.aps <= aps;
             const isSaved = savedIds.has(p.id);

@@ -111,7 +111,7 @@ export default function FinancialPage({ subjects, householdIncome }: FinancialPa
       </div>
 
       {/* KPI strip */}
-      <div className="grid-4 stack-3" style={{ marginBottom: '1.25rem' }}>
+      <div className="grid-4" style={{ marginBottom: '1.25rem' }}>
         <div className="card kpi">
           <div className="lbl">Your APS score</div>
           <div className="val">{aps}</div>
@@ -146,7 +146,7 @@ export default function FinancialPage({ subjects, householdIncome }: FinancialPa
       </div>
 
       {activeTab === 'overview' && (
-        <div className="grid-2 stack-3">
+        <div className="grid-2">
           <div className="card">
             <div className="eyebrow"><span className="dot" />Funding coverage estimate</div>
             <h3 className="subheading" style={{ marginTop: '0.25rem' }}>

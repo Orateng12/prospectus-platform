@@ -57,7 +57,7 @@ export default function CognitivePage({ psychProfile }: CognitivePageProps) {
         </div>
       </div>
 
-      <div className="grid-2 stack-3">
+      <div className="grid-2">
         {/* Big Five */}
         <div className="card">
           <div className="row-between" style={{ marginBottom: '0.875rem' }}>
