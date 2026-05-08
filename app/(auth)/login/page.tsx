@@ -62,7 +62,7 @@ export default function LoginPage() {
         </div>
 
         {state.error && (
-          <p style={{ color: 'hsl(var(--danger, 0 84% 60%))', fontSize: '0.8125rem', fontWeight: 600 }}>
+          <p style={{ color: 'hsl(var(--destructive))', fontSize: '0.8125rem', fontWeight: 600 }}>
             {state.error}
           </p>
         )}

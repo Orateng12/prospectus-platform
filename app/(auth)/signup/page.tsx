@@ -4,16 +4,41 @@ import { useActionState } from 'react';
 import Link from 'next/link';
 import { signUp } from '@/app/actions/auth';
 
-const initialState = { error: undefined as string | undefined };
+interface State { error?: string; needsConfirmation?: boolean; }
+const initialState: State = {};
 
 export default function SignupPage() {
   const [state, formAction, pending] = useActionState(
-    async (_prev: typeof initialState, formData: FormData) => {
+    async (_prev: State, formData: FormData): Promise<State> => {
       const result = await signUp(formData);
-      return result ?? initialState;
+      return result ?? {};
     },
     initialState
   );
+
+  if (state.needsConfirmation) {
+    return (
+      <div className="card" style={{ width: '100%', maxWidth: 420 }}>
+        <div className="eyebrow"><span className="dot" />Prospectus</div>
+        <h1 style={{ fontWeight: 800, fontSize: '1.375rem', marginTop: '0.375rem' }}>Check your email</h1>
+        <p className="body-text" style={{ marginTop: '0.5rem', lineHeight: 1.7 }}>
+          We&apos;ve sent a confirmation link to your email address.
+          Click the link to verify your account, then come back here to sign in.
+        </p>
+        <hr style={{ border: 0, borderTop: '1px solid hsl(var(--border))', margin: '1.25rem 0' }} />
+        <Link
+          href="/login"
+          className="btn btn-primary"
+          style={{ display: 'block', textAlign: 'center', width: '100%' }}
+        >
+          Go to sign in
+        </Link>
+        <p className="caption" style={{ marginTop: '1rem', textAlign: 'center' }}>
+          Didn&apos;t receive it? Check your spam folder.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="card" style={{ width: '100%', maxWidth: 420 }}>
@@ -75,7 +100,7 @@ export default function SignupPage() {
         </div>
 
         {state.error && (
-          <p style={{ color: 'hsl(var(--danger, 0 84% 60%))', fontSize: '0.8125rem', fontWeight: 600 }}>
+          <p style={{ color: 'hsl(var(--destructive))', fontSize: '0.8125rem', fontWeight: 600 }}>
             {state.error}
           </p>
         )}

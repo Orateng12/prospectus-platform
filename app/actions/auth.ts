@@ -17,13 +17,13 @@ export async function signIn(formData: FormData) {
   redirect('/dashboard');
 }
 
-export async function signUp(formData: FormData) {
+export async function signUp(formData: FormData): Promise<{ error?: string; needsConfirmation?: boolean } | undefined> {
   const name = formData.get('name') as string;
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
 
   const supabase = await getSupabaseServerClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -35,7 +35,13 @@ export async function signUp(formData: FormData) {
     return { error: error.message };
   }
 
-  // Profile row is created automatically by the DB trigger
+  // If session is null, email confirmation is required before the user can sign in.
+  // Return a flag so the signup page can show a "check your email" message.
+  if (!data.session) {
+    return { needsConfirmation: true };
+  }
+
+  // Session established immediately (email confirmation disabled) — go to dashboard.
   redirect('/dashboard');
 }
 
