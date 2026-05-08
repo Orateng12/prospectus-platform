@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import Link from 'next/link';
 import { signUp } from '@/app/actions/auth';
+import GoogleSignInButton from '@/components/GoogleSignInButton';
 
 interface State { error?: string; needsConfirmation?: boolean; }
 const initialState: State = {};
@@ -114,6 +115,13 @@ export default function SignupPage() {
           {pending ? 'Creating account…' : 'Create account'}
         </button>
       </form>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1.25rem 0' }}>
+        <hr style={{ flex: 1, border: 0, borderTop: '1px solid hsl(var(--border))' }} />
+        <span className="caption">or</span>
+        <hr style={{ flex: 1, border: 0, borderTop: '1px solid hsl(var(--border))' }} />
+      </div>
+      <GoogleSignInButton label="Sign up with Google" />
 
       <p className="caption" style={{ marginTop: '1.25rem', textAlign: 'center' }}>
         Already have an account?{' '}

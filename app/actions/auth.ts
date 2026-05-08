@@ -51,6 +51,19 @@ export async function signOut() {
   redirect('/login');
 }
 
+export async function signInWithGoogle(): Promise<{ url: string } | { error: string }> {
+  const supabase = await getSupabaseServerClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/callback`,
+    },
+  });
+  if (error) return { error: error.message };
+  if (!data.url) return { error: 'No redirect URL returned' };
+  return { url: data.url };
+}
+
 export async function requestPasswordReset(formData: FormData): Promise<{ error?: string; success?: boolean }> {
   const email = formData.get('email') as string;
   const supabase = await getSupabaseServerClient();
