@@ -1,0 +1,164 @@
+export interface Subject {
+  id: string;
+  name: string;
+  mark: number;
+  designated: boolean;
+}
+
+export interface Programme {
+  id: string;
+  name: string;
+  uni: string;
+  aps: number;
+  fees: number;
+  dur: number;
+  fit: number;
+  pathway: 'direct' | 'extended' | 'foundation' | 'tvet';
+  salary: number;
+  demand: 'High' | 'Med' | 'Low';
+}
+
+export interface Application {
+  uni: string;
+  meta: string;
+  stages: Array<'done' | 'active' | 'fail' | ''>;
+  status: 'success' | 'warning' | 'info' | 'destructive';
+  label: string;
+}
+
+export interface Deadline {
+  d: number;
+  m: string;
+  t: string;
+  sub: string;
+  tag: string;
+  tagL: string;
+}
+
+export interface Scholarship {
+  name: string;
+  amount: number;
+  match: number;
+  eligibility: string;
+  deadline: string;
+}
+
+export interface Capability {
+  l: string;
+  v: number;
+}
+
+export interface Career {
+  rank: number;
+  name: string;
+  match: number;
+  salary: number;
+  growth: string;
+  demand: 'High' | 'Med' | 'Low';
+  tags: string[];
+  why: string;
+}
+
+export interface BigFiveTrait {
+  l: string;
+  v: number;
+  lo: string;
+  hi: string;
+  sub: string;
+}
+
+export interface RiasecItem {
+  l: string;
+  v: number;
+}
+
+export interface Province {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  n: number;
+  fees: number;
+  you?: boolean;
+  intel: string;
+}
+
+// ── Real DB data shapes ──────────────────────────────────────
+
+export interface PsychProfileData {
+  openness: number;
+  conscientiousness: number;
+  extraversion: number;
+  agreeableness: number;
+  neuroticism: number;
+  realistic: number;
+  investigative: number;
+  artistic: number;
+  social: number;
+  enterprising: number;
+  conventional: number;
+  primary_motivation?: string;
+  work_style_preference?: string;
+}
+
+export interface CapabilityData {
+  analytical_thinking: number;
+  creative_thinking: number;
+  leadership_potential: number;
+  communication_skills: number;
+  technical_aptitude: number;
+  entrepreneurial_drive: number;
+  risk_tolerance_score: number;
+  perseverance: number;
+  academic_readiness: number;
+  career_readiness: number;
+}
+
+export interface StrategicScoreData {
+  overall: number;
+  academic_readiness: number;
+  career_demand_alignment: number;
+  financial_feasibility: number;
+  global_mobility_potential: number;
+  personality_career_fit: number;
+  skill_readiness: number;
+  previous_score?: number;
+  trend?: string;
+}
+
+export interface DbApplication {
+  id: string;
+  programme_name: string;
+  institution_name: string;
+  status: string;
+  applied_at?: string;
+  deadline?: string;
+  outcome?: string;
+}
+
+export interface DbCareer {
+  id: string;
+  title: string;
+  description?: string;
+  demand_level?: string;
+  salary_percentile_50?: number;
+  salary_entry_min?: number;
+  salary_mid_max?: number;
+  employment_rate?: number;
+  job_posting_trend?: string;
+  skills_needed?: string[];
+  scarce_skill?: boolean;
+  category?: string;
+}
+
+export type Route =
+  | 'home'
+  | 'intelligence'
+  | 'simulator'
+  | 'programmes'
+  | 'funding'
+  | 'financial'
+  | 'careers'
+  | 'cognitive'
+  | 'skills'
+  | 'map';
