@@ -4,7 +4,7 @@ import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
 
 export default async function OnboardingPage() {
   const auth = await requireAuth();
-  if ('error' in auth) redirect('/login');
+  if (!auth.ok) redirect('/login');
   const { user, supabase } = auth;
 
   const { data: profile } = await supabase

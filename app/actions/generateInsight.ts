@@ -69,7 +69,7 @@ function buildPrompt(ctx: InsightContext): string {
 export async function generateInsight(context: InsightContext): Promise<{ text: string } | { error: string }> {
   try {
     const auth = await requireAuth();
-    if ('error' in auth) return auth;
+    if (!auth.ok) return { error: auth.error };
 
     const client = new Anthropic();
     const msg = await client.messages.create({

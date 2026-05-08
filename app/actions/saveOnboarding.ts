@@ -7,7 +7,7 @@ import type { OnboardingData } from '@/lib/types';
 
 export async function saveOnboarding(data: OnboardingData): Promise<{ error: string } | undefined> {
   const auth = await requireAuth();
-  if ('error' in auth) return auth;
+  if (!auth.ok) return { error: auth.error };
   const { user, supabase } = auth;
 
   const apsScore = calcAPS(data.subjects);

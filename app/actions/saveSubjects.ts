@@ -5,7 +5,7 @@ import type { Subject } from '@/lib/types';
 
 export async function saveSubjectMarks(subjects: Subject[]) {
   const auth = await requireAuth();
-  if ('error' in auth) return auth;
+  if (!auth.ok) return { error: auth.error };
   const { user, supabase } = auth;
 
   const { error } = await supabase

@@ -7,7 +7,7 @@ export async function toggleSavedProgramme(
   currentlySaved: boolean
 ): Promise<{ saved: boolean } | { error: string }> {
   const auth = await requireAuth();
-  if ('error' in auth) return auth;
+  if (!auth.ok) return { error: auth.error };
   const { user, supabase } = auth;
 
   if (currentlySaved) {

@@ -52,7 +52,7 @@ function mapDbCareerToCareer(c: DbCareer, rank: number): Career {
 
 export default async function Page() {
   const auth = await requireAuth();
-  if ('error' in auth) redirect('/login');
+  if (!auth.ok) redirect('/login');
   const { user, supabase } = auth;
 
   const [profileResult, progResult, psychResult, capResult, scoreResult, appsResult, careersResult, savedResult] = await Promise.all([

@@ -91,7 +91,7 @@ export async function updatePassword(formData: FormData): Promise<{ error: strin
   if (password !== confirmPassword) return { error: 'Passwords do not match' };
 
   const auth = await requireAuth();
-  if ('error' in auth) return auth;
+  if (!auth.ok) return { error: auth.error };
 
   const { error } = await auth.supabase.auth.updateUser({ password });
   if (error) return { error: error.message };
