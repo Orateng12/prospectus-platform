@@ -30,8 +30,10 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isAuthRoute = pathname.startsWith('/login') ||
+  // Routes where unauthenticated users should be redirected away (to dashboard) when logged in
+  const loginOnlyRoute = pathname.startsWith('/login') ||
     pathname.startsWith('/signup') ||
+    pathname.startsWith('/forgot-password') ||
     pathname.startsWith('/auth');
 
   // Protect /dashboard and /onboarding — redirect unauthenticated users to login
@@ -39,8 +41,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // Redirect authenticated users away from auth pages to dashboard
-  if (user && isAuthRoute) {
+  // Redirect authenticated users away from login/signup pages to dashboard
+  // (but NOT away from /reset-password — they may need it while logged in too)
+  if (user && loginOnlyRoute) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 

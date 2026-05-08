@@ -6,6 +6,13 @@ All notable changes to the Prospectus platform.
 
 ## [Unreleased]
 
+### Added — Forgot password flow
+- `/forgot-password` — email input page; sends Supabase reset link via `requestPasswordReset`
+- `/reset-password` — new password form; calls `updatePassword` server action
+- `app/actions/auth.ts` — added `requestPasswordReset` and `updatePassword` server actions
+- `app/(auth)/login/page.tsx` — added "Forgot password?" link above password field
+- `proxy.ts` — `/forgot-password` added to login-only routes; `/reset-password` left accessible to authenticated users too
+
 ### Added — Phase 3: AI insight layer
 - `app/actions/generateInsight.ts` — server action using `claude-opus-4-6`; builds a structured prompt from real user data (APS, subjects, Big Five, RIASEC, capabilities, strategic score, top programmes/careers) and returns a personalised 2–3 sentence insight
 - `components/AiInsightCard.tsx` — client component; calls `generateInsight` on mount via `useTransition`, shows shimmer skeleton while loading, fades in text, exposes a Regenerate button

@@ -44,9 +44,12 @@ export default function LoginPage() {
         </div>
 
         <div>
-          <label className="caption" style={{ display: 'block', marginBottom: '0.375rem', fontWeight: 600 }}>
-            Password
-          </label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.375rem' }}>
+            <label className="caption" style={{ fontWeight: 600 }}>Password</label>
+            <Link href="/forgot-password" style={{ color: 'hsl(var(--primary))', fontSize: '0.75rem', fontWeight: 600 }}>
+              Forgot password?
+            </Link>
+          </div>
           <input
             name="password"
             type="password"
