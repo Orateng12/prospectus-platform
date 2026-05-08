@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/supabase/requireAuth';
 import { SUBJECTS, PROGRAMMES, CAREERS } from '@/lib/data';
 import Dashboard from '@/components/Dashboard';
 import type {
@@ -51,9 +51,9 @@ function mapDbCareerToCareer(c: DbCareer, rank: number): Career {
 }
 
 export default async function Page() {
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  const auth = await requireAuth();
+  if ('error' in auth) redirect('/login');
+  const { user, supabase } = auth;
 
   const [profileResult, progResult, psychResult, capResult, scoreResult, appsResult, careersResult, savedResult] = await Promise.all([
     supabase

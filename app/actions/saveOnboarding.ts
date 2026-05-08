@@ -1,14 +1,14 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/supabase/requireAuth';
 import { calcAPS } from '@/lib/utils';
 import type { OnboardingData } from '@/lib/types';
 
 export async function saveOnboarding(data: OnboardingData): Promise<{ error: string } | undefined> {
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'Not authenticated' };
+  const auth = await requireAuth();
+  if ('error' in auth) return auth;
+  const { user, supabase } = auth;
 
   const apsScore = calcAPS(data.subjects);
 

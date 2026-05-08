@@ -41,6 +41,22 @@ export default function ResetPasswordPage() {
           />
         </div>
 
+        <div>
+          <label className="caption" style={{ display: 'block', marginBottom: '0.375rem', fontWeight: 600 }}>
+            Confirm password
+          </label>
+          <input
+            name="confirmPassword"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            className="input"
+            placeholder="••••••••"
+            style={{ width: '100%' }}
+          />
+        </div>
+
         {state.error && (
           <p style={{ color: 'hsl(var(--destructive))', fontSize: '0.8125rem', fontWeight: 600 }}>
             {state.error}

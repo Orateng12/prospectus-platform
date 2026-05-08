@@ -2,7 +2,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import type { InsightContext } from '@/lib/types';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/supabase/requireAuth';
 
 function buildPrompt(ctx: InsightContext): string {
   const lines: string[] = [];
@@ -68,9 +68,8 @@ function buildPrompt(ctx: InsightContext): string {
 
 export async function generateInsight(context: InsightContext): Promise<{ text: string } | { error: string }> {
   try {
-    const supabase = await getSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { error: 'Not authenticated' };
+    const auth = await requireAuth();
+    if ('error' in auth) return auth;
 
     const client = new Anthropic();
     const msg = await client.messages.create({

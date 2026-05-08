@@ -27,7 +27,13 @@ export async function proxy(request: NextRequest) {
   );
 
   // Refresh session — keeps the auth token alive on every request
-  const { data: { user } } = await supabase.auth.getUser();
+  let user: { id: string } | null = null;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (!error) user = data.user;
+  } catch (err) {
+    console.error('[proxy] supabase.auth.getUser failed:', err);
+  }
 
   const { pathname } = request.nextUrl;
   // Routes where unauthenticated users should be redirected away (to dashboard) when logged in

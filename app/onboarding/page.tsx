@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/supabase/requireAuth';
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
 
 export default async function OnboardingPage() {
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  const auth = await requireAuth();
+  if ('error' in auth) redirect('/login');
+  const { user, supabase } = auth;
 
   const { data: profile } = await supabase
     .from('user_profiles')

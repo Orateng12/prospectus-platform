@@ -1,6 +1,6 @@
 'use server';
 
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/supabase/requireAuth';
 
 export async function saveApplication(
   programmeId: string,
@@ -8,9 +8,9 @@ export async function saveApplication(
   institutionName: string,
   deadline?: string
 ): Promise<{ id: string } | { error: string }> {
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'Not authenticated' };
+  const auth = await requireAuth();
+  if ('error' in auth) return auth;
+  const { user, supabase } = auth;
 
   // Check for existing application
   const { data: existing } = await supabase

@@ -1,12 +1,12 @@
 'use server';
 
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/supabase/requireAuth';
 import type { Subject } from '@/lib/types';
 
 export async function saveSubjectMarks(subjects: Subject[]) {
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'Not authenticated' };
+  const auth = await requireAuth();
+  if ('error' in auth) return auth;
+  const { user, supabase } = auth;
 
   const { error } = await supabase
     .from('user_profiles')

@@ -17,9 +17,10 @@ export async function getSupabaseServerClient() {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, options);
             });
-          } catch {
-            // setAll called from a Server Component — cookies are read-only
-            // The session will be refreshed by the proxy layer instead
+          } catch (err) {
+            // Cookie writes are expected to fail in Server Components (read-only context).
+            // The proxy layer handles session refresh instead.
+            console.warn('[supabase/server] setAll: cookie write skipped:', err);
           }
         },
       },

@@ -1,6 +1,6 @@
+import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -8,11 +8,30 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get('next') ?? '/dashboard';
 
   if (code) {
-    const supabase = await getSupabaseServerClient();
+    // Pre-create the redirect response so we can bind cookies directly onto it.
+    // This guarantees Set-Cookie headers are on the actual response the browser
+    // receives, avoiding the timing race of writing to next/headers then redirecting.
+    const redirectResponse = NextResponse.redirect(`${origin}${next}`);
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              redirectResponse.cookies.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
+
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
-    }
+    if (!error) return redirectResponse;
   }
 
   return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`);
