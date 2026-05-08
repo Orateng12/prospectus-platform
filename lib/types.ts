@@ -163,6 +163,17 @@ export type Route =
   | 'skills'
   | 'map';
 
+export interface InsightContext {
+  type: 'home' | 'cognitive' | 'intelligence' | 'career';
+  aps: number;
+  subjects: Subject[];
+  psychProfile: PsychProfileData | null;
+  capabilityData: CapabilityData | null;
+  strategicScore: StrategicScoreData | null;
+  topProgrammes: Programme[];
+  topCareers: Career[];
+}
+
 export interface OnboardingData {
   firstName: string;
   lastName: string;

@@ -12,19 +12,26 @@ export async function saveOnboarding(data: OnboardingData): Promise<{ error: str
 
   const apsScore = calcAPS(data.subjects);
 
-  const [profileResult, psychResult, capResult] = await Promise.all([
-    supabase
-      .from('user_profiles')
-      .update({
-        first_name: data.firstName,
-        last_name: data.lastName,
-        province: data.province,
-        subject_marks: data.subjects,
-        aps_score: apsScore,
-        household_income: data.householdIncome,
-      })
-      .eq('id', user.id),
+  // Upsert user_profiles first — psychological_profiles and capability_graphs have
+  // FK constraints referencing public.user_profiles.id, so this row must exist before
+  // the dependent upserts run.
+  const profileResult = await supabase
+    .from('user_profiles')
+    .upsert({
+      id: user.id,
+      email: user.email,
+      first_name: data.firstName,
+      last_name: data.lastName,
+      province: data.province,
+      subject_marks: data.subjects,
+      aps_score: apsScore,
+      household_income: data.householdIncome,
+    }, { onConflict: 'id' });
 
+  if (profileResult.error) return { error: profileResult.error.message };
+
+  // Now that the parent row is guaranteed to exist, upsert the dependent tables in parallel.
+  const [psychResult, capResult] = await Promise.all([
     supabase
       .from('psychological_profiles')
       .upsert({
@@ -61,7 +68,6 @@ export async function saveOnboarding(data: OnboardingData): Promise<{ error: str
       }, { onConflict: 'user_id' }),
   ]);
 
-  if (profileResult.error) return { error: profileResult.error.message };
   if (psychResult.error) return { error: psychResult.error.message };
   if (capResult.error) return { error: capResult.error.message };
 

@@ -1,5 +1,8 @@
+'use client';
+
 import { BIG5, RIASEC } from '@/lib/data';
 import type { BigFiveTrait, RiasecItem, PsychProfileData } from '@/lib/types';
+import AiInsightCard from '@/components/AiInsightCard';
 
 interface CognitivePageProps {
   psychProfile?: PsychProfileData | null;
@@ -107,41 +110,18 @@ export default function CognitivePage({ psychProfile }: CognitivePageProps) {
             </div>
           </div>
 
-          {/* Insights */}
-          <div className="card">
-            <div className="eyebrow"><span className="dot" />What this means</div>
-            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Translation for careers</h3>
-            <div className="stack-2" style={{ marginTop: '0.875rem' }}>
-              <div className="insight">
-                <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
-                  High Conscientiousness × {riasec[0]?.l ?? 'Investigative'}
-                </div>
-                <p className="body-text" style={{ fontSize: '0.8125rem' }}>
-                  Combines methodical execution with curiosity — the profile of strong researchers and
-                  technical product engineers.
-                </p>
-              </div>
-              <div className="insight">
-                <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
-                  Neuroticism {big5[4]?.v ?? 45} — {(big5[4]?.v ?? 45) < 50 ? 'stability is an asset' : 'worth managing'}
-                </div>
-                <p className="body-text" style={{ fontSize: '0.8125rem' }}>
-                  {(big5[4]?.v ?? 45) < 50
-                    ? 'A lower score means you stay steady in pressure-heavy roles — surgical, financial, and deadline-driven work all suit you.'
-                    : 'A higher score means you feel stress acutely. Build strong routines and recovery habits — they will compound over a long career.'}
-                </p>
-              </div>
-              <div className="insight">
-                <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
-                  Extraversion {big5[2]?.v ?? 61} — flexible range
-                </div>
-                <p className="body-text" style={{ fontSize: '0.8125rem' }}>
-                  Mid-range extraversion means you flex between focused solo work and group collaboration.
-                  Don&apos;t over-index on either an &quot;introvert&quot; or &quot;extrovert&quot; career.
-                </p>
-              </div>
-            </div>
-          </div>
+          <AiInsightCard
+            context={{
+              type: 'cognitive',
+              aps: 0,
+              subjects: [],
+              psychProfile: psychProfile ?? null,
+              capabilityData: null,
+              strategicScore: null,
+              topProgrammes: [],
+              topCareers: [],
+            }}
+          />
         </div>
       </div>
     </div>

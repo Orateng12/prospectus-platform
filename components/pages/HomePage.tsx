@@ -1,6 +1,9 @@
+'use client';
+
 import type { Route, Subject, Programme, DbApplication, StrategicScoreData } from '@/lib/types';
 import { PROGRAMMES, APPS, DEADLINES } from '@/lib/data';
 import { calcAPS, fmtR } from '@/lib/utils';
+import AiInsightCard from '@/components/AiInsightCard';
 
 interface HomePageProps {
   subjects: Subject[];
@@ -284,30 +287,19 @@ export default function HomePage({ subjects, navigate, programmes, applications 
             </div>
           </div>
 
-          {/* AI insight */}
-          <div className="card">
-            <div className="eyebrow"><span className="dot" />AI insight · today</div>
-            <p style={{ margin: '0.5rem 0 0', color: 'hsl(var(--fg))', fontSize: '0.875rem', lineHeight: 1.6 }}>
-              Your APS jumped six points after the prelim Maths result. The biggest unlock isn&apos;t
-              another university — it&apos;s the{' '}
-              <strong>Actuarial Science</strong> stream, which now sits inside your direct-entry range
-              at <strong>two more institutions</strong>.
-            </p>
-            <div className="row" style={{ marginTop: '0.75rem' }}>
-              <button className="btn btn-outline btn-sm" onClick={() => navigate('programmes')}>See programmes</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => navigate('intelligence')}>Why this?</button>
-            </div>
-            <hr className="divider" />
-            <div className="caption" style={{ fontSize: '0.6875rem' }}>
-              GPT-4 · cross-checked by Gemini ·{' '}
-              <button
-                onClick={() => navigate('intelligence')}
-                style={{ color: 'hsl(var(--primary))', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', fontSize: 'inherit' }}
-              >
-                how the engine works →
-              </button>
-            </div>
-          </div>
+          <AiInsightCard
+            context={{
+              type: 'home',
+              aps,
+              subjects,
+              psychProfile: null,
+              capabilityData: null,
+              strategicScore: strategicScore ?? null,
+              topProgrammes: eligible.slice(0, 4),
+              topCareers: [],
+            }}
+            navigate={(r) => navigate(r as Route)}
+          />
         </div>
       </div>
     </div>

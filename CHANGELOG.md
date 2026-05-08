@@ -6,6 +6,18 @@ All notable changes to the Prospectus platform.
 
 ## [Unreleased]
 
+### Added — Phase 3: AI insight layer
+- `app/actions/generateInsight.ts` — server action using `claude-opus-4-6`; builds a structured prompt from real user data (APS, subjects, Big Five, RIASEC, capabilities, strategic score, top programmes/careers) and returns a personalised 2–3 sentence insight
+- `components/AiInsightCard.tsx` — client component; calls `generateInsight` on mount via `useTransition`, shows shimmer skeleton while loading, fades in text, exposes a Regenerate button
+- `components/pages/HomePage.tsx` — replaced hardcoded AI insight card with `<AiInsightCard type="home">`; added `'use client'`
+- `components/pages/CognitivePage.tsx` — replaced 3 hardcoded insight bullets with `<AiInsightCard type="cognitive">`; added `'use client'`
+- `components/pages/IntelligencePage.tsx` — replaced hardcoded AI commentary section with `<AiInsightCard type="intelligence">`
+- `lib/types.ts` — added `InsightContext` interface
+- `app/globals.css` — added `.skeleton` shimmer animation and `fadeIn` keyframe
+
+### Fixed
+- `app/actions/saveOnboarding.ts` — FK constraint error on `psychological_profiles`: changed `user_profiles.update()` → `upsert()` (with `onConflict: 'id'`) and made it sequential before the dependent upserts; ensures the parent row exists before FK-constrained tables are written
+
 ### Added — Phase 2: Wire stubs (interactivity)
 - `saved_programmes` Supabase table with RLS (user-owned saved programmes)
 - `app/actions/toggleSavedProgramme.ts` — optimistic save/unsave with DB persistence

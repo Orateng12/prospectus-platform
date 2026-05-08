@@ -1,6 +1,7 @@
 import type { Route, StrategicScoreData, CapabilityData, Capability, Programme, Career, PsychProfileData, Subject } from '@/lib/types';
 import { CAPS } from '@/lib/data';
 import DonutChart from '@/components/DonutChart';
+import AiInsightCard from '@/components/AiInsightCard';
 
 interface IntelligencePageProps {
   navigate: (r: Route) => void;
@@ -210,32 +211,18 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
           </div>
         </div>
 
-        <div className="card">
-          <div className="eyebrow"><span className="dot" />AI commentary</div>
-          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>What changed this month</h3>
-          <div className="stack-2" style={{ marginTop: '0.875rem' }}>
-            <div className="insight">
-              <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
-                Maths jump moved your strategic position
-              </div>
-              <p className="body-text" style={{ fontSize: '0.8125rem' }}>
-                Your prelim Maths went 72 → 78. APS rose by 6, opening Actuarial Science at Wits
-                and UP within direct-entry range.
-              </p>
-              <div className="src" style={{ marginTop: '0.5rem' }}>GPT-4 · 2 hours ago</div>
-            </div>
-            <div className="insight">
-              <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
-                Funding gap is now your bottleneck
-              </div>
-              <p className="body-text" style={{ fontSize: '0.8125rem' }}>
-                You have R 92,000 / yr in matched funding but UCT CS costs R 76,420 + residence.
-                Apply to Allan Gray to close it.
-              </p>
-              <div className="src" style={{ marginTop: '0.5rem' }}>Gemini · 6 hours ago</div>
-            </div>
-          </div>
-        </div>
+        <AiInsightCard
+          context={{
+            type: 'intelligence',
+            aps: userAps,
+            subjects,
+            psychProfile: psychProfile ?? null,
+            capabilityData: capabilityData ?? null,
+            strategicScore: strategicScore ?? null,
+            topProgrammes: programmes.slice(0, 4),
+            topCareers: careers.slice(0, 4),
+          }}
+        />
       </div>
     </div>
   );
