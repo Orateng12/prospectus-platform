@@ -140,6 +140,10 @@ export default async function Page() {
   }
 
   // Psychological profile
+  // Redirect new users to onboarding if they haven't built their profile yet
+  const needsOnboarding = !psychResult.data && !capResult.data && !profile?.province;
+  if (needsOnboarding) redirect('/onboarding');
+
   const psychProfile: PsychProfileData | null = psychResult.data ?? null;
 
   // Capability graph

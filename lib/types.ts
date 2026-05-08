@@ -162,3 +162,37 @@ export type Route =
   | 'cognitive'
   | 'skills'
   | 'map';
+
+export interface OnboardingData {
+  firstName: string;
+  lastName: string;
+  province: string;
+  matricYear: number;
+  subjects: Subject[];
+  // Big Five (0–100)
+  openness: number;
+  conscientiousness: number;
+  extraversion: number;
+  agreeableness: number;
+  neuroticism: number;
+  // RIASEC (0–100)
+  realistic: number;
+  investigative: number;
+  artistic: number;
+  social: number;
+  enterprising: number;
+  conventional: number;
+  primary_motivation: string;
+  work_style_preference: string;
+  // Capabilities (0–100)
+  analytical_thinking: number;
+  creative_thinking: number;
+  leadership_potential: number;
+  communication_skills: number;
+  technical_aptitude: number;
+  entrepreneurial_drive: number;
+  risk_tolerance_score: number;
+  perseverance: number;
+  // Financial
+  householdIncome: number;
+}
