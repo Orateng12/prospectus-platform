@@ -6,6 +6,7 @@ import type {
   PsychProfileData, CapabilityData, StrategicScoreData, DbApplication,
 } from '@/lib/types';
 import { SUBJECTS } from '@/lib/data';
+import { calcAPS } from '@/lib/utils';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import HomePage from './pages/HomePage';
@@ -32,6 +33,7 @@ interface DashboardProps {
   strategicScore?: StrategicScoreData | null;
   applications?: DbApplication[];
   careers?: Career[];
+  savedProgrammeIds?: string[];
 }
 
 export default function Dashboard({
@@ -47,6 +49,7 @@ export default function Dashboard({
   strategicScore,
   applications = [],
   careers,
+  savedProgrammeIds = [],
 }: DashboardProps) {
   const [route, setRoute] = useState<Route>('home');
   const [subjects, setSubjects] = useState<Subject[]>(
@@ -77,7 +80,18 @@ export default function Dashboard({
   function renderPage() {
     switch (route) {
       case 'intelligence':
-        return <IntelligencePage navigate={navigate} strategicScore={strategicScore} capabilityData={capabilityData} />;
+        return (
+          <IntelligencePage
+            navigate={navigate}
+            strategicScore={strategicScore}
+            capabilityData={capabilityData}
+            programmes={initialProgrammes}
+            careers={careers}
+            psychProfile={psychProfile}
+            subjects={subjects}
+            userAps={calcAPS(subjects)}
+          />
+        );
       case 'simulator':
         return (
           <SimulatorPage
@@ -86,6 +100,7 @@ export default function Dashboard({
             onReset={handleReset}
             onSaved={handleSubjectsSaved}
             programmes={initialProgrammes}
+            onNavigateProgramme={(progId) => navigate('programmes', progId)}
           />
         );
       case 'programmes':
@@ -95,6 +110,7 @@ export default function Dashboard({
             subjects={subjects}
             navigate={navigate}
             programmes={initialProgrammes}
+            savedProgrammeIds={savedProgrammeIds}
           />
         );
       case 'funding':

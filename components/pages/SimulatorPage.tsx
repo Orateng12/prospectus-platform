@@ -12,9 +12,10 @@ interface SimulatorPageProps {
   onReset: () => void;
   onSaved?: (subjects: Subject[]) => void;
   programmes?: Programme[];
+  onNavigateProgramme?: (progId: string) => void;
 }
 
-export default function SimulatorPage({ subjects, onSubjectChange, onReset, onSaved, programmes }: SimulatorPageProps) {
+export default function SimulatorPage({ subjects, onSubjectChange, onReset, onSaved, programmes, onNavigateProgramme }: SimulatorPageProps) {
   const allProgs = programmes ?? PROGRAMMES;
   const aps = calcAPS(subjects);
   // Capture the APS on first render as the baseline for delta display
@@ -183,7 +184,15 @@ export default function SimulatorPage({ subjects, onSubjectChange, onReset, onSa
                   tag = <span className="badge" style={{ opacity: 0.5 }}>Need {p.aps}</span>;
                 }
                 return (
-                  <div key={p.id} className={`impact-row ${cls}`}>
+                  <div
+                    key={p.id}
+                    className={`impact-row ${cls}`}
+                    style={{ cursor: onNavigateProgramme ? 'pointer' : 'default' }}
+                    onClick={() => onNavigateProgramme?.(p.id)}
+                    role={onNavigateProgramme ? 'button' : undefined}
+                    tabIndex={onNavigateProgramme ? 0 : undefined}
+                    onKeyDown={e => e.key === 'Enter' && onNavigateProgramme?.(p.id)}
+                  >
                     <div style={{ minWidth: 0 }}>
                       <div style={{
                         fontWeight: 600, fontSize: '0.875rem',

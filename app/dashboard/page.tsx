@@ -55,7 +55,7 @@ export default async function Page() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const [profileResult, progResult, psychResult, capResult, scoreResult, appsResult, careersResult] = await Promise.all([
+  const [profileResult, progResult, psychResult, capResult, scoreResult, appsResult, careersResult, savedResult] = await Promise.all([
     supabase
       .from('user_profiles')
       .select('aps_score, subject_marks, first_name, last_name, province, household_income')
@@ -95,6 +95,10 @@ export default async function Page() {
       .select('id, title, description, demand_level, salary_percentile_50, salary_entry_min, salary_mid_max, employment_rate, job_posting_trend, skills_needed, scarce_skill, category')
       .order('demand_level', { ascending: false })
       .limit(42),
+    supabase
+      .from('saved_programmes')
+      .select('programme_id')
+      .eq('user_id', user.id),
   ]);
 
   const profile = profileResult.data;
@@ -170,6 +174,9 @@ export default async function Page() {
     });
   }
 
+  // Saved programmes
+  const savedProgrammeIds: string[] = (savedResult.data ?? []).map((r: { programme_id: string }) => r.programme_id);
+
   // Careers
   let careers: Career[] = CAREERS;
   if (careersResult.data && careersResult.data.length > 0) {
@@ -190,6 +197,7 @@ export default async function Page() {
       strategicScore={strategicScore}
       applications={applications}
       careers={careers}
+      savedProgrammeIds={savedProgrammeIds}
     />
   );
 }

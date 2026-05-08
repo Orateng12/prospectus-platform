@@ -6,6 +6,17 @@ All notable changes to the Prospectus platform.
 
 ## [Unreleased]
 
+### Added — Phase 2: Wire stubs (interactivity)
+- `saved_programmes` Supabase table with RLS (user-owned saved programmes)
+- `app/actions/toggleSavedProgramme.ts` — optimistic save/unsave with DB persistence
+- `app/actions/saveApplication.ts` — create draft application in `student_applications`
+- `components/pages/CareersPage.tsx` — tabs now sort by match/demand/growth/salary
+- `components/pages/ProgrammePage.tsx` — save button persists, Saved tab works, Apply button creates DB row
+- `components/pages/SimulatorPage.tsx` — impact list rows are now clickable → navigates to programme detail
+- `components/pages/IntelligencePage.tsx` — engine layer stats computed from real data (profile completeness, eligible programmes, high-demand careers)
+- `components/Dashboard.tsx` — passes `savedProgrammeIds` to ProgrammePage; passes real data to IntelligencePage
+- `app/dashboard/page.tsx` — fetches `saved_programmes` in parallel with other queries
+
 ### Added — Phase 1: Onboarding wizard
 - `app/onboarding/page.tsx` — Server Component route for new-user onboarding
 - `components/onboarding/OnboardingWizard.tsx` — 5-step client wizard:

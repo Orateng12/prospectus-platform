@@ -1,4 +1,4 @@
-import type { Route, StrategicScoreData, CapabilityData, Capability } from '@/lib/types';
+import type { Route, StrategicScoreData, CapabilityData, Capability, Programme, Career, PsychProfileData, Subject } from '@/lib/types';
 import { CAPS } from '@/lib/data';
 import DonutChart from '@/components/DonutChart';
 
@@ -6,6 +6,11 @@ interface IntelligencePageProps {
   navigate: (r: Route) => void;
   strategicScore?: StrategicScoreData | null;
   capabilityData?: CapabilityData | null;
+  programmes?: Programme[];
+  careers?: Career[];
+  psychProfile?: PsychProfileData | null;
+  subjects?: Subject[];
+  userAps?: number;
 }
 
 const DB_TO_CAP: Array<[keyof CapabilityData, string]> = [
@@ -19,7 +24,7 @@ const DB_TO_CAP: Array<[keyof CapabilityData, string]> = [
   ['entrepreneurial_drive','Practical'],
 ];
 
-export default function IntelligencePage({ navigate, strategicScore, capabilityData }: IntelligencePageProps) {
+export default function IntelligencePage({ navigate, strategicScore, capabilityData, programmes = [], careers = [], psychProfile, subjects = [], userAps = 0 }: IntelligencePageProps) {
   const score = strategicScore?.overall ?? 74;
   const prev  = strategicScore?.previous_score;
   const delta = prev != null ? score - prev : 6;
@@ -39,11 +44,24 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
       }))
     : CAPS.map(c => ({ ...c }));
 
+  // Compute profile completeness from available data
+  const profileFields = [
+    subjects.length > 0,
+    userAps > 0,
+    !!psychProfile,
+    !!capabilityData,
+    !!strategicScore,
+  ];
+  const completeness = Math.round((profileFields.filter(Boolean).length / profileFields.length) * 100);
+
+  const highDemandCareers = careers.filter(c => c.demand === 'High').length;
+  const eligibleProgrammes = programmes.filter(p => p.aps <= userAps).length;
+
   const layers = [
-    { n: '01', k: 'Identity',    t: 'Cognitive · Big Five · RIASEC · 8-D capability graph',   stat: '92%', sub: 'profile completeness' },
-    { n: '02', k: 'Opportunity', t: 'Labour market · industry forecasts · top growing careers', stat: '18',  sub: 'high-demand careers matched' },
-    { n: '03', k: 'Decision',    t: 'Scenario generator · career probability · AI insights',   stat: '12',  sub: 'scenarios generated' },
-    { n: '04', k: 'Execution',   t: 'Skill gap · trajectory · scholarship matcher',            stat: '9',   sub: 'next actions queued' },
+    { n: '01', k: 'Identity',    t: 'Cognitive · Big Five · RIASEC · 8-D capability graph',   stat: `${completeness}%`, sub: 'profile completeness' },
+    { n: '02', k: 'Opportunity', t: 'Labour market · industry forecasts · top growing careers', stat: String(highDemandCareers || 18), sub: 'high-demand careers matched' },
+    { n: '03', k: 'Decision',    t: 'Eligible programmes · scenario generator · AI insights',  stat: String(eligibleProgrammes || 12), sub: 'eligible programmes' },
+    { n: '04', k: 'Execution',   t: 'Skill gap · trajectory · scholarship matcher',            stat: psychProfile ? '✓' : '—', sub: psychProfile ? 'assessment complete' : 'complete onboarding' },
   ];
 
   const hasData = !!strategicScore;

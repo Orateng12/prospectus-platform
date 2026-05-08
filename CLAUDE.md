@@ -25,8 +25,8 @@
 | `user_profiles` | auth trigger (on signup), `saveSubjectMarks`, `saveOnboarding` |
 | `psychological_profiles` | `saveOnboarding` |
 | `capability_graphs` | `saveOnboarding` |
-| `student_applications` | (Phase 2) `saveApplication` |
-| `saved_programmes` | (Phase 2) `toggleSavedProgramme` |
+| `student_applications` | `saveApplication` |
+| `saved_programmes` | `toggleSavedProgramme` (upsert/delete, RLS-protected) |
 
 ## Server actions (`app/actions/`)
 - `auth.ts` — signIn, signUp, signOut

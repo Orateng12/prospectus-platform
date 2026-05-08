@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useMemo } from 'react';
 import { CAREERS } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
 import type { Career } from '@/lib/types';
@@ -6,8 +9,32 @@ interface CareersPageProps {
   careers?: Career[];
 }
 
+type Tab = 'fit' | 'demand' | 'growth' | 'salary';
+
+function parseGrowth(g: string): number {
+  return parseFloat(g.replace('%', '')) || 0;
+}
+
 export default function CareersPage({ careers: propCareers }: CareersPageProps) {
-  const careers = propCareers && propCareers.length > 0 ? propCareers : CAREERS;
+  const allCareers = propCareers && propCareers.length > 0 ? propCareers : CAREERS;
+  const [activeTab, setActiveTab] = useState<Tab>('fit');
+
+  const displayed = useMemo(() => {
+    let list = [...allCareers];
+    if (activeTab === 'demand') {
+      list = list.filter(c => c.demand === 'High').sort((a, b) => b.match - a.match);
+    } else if (activeTab === 'growth') {
+      list = list.sort((a, b) => parseGrowth(b.growth) - parseGrowth(a.growth));
+    } else if (activeTab === 'salary') {
+      list = list.sort((a, b) => b.salary - a.salary);
+    } else {
+      list = list.sort((a, b) => b.match - a.match);
+    }
+    return list.map((c, i) => ({ ...c, rank: i + 1 }));
+  }, [allCareers, activeTab]);
+
+  const highDemandCount = allCareers.filter(c => c.demand === 'High').length;
+
   return (
     <div className="page-anim">
       <div className="page-head">
@@ -17,29 +44,31 @@ export default function CareersPage({ careers: propCareers }: CareersPageProps) 
             <div className="eyebrow"><span className="dot" />Discover</div>
             <h2 className="heading" style={{ marginTop: '0.375rem' }}>Career explorer</h2>
             <p className="body-text" style={{ marginTop: '0.5rem', maxWidth: '48rem' }}>
-              {careers.length} roles ranked against your capability graph and labour-market signal.
+              {allCareers.length} roles ranked against your capability graph and labour-market signal.
               Each card shows fit, salary, growth and one line on why.
             </p>
-          </div>
-          <div className="row">
-            <button className="btn btn-outline">Filters</button>
-            <button className="btn btn-outline">Sort: Best fit</button>
-            <button className="btn btn-primary">Compare 3</button>
           </div>
         </div>
       </div>
 
       <div className="tabs" style={{ marginBottom: '1.25rem' }}>
-        <button className="tab active">Best fit ({careers.length})</button>
-        <button className="tab">High demand</button>
-        <button className="tab">High growth</button>
-        <button className="tab">Top salary</button>
-        <button className="tab">Saved</button>
+        <button className={`tab ${activeTab === 'fit' ? 'active' : ''}`} onClick={() => setActiveTab('fit')}>
+          Best fit ({allCareers.length})
+        </button>
+        <button className={`tab ${activeTab === 'demand' ? 'active' : ''}`} onClick={() => setActiveTab('demand')}>
+          High demand ({highDemandCount})
+        </button>
+        <button className={`tab ${activeTab === 'growth' ? 'active' : ''}`} onClick={() => setActiveTab('growth')}>
+          High growth
+        </button>
+        <button className={`tab ${activeTab === 'salary' ? 'active' : ''}`} onClick={() => setActiveTab('salary')}>
+          Top salary
+        </button>
       </div>
 
       <div className="grid-3 stack-3">
-        {careers.map(c => (
-          <div className="career-card" key={c.rank}>
+        {displayed.map(c => (
+          <div className="career-card" key={c.name}>
             <div className="row-between">
               <div className="row" style={{ gap: '0.5rem' }}>
                 <div className="career-rank">{String(c.rank).padStart(2, '0')}</div>
@@ -83,11 +112,6 @@ export default function CareersPage({ careers: propCareers }: CareersPageProps) 
                 <span key={t} className="career-tag">{t}</span>
               ))}
             </div>
-
-            <div className="row" style={{ gap: '0.375rem', marginTop: 'auto' }}>
-              <button className="btn btn-outline btn-sm" style={{ flex: 1 }}>Compare</button>
-              <button className="btn btn-primary btn-sm" style={{ flex: 1 }}>Open path</button>
-            </div>
           </div>
         ))}
       </div>
@@ -98,13 +122,18 @@ export default function CareersPage({ careers: propCareers }: CareersPageProps) 
             <div className="eyebrow"><span className="dot" />AI commentary</div>
             <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Reading your top 3</h3>
           </div>
-          <button className="btn btn-ghost btn-sm">Why these careers?</button>
         </div>
         <p className="body-text" style={{ margin: 0, fontSize: '0.875rem' }}>
-          Software Engineer, Data Scientist and Actuary form a tight cluster — all heavy on analytical +
-          numerical capability and all currently expanding in SA. Picking among them is less about fit
-          (close to identical) and more about <strong>workstyle</strong>: SE skews remote/async, Data
-          Science hybrid/research, Actuary office/long-form. Try Career Compare to see them side-by-side.
+          {displayed[0] && displayed[1] && displayed[2]
+            ? <>
+                <strong>{displayed[0].name}</strong>, <strong>{displayed[1].name}</strong> and{' '}
+                <strong>{displayed[2].name}</strong> lead your ranking.{' '}
+                {displayed.filter(c => c.demand === 'High').length > 0
+                  ? `${displayed.filter(c => c.demand === 'High').length} of your top careers have high market demand in South Africa.`
+                  : 'Explore the High demand tab to filter for fastest-growing roles.'}
+              </>
+            : 'Complete your profile to unlock personalised career commentary.'
+          }
         </p>
       </div>
     </div>

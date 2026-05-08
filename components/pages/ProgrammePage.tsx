@@ -1,15 +1,18 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import type { Route, Subject, Programme } from '@/lib/types';
 import { PROGRAMMES } from '@/lib/data';
 import { calcAPS, fmtR } from '@/lib/utils';
+import { toggleSavedProgramme } from '@/app/actions/toggleSavedProgramme';
+import { saveApplication } from '@/app/actions/saveApplication';
 
 interface ProgrammePageProps {
   selectedProg: string;
   subjects: Subject[];
   navigate: (r: Route) => void;
   programmes?: Programme[];
+  savedProgrammeIds?: string[];
 }
 
 const PATHWAY_LABELS: Record<string, string> = {
@@ -19,10 +22,19 @@ const PATHWAY_LABELS: Record<string, string> = {
   tvet:       'TVET',
 };
 
-/* ─── Detail view ─── keeps original prog-hero design exactly */
+/* ─── Detail view ─────────────────────────────────────────────── */
 function ProgDetail({
-  p, aps, navigate, onBack,
-}: { p: Programme; aps: number; navigate: (r: Route) => void; onBack: () => void }) {
+  p, aps, navigate, onBack, isSaved, onToggleSave, onApply, applyState,
+}: {
+  p: Programme;
+  aps: number;
+  navigate: (r: Route) => void;
+  onBack: () => void;
+  isSaved: boolean;
+  onToggleSave: () => void;
+  onApply: () => void;
+  applyState: 'idle' | 'pending' | 'done' | 'exists';
+}) {
   const structure = [
     { y: 'Year 1', t: 'Foundations',    d: 'Core theory, introduction to the discipline, one minor' },
     { y: 'Year 2', t: 'Core modules',   d: 'Specialisation subjects, practical applications, two electives' },
@@ -60,8 +72,22 @@ function ProgDetail({
             <span className={`badge ${p.pathway}`}>
               {p.pathway[0].toUpperCase() + p.pathway.slice(1)} entry
             </span>
-            <button className="btn btn-outline">Save</button>
-            <button className="btn btn-primary">Add to applications</button>
+            <button
+              className={`btn ${isSaved ? 'btn-primary' : 'btn-outline'}`}
+              onClick={onToggleSave}
+            >
+              {isSaved ? '★ Saved' : '☆ Save'}
+            </button>
+            <button
+              className="btn btn-brand"
+              onClick={onApply}
+              disabled={applyState === 'pending' || applyState === 'done' || applyState === 'exists'}
+            >
+              {applyState === 'pending' ? 'Saving…'
+                : applyState === 'done' ? '✓ Added'
+                : applyState === 'exists' ? '✓ Already added'
+                : 'Add to applications'}
+            </button>
           </div>
         </div>
       </div>
@@ -73,7 +99,7 @@ function ProgDetail({
           </h3>
           <p className="body-text" style={{ marginTop: '0.5rem' }}>
             {p.fit >= 80
-              ? <>Your Analytical (86) and Numerical (88) capability scores sit well above the median for
+              ? <>Your Analytical and Numerical capability scores sit well above the median for
                   graduates of this programme. APS of <strong>{aps}</strong> exceeds the{' '}
                   <strong>{p.aps}</strong> requirement by {aps - p.aps} points.
                   Labour market signal is <strong>{p.demand.toLowerCase()}</strong> demand.</>
@@ -237,8 +263,10 @@ function ProgDetail({
   );
 }
 
-/* ─── Programme List ─── career-card grid style */
-export default function ProgrammePage({ selectedProg, subjects, navigate, programmes }: ProgrammePageProps) {
+/* ─── Programme List ──────────────────────────────────────────── */
+export default function ProgrammePage({
+  selectedProg, subjects, navigate, programmes, savedProgrammeIds = [],
+}: ProgrammePageProps) {
   const allProgs = programmes ?? PROGRAMMES;
   const aps = calcAPS(subjects);
 
@@ -248,8 +276,50 @@ export default function ProgrammePage({ selectedProg, subjects, navigate, progra
   const [eligibleOnly, setEligibleOnly] = useState(false);
   const [search, setSearch] = useState('');
 
+  // Local saved state (optimistic — starts from server-fetched ids)
+  const [savedIds, setSavedIds] = useState<Set<string>>(() => new Set(savedProgrammeIds));
+  const [saveTransition, startSaveTransition] = useTransition();
+
+  // Apply state per-programme
+  const [applyStates, setApplyStates] = useState<Record<string, 'idle' | 'pending' | 'done' | 'exists'>>({});
+  const [applyTransition, startApplyTransition] = useTransition();
+
+  function handleToggleSave(progId: string) {
+    const currently = savedIds.has(progId);
+    // Optimistic update
+    setSavedIds(prev => {
+      const next = new Set(prev);
+      if (currently) next.delete(progId); else next.add(progId);
+      return next;
+    });
+    startSaveTransition(async () => {
+      const result = await toggleSavedProgramme(progId, currently);
+      if ('error' in result) {
+        // Revert on error
+        setSavedIds(prev => {
+          const next = new Set(prev);
+          if (currently) next.add(progId); else next.delete(progId);
+          return next;
+        });
+      }
+    });
+  }
+
+  function handleApply(prog: Programme) {
+    setApplyStates(s => ({ ...s, [prog.id]: 'pending' }));
+    startApplyTransition(async () => {
+      const result = await saveApplication(prog.id, prog.name, prog.uni);
+      if ('error' in result) {
+        setApplyStates(s => ({ ...s, [prog.id]: 'idle' }));
+      } else {
+        setApplyStates(s => ({ ...s, [prog.id]: 'done' }));
+      }
+    });
+  }
+
   const sorted = useMemo(() => {
     let list = allProgs;
+    if (activeTab === 'saved') list = list.filter(p => savedIds.has(p.id));
     if (eligibleOnly) list = list.filter(p => p.aps <= aps);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -258,12 +328,23 @@ export default function ProgrammePage({ selectedProg, subjects, navigate, progra
     return [...list].sort((a, b) => {
       if (activeTab === 'aps')  return a.aps - b.aps;
       if (activeTab === 'fees') return a.fees - b.fees;
-      return b.fit - a.fit; // default: best fit
+      return b.fit - a.fit;
     });
-  }, [allProgs, activeTab, eligibleOnly, search, aps]);
+  }, [allProgs, activeTab, eligibleOnly, search, aps, savedIds]);
 
   if (selected) {
-    return <ProgDetail p={selected} aps={aps} navigate={navigate} onBack={() => setSelected(null)} />;
+    return (
+      <ProgDetail
+        p={selected}
+        aps={aps}
+        navigate={navigate}
+        onBack={() => setSelected(null)}
+        isSaved={savedIds.has(selected.id)}
+        onToggleSave={() => handleToggleSave(selected.id)}
+        onApply={() => handleApply(selected)}
+        applyState={applyStates[selected.id] ?? 'idle'}
+      />
+    );
   }
 
   const eligibleCount = allProgs.filter(p => p.aps <= aps).length;
@@ -313,17 +394,21 @@ export default function ProgrammePage({ selectedProg, subjects, navigate, progra
           Lowest fees first
         </button>
         <button className={`tab ${activeTab === 'saved' ? 'active' : ''}`} onClick={() => setActiveTab('saved')}>
-          Saved
+          Saved ({savedIds.size})
         </button>
       </div>
 
       {sorted.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-          <h3 className="subheading">No programmes match</h3>
+          <h3 className="subheading">
+            {activeTab === 'saved' ? 'No saved programmes yet' : 'No programmes match'}
+          </h3>
           <p className="body-text" style={{ marginTop: '0.5rem' }}>
-            {search ? 'Try a different search term.' : 'No eligible programmes at your current APS — use the simulator to explore mark changes.'}
+            {activeTab === 'saved'
+              ? 'Click the ☆ Save button on any programme to save it here.'
+              : search ? 'Try a different search term.' : 'No eligible programmes at your current APS — use the simulator to explore mark changes.'}
           </p>
-          {eligibleOnly && (
+          {eligibleOnly && activeTab !== 'saved' && (
             <button className="btn btn-outline" onClick={() => setEligibleOnly(false)} style={{ marginTop: '1rem' }}>
               Show all programmes
             </button>
@@ -333,13 +418,9 @@ export default function ProgrammePage({ selectedProg, subjects, navigate, progra
         <div className="grid-3 stack-3">
           {sorted.map((p, i) => {
             const eligible = p.aps <= aps;
+            const isSaved = savedIds.has(p.id);
             return (
-              <div
-                className="career-card"
-                key={p.id}
-                onClick={() => setSelected(p)}
-              >
-                {/* Top row: rank + pathway badge | fit score */}
+              <div className="career-card" key={p.id} onClick={() => setSelected(p)}>
                 <div className="row-between">
                   <div className="row" style={{ gap: '0.5rem' }}>
                     <div className="career-rank">{String(i + 1).padStart(2, '0')}</div>
@@ -355,14 +436,12 @@ export default function ProgrammePage({ selectedProg, subjects, navigate, progra
                   </div>
                 </div>
 
-                {/* Name + institution + meter */}
                 <div>
                   <div style={{ fontWeight: 700, fontSize: '1rem', letterSpacing: '-0.01em', lineHeight: 1.3 }}>{p.name}</div>
                   <div className="caption" style={{ marginTop: '0.25rem' }}>{p.uni}</div>
                   <div className="meter" style={{ marginTop: '0.5rem' }}><i style={{ width: `${p.fit}%` }} /></div>
                 </div>
 
-                {/* Stats row */}
                 <div className="row-between" style={{ fontSize: '0.75rem', paddingTop: '0.375rem', borderTop: '1px solid hsl(var(--border))' }}>
                   <div>
                     <div className="caption" style={{ fontSize: '0.625rem' }}>Annual fees</div>
@@ -382,17 +461,28 @@ export default function ProgrammePage({ selectedProg, subjects, navigate, progra
                   </div>
                 </div>
 
-                {/* Tags */}
                 <div className="row" style={{ gap: '0.25rem' }}>
                   {eligible && <span className="career-tag" style={{ background: 'hsl(var(--success) / 0.1)', color: 'hsl(var(--success))' }}>Eligible</span>}
                   <span className="career-tag">{p.dur} yr{p.dur !== 1 ? 's' : ''}</span>
                   {p.fees < 40000 && <span className="career-tag">Affordable</span>}
                 </div>
 
-                {/* Actions */}
                 <div className="row" style={{ gap: '0.375rem', marginTop: 'auto' }}>
-                  <button className="btn btn-outline btn-sm" style={{ flex: 1 }} onClick={e => { e.stopPropagation(); }}>Save</button>
-                  <button className="btn btn-primary btn-sm" style={{ flex: 1 }}>View detail</button>
+                  <button
+                    className={`btn btn-sm ${isSaved ? 'btn-primary' : 'btn-outline'}`}
+                    style={{ flex: 1 }}
+                    disabled={saveTransition}
+                    onClick={e => { e.stopPropagation(); handleToggleSave(p.id); }}
+                  >
+                    {isSaved ? '★' : '☆'} Save
+                  </button>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    style={{ flex: 1 }}
+                    onClick={e => { e.stopPropagation(); setSelected(p); }}
+                  >
+                    View detail
+                  </button>
                 </div>
               </div>
             );
