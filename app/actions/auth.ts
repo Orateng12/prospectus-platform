@@ -4,6 +4,18 @@ import { redirect } from 'next/navigation';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/supabase/requireAuth';
 
+/**
+ * Resolves the canonical site URL for redirect links in auth emails and OAuth.
+ * Priority: explicit NEXT_PUBLIC_SITE_URL → Vercel production URL (auto-injected) → null
+ */
+function getSiteUrl(): string | null {
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  return null;
+}
+
 export async function signIn(formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
@@ -19,6 +31,9 @@ export async function signIn(formData: FormData) {
 }
 
 export async function signUp(formData: FormData): Promise<{ error?: string; needsConfirmation?: boolean } | undefined> {
+  const siteUrl = getSiteUrl();
+  if (!siteUrl) return { error: 'Signup is not configured — contact support' };
+
   const name = formData.get('name') as string;
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
@@ -29,6 +44,7 @@ export async function signUp(formData: FormData): Promise<{ error?: string; need
     password,
     options: {
       data: { full_name: name },
+      redirectTo: `${siteUrl}/auth/callback`,
     },
   });
 
@@ -53,14 +69,14 @@ export async function signOut() {
 }
 
 export async function signInWithGoogle(): Promise<{ url: string } | { error: string }> {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  if (!siteUrl) return { error: 'OAuth is not configured — NEXT_PUBLIC_SITE_URL is missing' };
+  const siteUrl = getSiteUrl();
+  if (!siteUrl) return { error: 'Google sign-in is not configured — contact support' };
 
   const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${siteUrl}/callback`,
+      redirectTo: `${siteUrl}/auth/callback`,
     },
   });
   if (error) return { error: error.message };
@@ -69,8 +85,8 @@ export async function signInWithGoogle(): Promise<{ url: string } | { error: str
 }
 
 export async function requestPasswordReset(formData: FormData): Promise<{ error?: string; success?: boolean }> {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  if (!siteUrl) return { error: 'Password reset is not configured — NEXT_PUBLIC_SITE_URL is missing' };
+  const siteUrl = getSiteUrl();
+  if (!siteUrl) return { error: 'Password reset is not configured — contact support' };
 
   const email = formData.get('email') as string;
   const supabase = await getSupabaseServerClient();

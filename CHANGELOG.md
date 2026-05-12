@@ -30,6 +30,11 @@ All notable changes to the Prospectus platform.
 - `app/actions/generateInsight.ts` — `new Anthropic()` was crashing the server action when `ANTHROPIC_API_KEY` was absent; now checks for the key explicitly and returns a static contextual fallback insight per insight type when the key is not configured
 - `app/globals.css` — Added `color: hsl(var(--fg))` to `.cmdk-input` to prevent invisible text in browsers that don't inherit input colour from parent
 
+### Fixed — Auth broken in production (signup, Google OAuth, password reset)
+- `app/actions/auth.ts` — `signUp`, `signInWithGoogle`, and `requestPasswordReset` all checked `NEXT_PUBLIC_SITE_URL` and failed immediately in production because `.env.local` is never uploaded to Vercel. Added `getSiteUrl()` helper that falls back to `VERCEL_PROJECT_PRODUCTION_URL` (auto-injected by Vercel), so auth works in production without any manual env var changes.
+- Error messages no longer expose internal env var names to end users.
+- **Manual step still required:** Supabase → Authentication → URL Configuration → set Site URL to `https://prospectus-platform.vercel.app` and add `https://prospectus-platform.vercel.app/auth/callback` to Redirect URLs.
+
 ### Added — Forgot password flow
 - `/forgot-password` — email input page; sends Supabase reset link via `requestPasswordReset`
 - `/reset-password` — new password form; calls `updatePassword` server action
