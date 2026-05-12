@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { Route } from '@/lib/types';
 
 type DocStatus = 'uploaded' | 'missing' | 'expired';
 
@@ -36,7 +37,7 @@ const STATUS_LABEL: Record<DocStatus, string> = {
   expired: 'Expired',
 };
 
-export default function DocumentsPage() {
+export default function DocumentsPage({ navigate }: { navigate?: (r: Route) => void }) {
   const [docs, setDocs] = useState(DOCS);
 
   const categories = [...new Set(docs.map(d => d.category))];
@@ -84,7 +85,8 @@ export default function DocumentsPage() {
                     alignItems: 'center',
                     padding: '0.75rem 0',
                     borderBottom: '1px solid hsl(var(--border))',
-                  }}>
+                  }}
+                  className="doc-row">
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{doc.name}</div>
                       <div className="caption" style={{ marginTop: 2 }}>
@@ -116,7 +118,22 @@ export default function DocumentsPage() {
               <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{missing} document{missing > 1 ? 's' : ''} still missing</div>
               <div className="caption" style={{ marginTop: 1 }}>Required for upcoming application deadlines</div>
             </div>
-            <button className="btn btn-primary btn-sm">Upload all</button>
+            <div className="row" style={{ gap: '0.5rem' }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => navigate?.('deadlines')}
+              >
+                View deadlines →
+              </button>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => {
+                  setDocs(prev => prev.map(d => d.status === 'missing' ? { ...d, status: 'uploaded' as const, uploaded: 'Just now' } : d));
+                }}
+              >
+                Mark all uploaded
+              </button>
+            </div>
           </div>
         </div>
       )}

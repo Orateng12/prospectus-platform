@@ -156,7 +156,7 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
               <div className="eyebrow"><span className="dot" />Career probability</div>
               <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Per pathway · academic + psych fit</h3>
             </div>
-            <button className="btn btn-ghost btn-sm">Why?</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate('cognitive')}>Why?</button>
           </div>
           <div className="stack-2">
             {[

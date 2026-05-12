@@ -142,7 +142,7 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail }:
           </p>
         </div>
       ) : (
-        <div className="grid-2 stack-3" style={{ gridTemplateColumns: selectedApp ? '1fr 1fr' : '1fr', alignItems: 'start' }}>
+        <div className="app-grid grid-2 stack-3" style={{ gridTemplateColumns: selectedApp ? '1fr 1fr' : '1fr', alignItems: 'start' }}>
           <div className="stack">
             {displayed.map(a => (
               <div

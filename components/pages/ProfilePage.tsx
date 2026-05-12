@@ -92,7 +92,7 @@ export default function ProfilePage({
       </div>
 
       {/* Hero */}
-      <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+      <div className="card profile-hero" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
         <div className="avatar" style={{ width: 72, height: 72, fontSize: '1.625rem', background: 'hsl(var(--primary))', flexShrink: 0 }}>
           {initial}
         </div>

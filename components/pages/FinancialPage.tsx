@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import type { Subject } from '@/lib/types';
+import type { Subject, Route } from '@/lib/types';
 import { calcAPS, fmtR } from '@/lib/utils';
 
 interface FinancialPageProps {
   subjects: Subject[];
   householdIncome?: number;
+  navigate?: (r: Route) => void;
 }
 
 // NSFAS threshold: R350k/year combined household income
@@ -41,7 +42,7 @@ const LOAN_OPTIONS = [
   { name: 'FNB Student Loan',        rate: 'Prime+1.5%', note: 'Linked to FNB account. Up to R100k/yr. Parent as co-signatory.' },
 ];
 
-export default function FinancialPage({ subjects, householdIncome }: FinancialPageProps) {
+export default function FinancialPage({ subjects, householdIncome, navigate }: FinancialPageProps) {
   const aps = calcAPS(subjects);
   const [income, setIncome] = useState(householdIncome ?? 180_000);
   const [activeTab, setActiveTab] = useState<'overview' | 'bursaries' | 'loans'>('overview');
@@ -73,7 +74,7 @@ export default function FinancialPage({ subjects, householdIncome }: FinancialPa
           </div>
           <div className="row">
             <button className="btn btn-outline">Download report</button>
-            <button className="btn btn-primary">Start applications</button>
+            <button className="btn btn-primary" onClick={() => navigate?.('applications')}>Start applications</button>
           </div>
         </div>
       </div>
@@ -250,7 +251,7 @@ export default function FinancialPage({ subjects, householdIncome }: FinancialPa
                           {aps < b.apsReq ? `Need APS ${b.apsReq}` : `Income too high`}
                         </span>
                     }
-                    <button className="btn btn-outline btn-sm">Apply →</button>
+                    <button className="btn btn-outline btn-sm" onClick={() => navigate?.('scholarships')}>Apply →</button>
                   </div>
                 </div>
                 <p className="body-text" style={{ margin: '0.625rem 0 0', fontSize: '0.8125rem' }}>{b.desc}</p>

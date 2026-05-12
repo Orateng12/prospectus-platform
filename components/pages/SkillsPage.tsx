@@ -73,7 +73,9 @@ export default function SkillsPage({ capabilityData }: SkillsPageProps) {
 
       <div className="grid-2" style={{ gridTemplateColumns: '1.2fr 1fr' }}>
         <div className="card" style={{ display: 'grid', placeItems: 'center', padding: '1.5rem' }}>
+          <div className="radar-container">
           <RadarChart values={values} labels={labels} size={440} />
+          </div>
         </div>
 
         <div className="stack-3">

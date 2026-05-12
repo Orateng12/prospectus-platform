@@ -144,7 +144,14 @@ export default function CareerDetailPage({ career, programmes: propProgrammes, c
             <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Leading programmes</div>
             <div className="stack">
               {fallbackProgs.map(p => (
-                <div key={p.id} style={{ padding: '0.75rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                <div
+                  key={p.id}
+                  style={{ padding: '0.75rem 0', borderBottom: '1px solid hsl(var(--border))', cursor: 'pointer' }}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate('programmes')}
+                  onKeyDown={e => e.key === 'Enter' && navigate('programmes')}
+                >
                   <div className="row-between" style={{ marginBottom: '0.25rem' }}>
                     <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.name}</div>
                     <span className={`badge ${p.pathway}`}>{p.pathway}</span>

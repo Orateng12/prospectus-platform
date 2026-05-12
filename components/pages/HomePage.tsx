@@ -47,10 +47,10 @@ export default function HomePage({ subjects, navigate, programmes, applications 
   const direct = eligible.filter(p => p.pathway === 'direct').length;
   const extended = eligible.filter(p => p.pathway === 'extended' || p.pathway === 'foundation').length;
 
-  const focuses = [
-    { n: '01', t: 'Submit NSFAS supporting documents', s: <>Closes in <strong style={{ color: 'hsl(var(--destructive))' }}>2 days</strong> · ID copy + household income proof</>, cta: 'Open', primary: true },
-    { n: '02', t: 'Apply for Allan Gray Orbis — 92% match', s: 'R 280,000 · closes 15 Oct · you meet every criterion bar one', cta: 'Apply' },
-    { n: '03', t: 'Re-rank programmes after Maths bump', s: 'Your prelim Maths went 72→78 · opens 9 new programmes', cta: 'Re-rank' },
+  const focuses: Array<{ n: string; t: string; s: React.ReactNode; cta: string; primary?: boolean; route: Route }> = [
+    { n: '01', primary: true, t: 'Submit NSFAS supporting documents', s: <>Closes in <strong style={{ color: 'hsl(var(--destructive))' }}>2 days</strong> · ID copy + household income proof</>, cta: 'Open', route: 'documents' },
+    { n: '02', t: 'Apply for Allan Gray Orbis — 92% match', s: 'R 280,000 · closes 15 Oct · you meet every criterion bar one', cta: 'Apply', route: 'scholarships' },
+    { n: '03', t: 'Re-rank programmes after Maths bump', s: 'Your prelim Maths went 72→78 · opens 9 new programmes', cta: 'Re-rank', route: 'simulator' },
   ];
 
   return (
@@ -126,7 +126,7 @@ export default function HomePage({ subjects, navigate, programmes, applications 
                 <div className="eyebrow"><span className="dot" />Today&apos;s focus</div>
                 <h3 className="subheading" style={{ marginTop: '0.25rem' }}>3 things to move the needle</h3>
               </div>
-              <button className="btn btn-ghost btn-sm">View all</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate('deadlines')}>View all</button>
             </div>
             <div className="stack">
               {focuses.map(x => (
@@ -136,7 +136,7 @@ export default function HomePage({ subjects, navigate, programmes, applications 
                     <div className="focus-title">{x.t}</div>
                     <div className="caption" style={{ marginTop: 2 }}>{x.s}</div>
                   </div>
-                  <button className={`btn ${x.primary ? 'btn-primary' : 'btn-outline'} btn-sm`}>{x.cta}</button>
+                  <button className={`btn ${x.primary ? 'btn-primary' : 'btn-outline'} btn-sm`} onClick={() => navigate(x.route)}>{x.cta}</button>
                 </div>
               ))}
             </div>
@@ -155,7 +155,7 @@ export default function HomePage({ subjects, navigate, programmes, applications 
                 <div className="row-between" style={{ marginBottom: '0.875rem' }}>
                   <div>
                     <div className="eyebrow"><span className="dot" />Application pipeline</div>
-                    <h3 className="subheading" style={{ marginTop: '0.25rem' }}>{count} active</h3>
+                    <h3 className="subheading" style={{ marginTop: '0.25rem', cursor: 'pointer' }} onClick={() => navigate('applications')}>{count} active →</h3>
                   </div>
                   <div className="row">
                     {accepted > 0 && <span className="badge success">{accepted} accepted</span>}

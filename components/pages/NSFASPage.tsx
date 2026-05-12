@@ -80,7 +80,7 @@ export default function NSFASPage({ householdIncome = 220000 }: NSFASPageProps) 
 
             <div>
               <label style={{ fontSize: '0.8125rem', fontWeight: 600 }}>Residence type</label>
-              <div className="row" style={{ marginTop: '0.375rem', gap: '0.375rem' }}>
+              <div className="nsfas-type-row row" style={{ marginTop: '0.375rem', gap: '0.375rem' }}>
                 {(['campus', 'private', 'home'] as const).map(r => (
                   <button
                     key={r}

@@ -1023,3 +1023,62 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
 @media (max-width: 900px) {
   .topbar-search { display: none !important; }
 }
+
+/* ─── Phase 6: targeted mobile fixes ────────────────────────────────────── */
+
+/* A1 — FundingPage fund-bar: hide % labels on mobile, title attr preserves tooltip */
+@media (max-width: 480px) {
+  .fund-seg { font-size: 0 !important; }
+}
+
+/* A2 — DocumentsPage doc row: reflow to 2-col on mobile (badge + button wrap below) */
+@media (max-width: 480px) {
+  .doc-row {
+    grid-template-columns: 1fr auto !important;
+    grid-template-rows: auto auto;
+    row-gap: 0.5rem !important;
+  }
+  .doc-row > span { grid-row: 2; }
+  .doc-row > button { grid-row: 2; }
+}
+
+/* A3 — DeadlinesPage: allow row to wrap so + button doesn't overflow */
+@media (max-width: 480px) {
+  .deadline { flex-wrap: wrap; align-items: flex-start !important; }
+  .deadline .dl-date { flex-shrink: 0; }
+  .deadline > .btn-ghost { margin-left: auto; }
+}
+
+/* A4 — ApplicationsPage: single column even when detail panel open */
+@media (max-width: 640px) {
+  .app-grid { grid-template-columns: 1fr !important; }
+}
+
+/* A5 — MapPage: narrow province label column on small screens */
+@media (max-width: 480px) {
+  .province-row {
+    grid-template-columns: 76px 1fr 26px !important;
+    font-size: 0.75rem !important;
+  }
+}
+
+/* A6 — ProfilePage: stack hero vertically, shrink avatar */
+@media (max-width: 480px) {
+  .profile-hero { flex-direction: column !important; align-items: flex-start !important; }
+  .profile-hero .avatar {
+    width: 52px !important; height: 52px !important; font-size: 1.25rem !important;
+  }
+}
+
+/* A7 — CareerComparePage: handled by reducing JS constants (LABEL_W / ITEM_W) in component */
+
+/* A8 — NSFASPage: residence type buttons wrap on very small screens */
+@media (max-width: 400px) {
+  .nsfas-type-row { flex-wrap: wrap !important; }
+}
+
+/* A9 — SkillsPage: force RadarChart SVG to fit container width */
+@media (max-width: 600px) {
+  .radar-container { width: 100%; }
+  .radar-container svg { width: 100% !important; height: auto !important; }
+}

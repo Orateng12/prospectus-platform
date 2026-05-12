@@ -117,6 +117,7 @@ export default function MapPage() {
                     padding: '0.4375rem 0',
                     borderBottom: '1px solid hsl(var(--border))',
                   }}
+                  className="province-row"
                 >
                   <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>
                     {p.name}

@@ -20,8 +20,8 @@ function CmpSection({ title, n, header, rows }: {
   header: React.ReactNode[];
   rows: Array<{ label: string; cells: React.ReactNode[] }>;
 }) {
-  const LABEL_W = 140;
-  const ITEM_W  = 180;
+  const LABEL_W = 110;
+  const ITEM_W  = 155;
 
   return (
     <div className="card">

@@ -1,6 +1,7 @@
 'use client';
 
 import { DEADLINES } from '@/lib/data';
+import type { Route } from '@/lib/types';
 
 const EXTRA_DEADLINES = [
   { d: 15, m: 'Oct', t: 'Allan Gray Orbis Foundation', sub: '161 days · entrepreneurial essay required', tag: 'info', tagL: 'Open' },
@@ -16,7 +17,7 @@ function urgencyGroup(tag: string): 'urgent' | 'soon' | 'upcoming' {
   return 'upcoming';
 }
 
-export default function DeadlinesPage() {
+export default function DeadlinesPage({ navigate }: { navigate?: (r: Route) => void }) {
   const urgent = ALL_DEADLINES.filter(d => urgencyGroup(d.tag) === 'urgent');
   const soon = ALL_DEADLINES.filter(d => urgencyGroup(d.tag) === 'soon');
   const upcoming = ALL_DEADLINES.filter(d => urgencyGroup(d.tag) === 'upcoming');
@@ -35,7 +36,14 @@ export default function DeadlinesPage() {
               <div className="caption" style={{ marginTop: 1 }}>{d.sub}</div>
             </div>
             <span className={`badge ${d.tag || 'info'}`}>{d.tagL}</span>
-            <button className="btn btn-ghost btn-sm" style={{ padding: '0 0.5rem' }}>+</button>
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ padding: '0 0.5rem' }}
+              onClick={() => d.tag === 'destructive' ? navigate?.('documents') : undefined}
+              title={d.tag === 'destructive' ? 'Open documents' : 'Add to calendar'}
+            >
+              +
+            </button>
           </div>
         ))}
       </div>
@@ -106,8 +114,8 @@ export default function DeadlinesPage() {
           Your most critical deadline is <strong>NSFAS supporting docs in 2 days</strong>. Missing this window pushes your funding application to next year&apos;s cycle. ID copy + household income proof are the two outstanding items — both are in your Documents vault marked as uploaded.
         </p>
         <div className="row" style={{ marginTop: '0.75rem' }}>
-          <button className="btn btn-outline btn-sm">Open NSFAS portal</button>
-          <button className="btn btn-ghost btn-sm">Set reminder</button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate?.('nsfas')}>Open NSFAS portal</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => navigate?.('documents')}>View documents</button>
         </div>
       </div>
     </div>

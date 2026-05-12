@@ -176,7 +176,7 @@ export default function Dashboard({
       case 'funding':
         return <FundingPage householdIncome={householdIncome} userAps={displayAps} />;
       case 'financial':
-        return <FinancialPage subjects={displaySubjects} householdIncome={householdIncome} />;
+        return <FinancialPage subjects={displaySubjects} householdIncome={householdIncome} navigate={navigate} />;
       case 'careers':
         return (
           <CareersPage
@@ -219,9 +219,9 @@ export default function Dashboard({
           />
         );
       case 'documents':
-        return <DocumentsPage />;
+        return <DocumentsPage navigate={navigate} />;
       case 'deadlines':
-        return <DeadlinesPage />;
+        return <DeadlinesPage navigate={navigate} />;
       case 'profile':
         return (
           <ProfilePage
