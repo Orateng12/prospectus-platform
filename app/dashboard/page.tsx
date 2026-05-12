@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { requireAuth } from '@/lib/supabase/requireAuth';
 import { SUBJECTS, PROGRAMMES, CAREERS } from '@/lib/data';
+import { computeStrategicScore } from '@/lib/scoring';
 import Dashboard from '@/components/Dashboard';
 import type {
   Subject, Programme, Career,
@@ -47,6 +48,7 @@ function mapDbCareerToCareer(c: DbCareer, rank: number): Career {
     demand: normaliseDemand(c.demand_level),
     tags,
     why: c.description ?? `${c.title} is a strong career path with ${normaliseDemand(c.demand_level).toLowerCase()} market demand in South Africa.`,
+    scarce_skill: c.scarce_skill ?? false,
   };
 }
 
@@ -153,8 +155,27 @@ export default async function Page() {
   // Capability graph
   const capabilityData: CapabilityData | null = capResult.data ?? null;
 
-  // Strategic score
-  const strategicScore: StrategicScoreData | null = scoreResult.data ?? null;
+  // Strategic score — compute and persist on first visit if missing
+  let strategicScore: StrategicScoreData | null = scoreResult.data ?? null;
+
+  if (!strategicScore && psychProfile && capabilityData) {
+    const income = profile?.household_income ?? 0;
+    const computed = computeStrategicScore(psychProfile, capabilityData, userAps, income);
+    // Fire-and-forget: don't block page render on the insert
+    supabase.from('strategic_score_records').insert({
+      user_id:                   user.id,
+      overall:                   computed.overall,
+      academic_readiness:        computed.academic_readiness,
+      career_demand_alignment:   computed.career_demand_alignment,
+      financial_feasibility:     computed.financial_feasibility,
+      global_mobility_potential: computed.global_mobility_potential,
+      personality_career_fit:    computed.personality_career_fit,
+      skill_readiness:           computed.skill_readiness,
+      previous_score:            null,
+      trend:                     'stable',
+    }).then(() => { /* intentional no-op */ });
+    strategicScore = { ...computed, trend: 'stable' };
+  }
 
   // Applications
   let applications: DbApplication[] = [];

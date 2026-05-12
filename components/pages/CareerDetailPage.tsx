@@ -3,6 +3,7 @@
 import type { Career, Programme, CapabilityData, Route } from '@/lib/types';
 import { PROGRAMMES } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
+import { getCareerCapRequirements } from '@/lib/scoring';
 
 interface CareerDetailPageProps {
   career: Career | null;
@@ -72,16 +73,18 @@ export default function CareerDetailPage({ career, programmes: propProgrammes, c
     .slice(0, 3);
   const fallbackProgs = relatedProgs.length > 0 ? relatedProgs : allProgs.sort((a, b) => b.fit - a.fit).slice(0, 3);
 
-  // Collect relevant capability dimensions from tags
-  const capKeys = new Set<keyof CapabilityData>();
-  career.tags.forEach(tag => {
-    (TAG_TO_CAPS[tag] ?? []).forEach(k => capKeys.add(k));
-  });
-  if (capKeys.size === 0) {
-    capKeys.add('analytical_thinking');
-    capKeys.add('communication_skills');
+  // Capability requirements from the scoring engine — real required scores per cap
+  const capReqs = getCareerCapRequirements(career.name);
+  const capList = (Object.keys(capReqs) as Array<keyof CapabilityData>)
+    .sort((a, b) => (capReqs[b] ?? 0) - (capReqs[a] ?? 0))
+    .slice(0, 4);
+  // Fallback to tag-based if archetype returned nothing (shouldn't happen)
+  if (capList.length === 0) {
+    const tagCaps = new Set<keyof CapabilityData>();
+    career.tags.forEach(tag => (TAG_TO_CAPS[tag] ?? []).forEach(k => tagCaps.add(k)));
+    if (tagCaps.size === 0) { tagCaps.add('analytical_thinking'); tagCaps.add('communication_skills'); }
+    capList.push(...Array.from(tagCaps).slice(0, 4));
   }
-  const capList = Array.from(capKeys).slice(0, 4);
 
   return (
     <div className="page-anim">
@@ -102,6 +105,9 @@ export default function CareerDetailPage({ career, programmes: propProgrammes, c
           </div>
           <div className="row" style={{ alignItems: 'flex-start', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <span className={`badge ${career.demand === 'High' ? 'success' : 'warning'}`}>{career.demand} demand</span>
+            {career.scarce_skill && (
+              <span className="badge accent">Scarce skill</span>
+            )}
             <div className="card compact" style={{ textAlign: 'center', padding: '0.5rem 0.875rem', minWidth: 80 }}>
               <div style={{ fontWeight: 900, fontSize: '1.5rem', letterSpacing: '-0.04em' }}>{career.match}</div>
               <div className="caption" style={{ fontSize: '0.625rem' }}>/ 100 match</div>
@@ -229,24 +235,31 @@ export default function CareerDetailPage({ career, programmes: propProgrammes, c
               <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Capability alignment</div>
               <div className="stack">
                 {capList.map(key => {
-                  const required = 70;
+                  const required = capReqs[key] ?? 70;
                   const yours = capabilityData[key] as number;
                   const gap = Math.max(0, required - yours);
                   return (
-                    <div key={key} className="progress-row">
-                      <span className="label">{CAP_LABEL[key]}</span>
-                      <div className="meter" style={{ flex: 1 }}>
-                        <i style={{ width: `${yours}%`, background: gap > 0 ? 'hsl(var(--warning))' : undefined }} />
+                    <div key={key}>
+                      <div className="progress-row">
+                        <span className="label">{CAP_LABEL[key]}</span>
+                        <div className="meter" style={{ flex: 1, position: 'relative' }}>
+                          <i style={{ width: `${yours}%`, background: gap > 0 ? 'hsl(var(--warning))' : undefined }} />
+                          {/* Target marker */}
+                          <span style={{
+                            position: 'absolute', top: 0, bottom: 0, left: `${required}%`,
+                            width: 2, background: 'hsl(var(--fg) / 0.35)',
+                          }} />
+                        </div>
+                        <span className="val" style={{ color: gap > 0 ? 'hsl(var(--warning))' : 'hsl(var(--success))' }}>
+                          {yours}<span className="caption">/{required}</span>
+                        </span>
                       </div>
-                      <span className="val" style={{ color: gap > 0 ? 'hsl(var(--warning))' : 'hsl(var(--success))' }}>
-                        {yours}
-                      </span>
                     </div>
                   );
                 })}
               </div>
               <div className="caption" style={{ marginTop: '0.75rem', fontSize: '0.6875rem' }}>
-                Target ≥ 70 for this career. Yellow = gap to address.
+                Bar line = target for {career.name}. Yellow = gap to address.
               </div>
             </div>
           )}

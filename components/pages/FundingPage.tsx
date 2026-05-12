@@ -6,14 +6,47 @@ interface FundingPageProps {
   userAps?: number;
 }
 
+function computeNsfas(income: number | undefined): number {
+  if (income === undefined || income <= 350_000) return 115_060;
+  if (income <= 600_000)                         return  48_000;
+  return 0;
+}
+
+function computeBursary(aps: number | undefined): number {
+  const a = aps ?? 0;
+  if (a >= 42) return 165_000;
+  if (a >= 38) return  95_000;
+  if (a >= 32) return  42_000;
+  if (a >= 26) return  18_000;
+  return 0;
+}
+
+const YEAR1_COST = 165_420;
+const INFLATION  = 0.048;
+
 export default function FundingPage({ householdIncome, userAps }: FundingPageProps) {
-  const aboveNsfasThreshold = householdIncome !== undefined && householdIncome > 350000;
-  const total   = 165420;
-  const nsfas   = aboveNsfasThreshold ? 0 : 88000;
-  const bursary = 42000;
-  const scholar = 18000;
-  const gap     = total - nsfas - bursary - scholar;
+  const aboveNsfasThreshold = householdIncome !== undefined && householdIncome > 350_000;
+
+  const nsfas   = computeNsfas(householdIncome);
+  const bursary = computeBursary(userAps);
+  const scholar = 18_000;
+  const total   = YEAR1_COST;
+  const gap     = Math.max(0, total - nsfas - bursary - scholar);
   const pct     = (n: number) => `${((n / total) * 100).toFixed(1)}%`;
+
+  const projection = [1, 2, 3].map(y => {
+    const cost = Math.round(YEAR1_COST * Math.pow(1 + INFLATION, y - 1));
+    const cov  = Math.min(cost, nsfas + bursary + scholar);
+    return { y: `Year ${y}`, cost, cov };
+  });
+
+  const topScholar    = [...SCHOLARSHIPS].sort((a, b) => b.amount - a.amount)[0];
+  const serviceScholar = SCHOLARSHIPS.find(s => s.eligibility.toLowerCase().includes('service'));
+
+  const bursaryLabel = bursary >= 95_000 ? 'Investec Bursary' : bursary >= 42_000 ? 'Merit Bursary' : 'Achievement Bursary';
+  const bursorySub   = bursary > 0
+    ? `APS ${userAps ?? '—'} qualifies · application open`
+    : 'APS below merit threshold';
 
   return (
     <div className="page-anim">
@@ -60,8 +93,8 @@ export default function FundingPage({ householdIncome, userAps }: FundingPagePro
           >
             {gap > 0 ? fmtR(gap) : 'Closed'}
           </div>
-          {gap > 0 && (
-            <div className="caption" style={{ marginTop: '0.25rem' }}>Apply to Allan Gray Orbis to close 100%.</div>
+          {gap > 0 && topScholar && (
+            <div className="caption" style={{ marginTop: '0.25rem' }}>Apply to {topScholar.name} to close 100%.</div>
           )}
         </div>
 
@@ -71,18 +104,22 @@ export default function FundingPage({ householdIncome, userAps }: FundingPagePro
           <div className="caption" style={{ marginTop: '0.25rem' }}>Year 1 · ZAR</div>
 
           <div className="fund-bar" style={{ marginTop: '1rem' }}>
-            <div className="fund-seg nsfas" style={{ flex: nsfas }} title="NSFAS">{pct(nsfas)}</div>
-            <div className="fund-seg bursary" style={{ flex: bursary }} title="Bursary">{pct(bursary)}</div>
+            <div className="fund-seg nsfas"  style={{ flex: nsfas }}   title="NSFAS">{pct(nsfas)}</div>
+            {bursary > 0 && (
+              <div className="fund-seg bursary" style={{ flex: bursary }} title="Bursary">{pct(bursary)}</div>
+            )}
             <div className="fund-seg scholar" style={{ flex: scholar }} title="Scholarship">{pct(scholar)}</div>
-            <div className="fund-seg fund-gap-seg" style={{ flex: gap }} title="Gap">{pct(gap)}</div>
+            {gap > 0 && (
+              <div className="fund-seg fund-gap-seg" style={{ flex: gap }} title="Gap">{pct(gap)}</div>
+            )}
           </div>
 
           <div className="row" style={{ gap: '0.5rem', marginTop: '0.75rem', fontSize: '0.6875rem' }}>
             {[
-              { label: 'NSFAS',       cls: 'nsfas',   bg: 'hsl(var(--fg))' },
-              { label: 'Bursary',     cls: 'bursary',  bg: 'hsl(var(--primary))' },
-              { label: 'Scholarship', cls: 'scholar',  bg: 'hsl(var(--accent))' },
-              { label: 'Gap',         cls: 'gap',      bg: 'hsl(var(--destructive) / 0.4)' },
+              { label: 'NSFAS',       bg: 'hsl(var(--fg))' },
+              ...(bursary > 0 ? [{ label: 'Bursary', bg: 'hsl(var(--primary))' }] : []),
+              { label: 'Scholarship', bg: 'hsl(var(--accent))' },
+              ...(gap > 0 ? [{ label: 'Gap', bg: 'hsl(var(--destructive) / 0.4)' }] : []),
             ].map(x => (
               <span key={x.label} className="row" style={{ gap: '0.375rem' }}>
                 <span style={{ width: 10, height: 10, borderRadius: 2, background: x.bg, display: 'inline-block' }} />
@@ -93,9 +130,9 @@ export default function FundingPage({ householdIncome, userAps }: FundingPagePro
 
           <div className="stack-2" style={{ marginTop: '1.25rem' }}>
             {[
-              { cls: 'nsfas',   icon: 'N', label: 'NSFAS',                         amount: nsfas,   sub: aboveNsfasThreshold ? 'Above income threshold · not eligible' : 'Government bursary · confirmed eligible' },
-              { cls: 'bursary', icon: 'B', label: 'Investec Bursary',               amount: bursary, sub: 'Matched 88% · application open' },
-              { cls: 'scholar', icon: 'S', label: 'NRF Innovation Scholarship',     amount: scholar, sub: 'Matched 74% · application open' },
+              { cls: 'nsfas',   icon: 'N', label: 'NSFAS',                     amount: nsfas,   sub: aboveNsfasThreshold ? 'Above income threshold · not eligible' : 'Government bursary · confirmed eligible' },
+              ...(bursary > 0 ? [{ cls: 'bursary', icon: 'B', label: bursaryLabel, amount: bursary, sub: bursorySub }] : []),
+              { cls: 'scholar', icon: 'S', label: 'NRF Innovation Scholarship', amount: scholar, sub: 'Matched 74% · application open' },
             ].map(x => (
               <div key={x.label} className="fund-source">
                 <div className={`fund-icon ${x.cls}`}>{x.icon}</div>
@@ -152,11 +189,7 @@ export default function FundingPage({ householdIncome, userAps }: FundingPagePro
           <div className="eyebrow"><span className="dot" />4-year projection</div>
           <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Total degree cost &amp; coverage</h3>
           <div className="stack-2" style={{ marginTop: '0.875rem' }}>
-            {[
-              { y: 'Year 1', cost: 165420, cov: 148000 },
-              { y: 'Year 2', cost: 173200, cov: 158400 },
-              { y: 'Year 3', cost: 181800, cov: 166200 },
-            ].map(({ y, cost, cov }) => {
+            {projection.map(({ y, cost, cov }) => {
               const pc = Math.round(cov / cost * 100);
               return (
                 <div key={y}>
@@ -178,20 +211,29 @@ export default function FundingPage({ householdIncome, userAps }: FundingPagePro
           <div className="eyebrow"><span className="dot" />AI commentary</div>
           <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Strategy notes</h3>
           <div className="stack-2" style={{ marginTop: '0.875rem' }}>
-            <div className="insight">
-              <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.375rem' }}>Apply to Allan Gray first</div>
-              <p className="body-text" style={{ fontSize: '0.8125rem' }}>
-                Closes 15 Oct, highest amount ({fmtR(280000)}) and you match 92% of criteria. If awarded, decline lower-value bursaries.
-              </p>
-              <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.5rem' }}>GPT-4 · Strategic priority</div>
-            </div>
-            <div className="insight">
-              <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.375rem' }}>Watch the Sasol service contract</div>
-              <p className="body-text" style={{ fontSize: '0.8125rem' }}>
-                Sasol&apos;s {fmtR(198000)} bursary requires a post-graduation service period — limits mobility. Stack only if committed to the energy sector.
-              </p>
-              <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.5rem' }}>Gemini · Risk note</div>
-            </div>
+            {topScholar && (
+              <div className="insight">
+                <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
+                  Apply to {topScholar.name} first
+                </div>
+                <p className="body-text" style={{ fontSize: '0.8125rem' }}>
+                  Closes {topScholar.deadline}, highest amount ({fmtR(topScholar.amount)}) and you match {topScholar.match}% of criteria.
+                  {gap === 0 ? ' Combined with your other funding, this fully covers your degree.' : ' If awarded, decline lower-value bursaries.'}
+                </p>
+                <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.5rem' }}>Strategic priority</div>
+              </div>
+            )}
+            {serviceScholar && (
+              <div className="insight">
+                <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
+                  Watch the {serviceScholar.name} service contract
+                </div>
+                <p className="body-text" style={{ fontSize: '0.8125rem' }}>
+                  {serviceScholar.name}&apos;s {fmtR(serviceScholar.amount)} bursary requires a post-graduation service period — limits mobility. Stack only if committed to the sector.
+                </p>
+                <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.5rem' }}>Risk note</div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -111,23 +111,51 @@ export default function ScholarshipsPage({ userAps, householdIncome, compareItem
         </div>
       )}
 
-      <div className="grid-2" style={{ marginTop: '1.25rem' }}>
-        <div className="card">
-          <div className="eyebrow"><span className="dot" />Top priority</div>
-          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Allan Gray Orbis — apply first</h3>
-          <p className="body-text" style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
-            Closes 15 Oct. Highest value at {fmtR(280000)}/year. You match 92% of criteria — the only gap is the entrepreneurial pitch, which can be prepped in 2 weeks. Full tuition + residence + stipend + laptop.
-          </p>
-          <button className="btn btn-primary btn-sm" style={{ marginTop: '0.875rem' }}>Start application →</button>
-        </div>
-        <div className="card">
-          <div className="eyebrow"><span className="dot" />AI commentary</div>
-          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Stacking strategy</h3>
-          <p className="body-text" style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
-            Apply to Allan Gray first. If awarded, you can decline lower-value bursaries with service contracts. If not awarded, Investec (88% match) + UCT Vice-Chancellor&apos;s together cover 89% of year-1 costs — stronger than any single source.
-          </p>
-        </div>
-      </div>
+      {(() => {
+        const sortedByPriority = [...withLiveMatch].sort((a, b) => {
+          if (b.match !== a.match) return b.match - a.match;
+          return a.deadline.localeCompare(b.deadline);
+        });
+        const topPriority = sortedByPriority[0];
+        const runnerUp    = sortedByPriority[1];
+        const serviceContracts = withLiveMatch.filter(s =>
+          s.eligibility.toLowerCase().includes('service')
+        );
+        const stackPartner = withLiveMatch
+          .filter(s => s.name !== topPriority.name && !s.eligibility.toLowerCase().includes('service'))
+          .sort((a, b) => b.match - a.match)[0];
+
+        return (
+          <div className="grid-2" style={{ marginTop: '1.25rem' }}>
+            <div className="card">
+              <div className="eyebrow"><span className="dot" />Top priority</div>
+              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
+                {topPriority.name} — apply first
+              </h3>
+              <p className="body-text" style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
+                Closes {topPriority.deadline}. Highest match at {topPriority.match}% of criteria
+                {topPriority.match >= 85 ? ' — strong fit, prioritise the application' : ' — worth the effort given the value'}.
+                {' '}{fmtR(topPriority.amount)}/year. {topPriority.eligibility}.
+              </p>
+              <button className="btn btn-primary btn-sm" style={{ marginTop: '0.875rem' }}
+                onClick={() => onOpenDetail?.(topPriority)}>
+                View details →
+              </button>
+            </div>
+            <div className="card">
+              <div className="eyebrow"><span className="dot" />AI commentary</div>
+              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Stacking strategy</h3>
+              <p className="body-text" style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
+                Apply to {topPriority.name} first.{' '}
+                {runnerUp && stackPartner
+                  ? `If awarded, you can skip lower-value alternatives. If not, ${stackPartner.name} (${stackPartner.match}% match)${runnerUp.name !== stackPartner.name ? ` + ${runnerUp.name}` : ''} combined cover a strong percentage of year-1 costs.`
+                  : 'If awarded, decline lower-value bursaries with service contracts.'}
+                {serviceContracts.length > 0 && ` Watch the ${serviceContracts[0].name} — ${fmtR(serviceContracts[0].amount)} but requires a post-graduation service period.`}
+              </p>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

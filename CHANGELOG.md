@@ -6,6 +6,33 @@ All notable changes to the Prospectus platform.
 
 ## [Unreleased]
 
+### Added — Phase 8: Deep personalisation Round 4 (Big Five, real match scores, dynamic scholarships, NSFAS dependants, live deadlines)
+- `lib/scoring.ts` — Added `CareerBigFiveRanges` interface and `getCareerBigFiveRanges(careerName)` export; returns ideal `[lo, hi]` tuples per Big Five trait for any career archetype
+- `components/pages/SkillsPage.tsx` — New Big Five personality alignment card: zone-bracket overlay on meter bars shows ideal range for top-matched career; traits sorted in-zone first; gap notes at 3 severity levels
+- `components/pages/ProgrammePage.tsx` — Match breakdown now uses real scores: Academic fit = `Math.min(100, aps/p.aps * 100)`, Capability fit = mean of 4 core capability dims, Market fit = demand tier (90/65/40); color-coded by threshold
+- `components/pages/ScholarshipsPage.tsx` — Top priority card and stacking strategy both derived from live `withLiveMatch` scores; highest-match scholarship (tie-broken by earliest deadline) replaces hardcoded Allan Gray; service contract scholarships flagged in stacking note
+- `components/pages/NSFASPage.tsx` — Dependants input now wires to threshold: base R350k + R25k per additional dependant (capped R600k); estimated award includes dependant food-allowance bonus (R2.5k each, capped R8k); threshold label shows computed value
+- `components/pages/DeadlinesPage.tsx` — Accepts `applications?: DbApplication[]` prop; real application deadlines merged into timeline with correct urgency classification (≤7 days = Urgent, ≤21 = Soon); apps without deadline silently skipped
+- `components/Dashboard.tsx` — Passes `applications` to `DeadlinesPage`; `emptyMode` suppresses real deadlines
+
+### Added — Phase 7: Deeper personalisation Round 3 (scoring engine connections)
+- `lib/scoring.ts` — New file: 16 SA career archetypes with RIASEC weights, capability requirements, Big Five ideal ranges; `scoreCareerMatch()` (RIASEC 38% + Capabilities 30% + Big Five 15% + APS gate 17%); `rankCareersByMatch()`, `getCareerCapRequirements()`, `getCareerCapRequirements()`
+- `lib/types.ts` — Added `scarce_skill?: boolean` to `Career` interface
+- `app/dashboard/page.tsx` — `mapDbCareerToCareer` maps `scarce_skill` from DB row
+- `components/pages/IntelligencePage.tsx` — Exposes all 6 strategic sub-scores (was 4); reads live values from `strategicScore` prop
+- `components/pages/FundingPage.tsx` — Full rewrite: `computeNsfas()` and `computeBursary()` with real SA policy bands; 3-year cost projection at 4.8% HEI inflation; dynamic scholarship commentary from `SCHOLARSHIPS` data
+- `components/pages/ProgrammePage.tsx` — `getCareerCluster()` keyword function maps programme name to career cluster (8 types + fallback); career paths show live `scoreCareerMatch()` percentages when profile present
+- `components/pages/DiscoverPage.tsx` — `buildInsightText()` reads dominant RIASEC type and top capabilities from real profile data; AI insight card personalised per user
+- `components/pages/CareersPage.tsx` — `scarce_skill` badge surfaced per career card
+- `components/pages/CareerDetailPage.tsx` — `scarce_skill` badge in detail header
+
+### Added — Phase 6: Mobile polish + navigation connective tissue
+- `components/Sidebar.tsx` — `isOpen`/`onClose` props; `.sidebar.open` class toggled from Dashboard; close button rendered inside sidebar
+- `components/Topbar.tsx` — Hamburger button wired to `onMenuClick`; search bar gets `topbar-search` class so CSS hides it at ≤900px
+- `components/Dashboard.tsx` — `sidebarOpen` state lifted here; backdrop div toggles `.open`; `navigate` callback closes sidebar; new props threaded to Sidebar and Topbar
+- `components/pages/MapPage.tsx` — Inline `gridTemplateColumns` replaced with `.grid-2-asym` class for responsive layout
+- `components/pages/ProfilePage.tsx` — Inline `gridTemplateColumns: repeat(3,1fr)` replaced with `.grid-3`
+
 ### Added — Phase 4: Design system expansion (9 new pages + global UI)
 - `lib/types.ts` — Expanded `Route` union (+9 routes: `unis`, `compare`, `discover`, `scholarships`, `nsfas`, `applications`, `documents`, `deadlines`, `profile`); added `University` and `CompareItem` interfaces; extended `Application` with `id`, `short`, `progId`, `submitted`, `decided`, `fee`
 - `lib/data.ts` — Added `UNIS` array (10 SA institutions: UCT, Wits, SUN, UP, UKZN, UJ, UWC, RU, CPUT, TUT); updated `APPS` with rich tracking fields

@@ -27,7 +27,7 @@ export default function MapPage() {
         </div>
       </div>
 
-      <div className="grid-2" style={{ gridTemplateColumns: '1.5fr 1fr' }}>
+      <div className="grid-2-asym">
         {/* Map */}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{

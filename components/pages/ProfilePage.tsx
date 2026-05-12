@@ -188,7 +188,7 @@ export default function ProfilePage({
         <div className="sec" style={{ marginBottom: '0.875rem' }}>
           <h3>Activity</h3>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+        <div className="grid-3">
           {[
             { l: 'Applications', v: emptyMode ? '0' : '4', sub: emptyMode ? 'No applications yet' : '1 accepted · 1 pending', c: 'success' },
             { l: 'Scholarships saved', v: emptyMode ? '0' : '5', sub: emptyMode ? 'None saved yet' : '2 applied · R 445k matched', c: 'brand' },

@@ -6,6 +6,8 @@ interface SidebarProps {
   navigate: (r: Route) => void;
   userName?: string;
   userProvince?: string;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 interface NavItem {
@@ -62,12 +64,13 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
   },
 ];
 
-export default function Sidebar({ route, navigate, userName = 'Student', userProvince }: SidebarProps) {
+export default function Sidebar({ route, navigate, userName = 'Student', userProvince, isOpen, onClose }: SidebarProps) {
   const initial = userName.charAt(0).toUpperCase();
   const caption = userProvince ? `Free plan · ${userProvince}` : 'Free plan';
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${isOpen ? ' open' : ''}`}>
+      <button className="sidebar-close" onClick={onClose} aria-label="Close menu">✕</button>
       <div className="brand">
         <div className="brand-mark">P</div>
         <div>

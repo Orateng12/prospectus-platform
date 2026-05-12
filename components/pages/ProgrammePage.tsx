@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useMemo, useTransition } from 'react';
-import type { Route, Subject, Programme } from '@/lib/types';
+import type { Route, Subject, Programme, PsychProfileData, CapabilityData } from '@/lib/types';
 import { PROGRAMMES } from '@/lib/data';
 import { calcAPS, fmtR } from '@/lib/utils';
+import { scoreCareerMatch } from '@/lib/scoring';
 import { toggleSavedProgramme } from '@/app/actions/toggleSavedProgramme';
 import { saveApplication } from '@/app/actions/saveApplication';
 
@@ -13,6 +14,86 @@ interface ProgrammePageProps {
   navigate: (r: Route) => void;
   programmes?: Programme[];
   savedProgrammeIds?: string[];
+  psychProfile?: PsychProfileData | null;
+  capabilityData?: CapabilityData | null;
+  userAps?: number;
+}
+
+type BadgeVariant = 'success' | 'warning' | 'accent';
+interface ClusterCareer { name: string; badgeClass: BadgeVariant }
+
+function getCareerCluster(programmeName: string): ClusterCareer[] {
+  const n = programmeName.toLowerCase();
+  if (n.includes('computer science') || n.includes('software') || n.includes('ict') || n.includes('app dev') || n.includes('information technology')) {
+    return [
+      { name: 'Software Engineer',         badgeClass: 'success' },
+      { name: 'Data Scientist',            badgeClass: 'success' },
+      { name: 'ML Engineer',               badgeClass: 'warning' },
+      { name: 'Product Manager (Tech)',     badgeClass: 'warning' },
+    ];
+  }
+  if (n.includes('data science') || n.includes('data analytics') || n.includes('statistics')) {
+    return [
+      { name: 'Data Scientist',            badgeClass: 'success' },
+      { name: 'Data Analyst',              badgeClass: 'success' },
+      { name: 'ML Engineer',               badgeClass: 'warning' },
+      { name: 'Quantitative Analyst',      badgeClass: 'warning' },
+    ];
+  }
+  if (n.includes('actuarial')) {
+    return [
+      { name: 'Actuary',                   badgeClass: 'success' },
+      { name: 'Quantitative Analyst',      badgeClass: 'success' },
+      { name: 'Data Analyst',              badgeClass: 'warning' },
+      { name: 'Financial Advisor',         badgeClass: 'warning' },
+    ];
+  }
+  if (n.includes('engineering') || n.includes('mech') || n.includes('civil') || n.includes('electrical') || n.includes('chemical')) {
+    return [
+      { name: 'Civil Engineer',            badgeClass: 'success' },
+      { name: 'Mechanical Engineer',       badgeClass: 'success' },
+      { name: 'Software Engineer',         badgeClass: 'warning' },
+      { name: 'Product Manager',           badgeClass: 'warning' },
+    ];
+  }
+  if (n.includes('medicine') || n.includes('mbchb') || n.includes('health science') || n.includes('nursing') || n.includes('pharmacy')) {
+    return [
+      { name: 'Doctor',                    badgeClass: 'success' },
+      { name: 'Nurse',                     badgeClass: 'success' },
+      { name: 'Doctor (MBChB)',            badgeClass: 'warning' },
+      { name: 'Entrepreneur',              badgeClass: 'warning' },
+    ];
+  }
+  if (n.includes('finance') || n.includes('bcom') || n.includes('accounting') || n.includes('economics')) {
+    return [
+      { name: 'Accountant',                badgeClass: 'success' },
+      { name: 'Financial Advisor',         badgeClass: 'success' },
+      { name: 'Actuary',                   badgeClass: 'warning' },
+      { name: 'Entrepreneur',              badgeClass: 'warning' },
+    ];
+  }
+  if (n.includes('law') || n.includes('llb')) {
+    return [
+      { name: 'Lawyer',                    badgeClass: 'success' },
+      { name: 'Entrepreneur',              badgeClass: 'warning' },
+      { name: 'Financial Advisor',         badgeClass: 'warning' },
+      { name: 'Teacher',                   badgeClass: 'warning' },
+    ];
+  }
+  if (n.includes('education') || n.includes('teaching') || n.includes('pgce')) {
+    return [
+      { name: 'Teacher',                   badgeClass: 'success' },
+      { name: 'Entrepreneur',              badgeClass: 'warning' },
+      { name: 'Product Manager',           badgeClass: 'warning' },
+      { name: 'Lawyer',                    badgeClass: 'warning' },
+    ];
+  }
+  return [
+    { name: 'Entrepreneur',               badgeClass: 'success' },
+    { name: 'Product Manager',            badgeClass: 'warning' },
+    { name: 'Data Analyst',              badgeClass: 'warning' },
+    { name: 'Teacher',                   badgeClass: 'warning' },
+  ];
 }
 
 const PATHWAY_LABELS: Record<string, string> = {
@@ -24,7 +105,7 @@ const PATHWAY_LABELS: Record<string, string> = {
 
 /* ─── Detail view ─────────────────────────────────────────────── */
 function ProgDetail({
-  p, aps, navigate, onBack, isSaved, onToggleSave, onApply, applyState,
+  p, aps, navigate, onBack, isSaved, onToggleSave, onApply, applyState, psychProfile, capabilityData,
 }: {
   p: Programme;
   aps: number;
@@ -34,6 +115,8 @@ function ProgDetail({
   onToggleSave: () => void;
   onApply: () => void;
   applyState: 'idle' | 'pending' | 'done' | 'exists';
+  psychProfile?: PsychProfileData | null;
+  capabilityData?: CapabilityData | null;
 }) {
   const structure = [
     { y: 'Year 1', t: 'Foundations',    d: 'Core theory, introduction to the discipline, one minor' },
@@ -47,6 +130,18 @@ function ProgDetail({
     { name: 'Relevant NSC subject',           req: 50, mark: 71 },
     { name: 'NBT / institutional test',       req: 55, mark: null as number | null },
   ];
+
+  const cluster = getCareerCluster(p.name);
+  const careerPaths = cluster.map(({ name, badgeClass }) => {
+    const score = psychProfile && capabilityData
+      ? scoreCareerMatch(name, psychProfile, capabilityData, aps)
+      : null;
+    return {
+      name,
+      cls: score !== null ? (score >= 80 ? 'success' : score >= 65 ? 'warning' : 'accent') : badgeClass as string,
+      label: score !== null ? `${score}%` : '—',
+    };
+  });
 
   return (
     <div className="page-anim">
@@ -163,16 +258,32 @@ function ProgDetail({
             </div>
             <div className="meter" style={{ marginTop: '0.5rem' }}><i style={{ width: `${p.fit}%` }} /></div>
             <hr className="divider" />
-            {([
-              ['Academic fit',   Math.min(100, Math.round(p.fit + 5))],
-              ['Capability fit', Math.max(40,  p.fit - 8)],
-              ['Market fit',     p.demand === 'High' ? 92 : 64],
-            ] as [string, number][]).map(([l, v]) => (
-              <div key={l} className="row-between" style={{ fontSize: '0.75rem', marginTop: '0.375rem' }}>
-                <span className="caption">{l}</span>
-                <span style={{ fontWeight: 700 }}>{v}</span>
-              </div>
-            ))}
+            {(() => {
+              const academicFit = p.aps > 0
+                ? Math.min(100, Math.round((aps / p.aps) * 100))
+                : p.fit;
+              const capabilityFit = capabilityData
+                ? Math.min(100, Math.round(
+                    [
+                      capabilityData.analytical_thinking,
+                      capabilityData.technical_aptitude,
+                      capabilityData.academic_readiness,
+                      capabilityData.perseverance,
+                    ].reduce((a, b) => a + b, 0) / 4
+                  ))
+                : Math.max(40, p.fit - 8);
+              const marketFit = p.demand === 'High' ? 90 : p.demand === 'Med' ? 65 : 40;
+              return ([
+                ['Academic fit',   academicFit],
+                ['Capability fit', capabilityFit],
+                ['Market fit',     marketFit],
+              ] as [string, number][]).map(([l, v]) => (
+                <div key={l} className="row-between" style={{ fontSize: '0.75rem', marginTop: '0.375rem' }}>
+                  <span className="caption">{l}</span>
+                  <span style={{ fontWeight: 700, color: `hsl(var(--${v >= 80 ? 'success' : v >= 60 ? 'fg' : 'warning'}))` }}>{v}</span>
+                </div>
+              ));
+            })()}
           </div>
 
           <div className="card compact" style={{ marginTop: '1rem' }}>
@@ -196,15 +307,10 @@ function ProgDetail({
           <div className="card compact" style={{ marginTop: '1rem' }}>
             <div className="eyebrow"><span className="dot" />Career path</div>
             <div className="stack" style={{ marginTop: '0.625rem' }}>
-              {[
-                ['Software Engineer', 'success', '88%'],
-                ['Data Scientist',    'success', '82%'],
-                ['ML Engineer',      'warning', '71%'],
-                ['Research Scientist','warning', '64%'],
-              ].map(([l, c, v]) => (
-                <div key={l} className="row-between" style={{ fontSize: '0.8125rem' }}>
-                  <span>{l}</span>
-                  <span className={`badge ${c}`}>{v}</span>
+              {careerPaths.map(({ name, cls, label }) => (
+                <div key={name} className="row-between" style={{ fontSize: '0.8125rem' }}>
+                  <span>{name}</span>
+                  <span className={`badge ${cls}`}>{label}</span>
                 </div>
               ))}
             </div>
@@ -266,6 +372,7 @@ function ProgDetail({
 /* ─── Programme List ──────────────────────────────────────────── */
 export default function ProgrammePage({
   selectedProg, subjects, navigate, programmes, savedProgrammeIds = [],
+  psychProfile, capabilityData, userAps,
 }: ProgrammePageProps) {
   const allProgs = programmes ?? PROGRAMMES;
   const aps = calcAPS(subjects);
@@ -336,13 +443,15 @@ export default function ProgrammePage({
     return (
       <ProgDetail
         p={selected}
-        aps={aps}
+        aps={userAps ?? aps}
         navigate={navigate}
         onBack={() => setSelected(null)}
         isSaved={savedIds.has(selected.id)}
         onToggleSave={() => handleToggleSave(selected.id)}
         onApply={() => handleApply(selected)}
         applyState={applyStates[selected.id] ?? 'idle'}
+        psychProfile={psychProfile}
+        capabilityData={capabilityData}
       />
     );
   }

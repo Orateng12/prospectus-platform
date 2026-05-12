@@ -12,14 +12,15 @@ export default function NSFASPage({ householdIncome = 220000 }: NSFASPageProps) 
   const [dependants, setDependants] = useState(3);
   const [residence, setResidence] = useState<'campus' | 'private' | 'home'>('campus');
 
-  const THRESHOLD = 350000;
+  const THRESHOLD = Math.min(600_000, 350_000 + Math.max(0, dependants - 1) * 25_000);
   const eligible = income <= THRESHOLD;
 
   const estimatedAward = (() => {
     if (!eligible) return 0;
-    if (residence === 'campus') return 88000;
-    if (residence === 'private') return 74000;
-    return 52000;
+    const dependantBonus = Math.min(8_000, Math.max(0, dependants - 1) * 2_500);
+    if (residence === 'campus')  return 88_000 + dependantBonus;
+    if (residence === 'private') return 74_000 + dependantBonus;
+    return 52_000 + dependantBonus;
   })();
 
   return (
@@ -56,7 +57,7 @@ export default function NSFASPage({ householdIncome = 220000 }: NSFASPageProps) 
                 />
               </div>
               <div className="caption" style={{ marginTop: '0.375rem' }}>
-                Threshold: {fmtR(THRESHOLD)} · SASSA recipients qualify regardless
+                Threshold: {fmtR(THRESHOLD)} for {dependants} dependant{dependants !== 1 ? 's' : ''} · SASSA recipients qualify regardless
               </div>
             </div>
 

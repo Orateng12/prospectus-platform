@@ -42,3 +42,16 @@ Key classes: `.card`, `.btn`, `.btn-primary`, `.btn-brand`, `.input`, `.badge`, 
 - `psychological_profiles` row is null AND
 - `capability_graphs` row is null AND
 - `user_profiles.province` is null
+
+## Scoring engine (`lib/scoring.ts`)
+- 16 SA career archetypes: RIASEC weights, `capRequirements` (10 capability dims), `bigFive` ideal ranges `[lo, hi]`
+- `scoreCareerMatch(name, psychProfile, capabilityData, aps)` — RIASEC 38% + Capabilities 30% + Big Five 15% + APS gate 17%
+- `rankCareersByMatch(careers, psychProfile, capabilityData, aps)` — returns sorted array with `personalScore`
+- `getCareerCapRequirements(name)` — returns `Partial<CapabilityData>` of required scores
+- `getCareerBigFiveRanges(name)` — returns `CareerBigFiveRanges` with `[lo, hi]` tuples per Big Five trait
+
+## Personalisation data flow
+- `psychProfile` (RIASEC + Big Five) flows from `psychological_profiles` DB table → `app/dashboard/page.tsx` → `Dashboard` → page components
+- `capabilityData` (10 dims) flows from `capability_graphs` DB table → same path
+- Pages using live scoring: `CareersPage`, `SkillsPage`, `ProgrammePage`, `DiscoverPage`, `IntelligencePage`, `CareerDetailPage`, `ScholarshipsPage`
+- `emptyMode` (toggled in ProfilePage) suppresses all real data → shows placeholder state across all pages

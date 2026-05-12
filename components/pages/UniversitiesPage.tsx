@@ -75,7 +75,7 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
 
               <hr className="divider" style={{ margin: 0 }} />
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.625rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.625rem' }}>
                 <div>
                   <div className="caption" style={{ fontSize: '0.6875rem' }}>Programmes</div>
                   <div style={{ fontWeight: 800, fontSize: '1.0625rem', fontVariantNumeric: 'tabular-nums' }}>{u.progs}</div>

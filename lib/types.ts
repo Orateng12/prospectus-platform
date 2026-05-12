@@ -82,6 +82,7 @@ export interface Career {
   demand: 'High' | 'Med' | 'Low';
   tags: string[];
   why: string;
+  scarce_skill?: boolean;
 }
 
 export interface BigFiveTrait {

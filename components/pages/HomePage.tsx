@@ -1,6 +1,6 @@
 'use client';
 
-import type { Route, Subject, Programme, DbApplication, StrategicScoreData } from '@/lib/types';
+import type { Route, Subject, Programme, DbApplication, StrategicScoreData, PsychProfileData, CapabilityData } from '@/lib/types';
 import { PROGRAMMES, APPS, DEADLINES } from '@/lib/data';
 import { calcAPS, fmtR } from '@/lib/utils';
 import AiInsightCard from '@/components/AiInsightCard';
@@ -13,6 +13,8 @@ interface HomePageProps {
   strategicScore?: StrategicScoreData | null;
   householdIncome?: number;
   savedProgrammeIds?: string[];
+  psychProfile?: PsychProfileData | null;
+  capabilityData?: CapabilityData | null;
 }
 
 function statusToBadge(status: string): string {
@@ -40,7 +42,7 @@ function statusToStages(status: string): string[] {
   return ['done', 'active', '', ''];
 }
 
-export default function HomePage({ subjects, navigate, programmes, applications = [], strategicScore, householdIncome, savedProgrammeIds }: HomePageProps) {
+export default function HomePage({ subjects, navigate, programmes, applications = [], strategicScore, householdIncome, savedProgrammeIds, psychProfile, capabilityData }: HomePageProps) {
   const aps = calcAPS(subjects);
   const allProgs = programmes ?? PROGRAMMES;
   const eligible = allProgs.filter(p => p.aps <= aps);
@@ -308,8 +310,8 @@ export default function HomePage({ subjects, navigate, programmes, applications 
               type: 'home',
               aps,
               subjects,
-              psychProfile: null,
-              capabilityData: null,
+              psychProfile: psychProfile ?? null,
+              capabilityData: capabilityData ?? null,
               strategicScore: strategicScore ?? null,
               topProgrammes: eligible.slice(0, 4),
               topCareers: [],

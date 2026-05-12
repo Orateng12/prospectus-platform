@@ -70,6 +70,7 @@ export default function Dashboard({
   savedProgrammeIds = [],
 }: DashboardProps) {
   const [route, setRoute] = useState<Route>('home');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [subjects, setSubjects] = useState<Subject[]>(
     () => (initialSubjects ?? SUBJECTS).map(s => ({ ...s }))
   );
@@ -91,6 +92,7 @@ export default function Dashboard({
   const navigate = useCallback((r: Route, prog?: string) => {
     setSelectedProg(prog ?? '');
     setRoute(r);
+    setSidebarOpen(false);
     if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
@@ -171,6 +173,9 @@ export default function Dashboard({
             navigate={navigate}
             programmes={initialProgrammes}
             savedProgrammeIds={displaySavedIds}
+            psychProfile={displayPsych}
+            capabilityData={displayCap}
+            userAps={displayAps}
           />
         );
       case 'funding':
@@ -184,13 +189,22 @@ export default function Dashboard({
             compareItems={compareItems}
             onToggleCompare={toggleCompare}
             userAps={displayAps}
+            psychProfile={displayPsych}
+            capabilityData={displayCap}
             onOpenDetail={(c) => navigateToDetail('career-detail', c)}
           />
         );
       case 'cognitive':
         return <CognitivePage psychProfile={displayPsych} />;
       case 'skills':
-        return <SkillsPage capabilityData={displayCap} />;
+        return (
+          <SkillsPage
+            capabilityData={displayCap}
+            psychProfile={displayPsych}
+            careers={careers}
+            userAps={displayAps}
+          />
+        );
       case 'map':
         return <MapPage />;
       case 'unis':
@@ -198,7 +212,13 @@ export default function Dashboard({
       case 'compare':
         return <CareerComparePage compareItems={compareItems} onClear={clearCompare} navigate={navigate} />;
       case 'discover':
-        return <DiscoverPage navigate={navigate} />;
+        return (
+          <DiscoverPage
+            navigate={navigate}
+            psychProfile={displayPsych}
+            capabilityData={displayCap}
+          />
+        );
       case 'scholarships':
         return (
           <ScholarshipsPage
@@ -221,7 +241,7 @@ export default function Dashboard({
       case 'documents':
         return <DocumentsPage navigate={navigate} />;
       case 'deadlines':
-        return <DeadlinesPage navigate={navigate} />;
+        return <DeadlinesPage navigate={navigate} applications={emptyMode ? [] : applications} />;
       case 'profile':
         return (
           <ProfilePage
@@ -278,6 +298,8 @@ export default function Dashboard({
             strategicScore={displayStrategic}
             householdIncome={householdIncome}
             savedProgrammeIds={displaySavedIds}
+            psychProfile={displayPsych}
+            capabilityData={displayCap}
           />
         );
     }
@@ -290,6 +312,12 @@ export default function Dashboard({
         navigate={navigate}
         userName={userName}
         userProvince={userProvince}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+      <div
+        className={`sidebar-backdrop${sidebarOpen ? ' open' : ''}`}
+        onClick={() => setSidebarOpen(false)}
       />
       <main className="main">
         <Topbar
@@ -300,6 +328,7 @@ export default function Dashboard({
           aps={aps}
           apsDelta={apsDelta}
           navigate={navigate}
+          onMenuClick={() => setSidebarOpen(true)}
         />
         <div key={route}>
           {renderPage()}

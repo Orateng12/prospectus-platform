@@ -3,13 +3,16 @@
 import { useState, useMemo } from 'react';
 import { CAREERS } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
-import type { Career, CompareItem } from '@/lib/types';
+import { scoreCareerMatch } from '@/lib/scoring';
+import type { Career, CompareItem, PsychProfileData, CapabilityData } from '@/lib/types';
 
 interface CareersPageProps {
   careers?: Career[];
   compareItems?: CompareItem[];
   onToggleCompare?: (item: CompareItem) => void;
   userAps?: number;
+  psychProfile?: PsychProfileData | null;
+  capabilityData?: CapabilityData | null;
   onOpenDetail?: (career: Career) => void;
 }
 
@@ -19,16 +22,18 @@ function parseGrowth(g: string): number {
   return parseFloat(g.replace('%', '')) || 0;
 }
 
-export default function CareersPage({ careers: propCareers, compareItems = [], onToggleCompare, userAps, onOpenDetail }: CareersPageProps) {
+export default function CareersPage({ careers: propCareers, compareItems = [], onToggleCompare, userAps, psychProfile, capabilityData, onOpenDetail }: CareersPageProps) {
   const allCareers = propCareers && propCareers.length > 0 ? propCareers : CAREERS;
   const [activeTab, setActiveTab] = useState<Tab>('fit');
 
   const withLiveMatch = useMemo(() => allCareers.map(c => ({
     ...c,
-    match: userAps !== undefined
+    match: psychProfile && capabilityData && userAps !== undefined
+      ? scoreCareerMatch(c.name, psychProfile, capabilityData, userAps)
+      : userAps !== undefined
       ? Math.min(100, Math.round(c.match * 0.7 + Math.min(userAps / 42 * 30, 30)))
       : c.match,
-  })), [allCareers, userAps]);
+  })), [allCareers, psychProfile, capabilityData, userAps]);
 
   const displayed = useMemo(() => {
     let list = [...withLiveMatch];
@@ -89,6 +94,11 @@ export default function CareersPage({ careers: propCareers, compareItems = [], o
                 >
                   {c.demand} demand
                 </span>
+                {c.scarce_skill && (
+                  <span className="badge accent" style={{ height: '1.25rem', fontSize: '0.625rem' }}>
+                    Scarce skill
+                  </span>
+                )}
               </div>
               <div className="row" style={{ gap: '0.375rem', alignItems: 'baseline' }}>
                 <span style={{ fontWeight: 900, fontSize: '1.5rem', letterSpacing: '-0.04em', fontVariantNumeric: 'tabular-nums' }}>

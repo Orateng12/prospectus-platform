@@ -77,6 +77,7 @@ interface TopbarProps {
   aps?: number;
   apsDelta?: number;
   navigate?: (r: Route) => void;
+  onMenuClick?: () => void;
 }
 
 export default function Topbar({
@@ -87,6 +88,7 @@ export default function Topbar({
   aps = 42,
   apsDelta = 0,
   navigate,
+  onMenuClick,
 }: TopbarProps) {
   const [dateStr, setDateStr] = useState('');
   const [profileOpen, setProfileOpen] = useState(false);
@@ -162,6 +164,9 @@ export default function Topbar({
   return (
     <>
       <div className="topbar">
+        <button className="hamburger" onClick={onMenuClick} aria-label="Open menu">
+          <span /><span /><span />
+        </button>
         <div className="topbar-left">
           <div className="caption">{dateStr}</div>
           <div className="row" style={{ gap: '0.625rem', alignItems: 'center', marginTop: '0.125rem' }}>
@@ -176,7 +181,7 @@ export default function Topbar({
         </div>
 
         <div className="topbar-right">
-          <div className="search-wrap">
+          <div className="topbar-search search-wrap">
             <span className="search-icon">⌕</span>
             <input
               className="input search-input"

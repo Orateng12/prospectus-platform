@@ -1,5 +1,7 @@
 import type { Route, StrategicScoreData, CapabilityData, Capability, Programme, Career, PsychProfileData, Subject } from '@/lib/types';
-import { CAPS } from '@/lib/data';
+import { CAPS, CAREERS } from '@/lib/data';
+import { scoreCareerMatch } from '@/lib/scoring';
+import { fmtR } from '@/lib/utils';
 import DonutChart from '@/components/DonutChart';
 import AiInsightCard from '@/components/AiInsightCard';
 
@@ -25,6 +27,14 @@ const DB_TO_CAP: Array<[keyof CapabilityData, string]> = [
   ['entrepreneurial_drive','Practical'],
 ];
 
+const FALLBACK_PROBS = [
+  { name: 'Software Engineer', score: 88, salary: undefined as number | undefined, growth: '+22%' },
+  { name: 'Data Analyst',      score: 82, salary: undefined as number | undefined, growth: '+18%' },
+  { name: 'Actuary',           score: 76, salary: undefined as number | undefined, growth: '+9%'  },
+  { name: 'Civil Engineer',    score: 58, salary: undefined as number | undefined, growth: '+5%'  },
+  { name: 'Doctor',            score: 41, salary: undefined as number | undefined, growth: '+7%'  },
+];
+
 export default function IntelligencePage({ navigate, strategicScore, capabilityData, programmes = [], careers = [], psychProfile, subjects = [], userAps = 0 }: IntelligencePageProps) {
   const score = strategicScore?.overall ?? 74;
   const prev  = strategicScore?.previous_score;
@@ -32,10 +42,12 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
   const trend = strategicScore?.trend ?? 'improving';
 
   const subScores = [
-    { l: 'Academic readiness',   v: strategicScore?.academic_readiness       ?? 86, sub: 'APS, subject mix, prerequisite gaps',              c: 'success' },
-    { l: 'Career alignment',     v: strategicScore?.career_demand_alignment   ?? 68, sub: 'Labour market signal vs. your top careers',        c: 'primary' },
-    { l: 'Financial feasibility',v: strategicScore?.financial_feasibility     ?? 71, sub: 'NSFAS + bursary fit · scholarship pipeline',       c: 'accent'  },
-    { l: 'Personality fit',      v: strategicScore?.personality_career_fit    ?? 79, sub: 'Big Five · RIASEC vs. target career profiles',     c: 'warning' },
+    { l: 'Academic readiness',   v: strategicScore?.academic_readiness        ?? 86, sub: 'APS, subject mix, prerequisite gaps',                c: 'success' },
+    { l: 'Career alignment',     v: strategicScore?.career_demand_alignment    ?? 68, sub: 'Labour market signal vs. your top careers',          c: 'primary' },
+    { l: 'Financial feasibility',v: strategicScore?.financial_feasibility      ?? 71, sub: 'NSFAS + bursary fit · scholarship pipeline',         c: 'accent'  },
+    { l: 'Personality fit',      v: strategicScore?.personality_career_fit     ?? 79, sub: 'Big Five · RIASEC vs. target career profiles',       c: 'warning' },
+    { l: 'Global mobility',      v: strategicScore?.global_mobility_potential  ?? 68, sub: 'International demand × academic strength',           c: 'primary' },
+    { l: 'Skill readiness',      v: strategicScore?.skill_readiness            ?? 72, sub: 'Mean of 8 core capability dimensions',               c: 'success' },
   ];
 
   const caps: Capability[] = capabilityData
@@ -58,6 +70,23 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
   const highDemandCareers = careers.filter(c => c.demand === 'High').length;
   const eligibleProgrammes = programmes.filter(p => p.aps <= userAps).length;
 
+  // Personalised career probability — computed from RIASEC + capabilities + APS
+  const careerProbs = (() => {
+    if (!psychProfile || !capabilityData) return FALLBACK_PROBS;
+    const source = careers.length > 0 ? careers : CAREERS;
+    return source
+      .map(c => ({
+        name:   c.name,
+        score:  scoreCareerMatch(c.name, psychProfile, capabilityData, userAps),
+        salary: c.salary,
+        growth: c.growth,
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+  })();
+
+  const topCareer = careerProbs[0];
+
   const layers = [
     { n: '01', k: 'Identity',    t: 'Cognitive · Big Five · RIASEC · 8-D capability graph',   stat: `${completeness}%`, sub: 'profile completeness' },
     { n: '02', k: 'Opportunity', t: 'Labour market · industry forecasts · top growing careers', stat: String(highDemandCareers || 18), sub: 'high-demand careers matched' },
@@ -76,7 +105,8 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
             <div className="eyebrow"><span className="dot" />The platform&apos;s moat</div>
             <h2 className="heading" style={{ marginTop: '0.375rem' }}>Intelligence dashboard</h2>
             <p className="body-text" style={{ marginTop: '0.5rem', maxWidth: '48rem' }}>
-              Four engines run in parallel against your profile — identity, opportunity, decision and execution.
+              Six engines run in parallel against your profile — identity, opportunity, decision, execution,
+              global mobility and skill readiness.
               The orchestrator merges them into one payload and reports a completeness score so the UI can
               progressively enhance.
             </p>
@@ -113,7 +143,7 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
         <div>
           <h3 className="subheading">Where the score comes from</h3>
           <p className="body-text" style={{ marginTop: '0.375rem' }}>
-            Four sub-scores combine on a weighted average. Move any of them and the composite moves with it.
+            Six sub-scores combine on a weighted average. Move any of them and the composite moves with it.
           </p>
           <div className="stack-2" style={{ marginTop: '1rem' }}>
             {subScores.map(x => (
@@ -159,19 +189,20 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
             <button className="btn btn-ghost btn-sm" onClick={() => navigate('cognitive')}>Why?</button>
           </div>
           <div className="stack-2">
-            {[
-              ['Software Engineer', 88],
-              ['Data Analyst',      82],
-              ['Actuary',          76],
-              ['Civil Engineer',   58],
-              ['Doctor',           41],
-            ].map(([l, v]) => (
-              <div key={l} className="progress-row">
-                <span className="label">{l}</span>
-                <div className="meter"><i style={{ width: `${v}%` }} /></div>
-                <span className="val">{v}</span>
+            {careerProbs.map(({ name, score }) => (
+              <div key={name} className="progress-row">
+                <span className="label">{name}</span>
+                <div className={`meter ${score >= 80 ? 'success' : score >= 65 ? 'primary' : 'accent'}`}>
+                  <i style={{ width: `${score}%` }} />
+                </div>
+                <span className="val">{score}</span>
               </div>
             ))}
+            {!psychProfile && (
+              <div className="caption" style={{ marginTop: '0.375rem', color: 'hsl(var(--warning))' }}>
+                Estimated · complete profile assessment to personalise
+              </div>
+            )}
           </div>
         </div>
 
@@ -202,12 +233,25 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
           <div className="eyebrow"><span className="dot" />Future-You · 2031</div>
           <h3 className="subheading" style={{ marginTop: '0.25rem' }}>If you stay on the highest-fit path</h3>
           <div className="stack-2" style={{ marginTop: '0.875rem' }}>
-            <div className="stat-pair"><div className="l">Likely role</div><div className="v">Junior Data Scientist</div></div>
-            <div className="stat-pair"><div className="l">Median salary</div><div className="v">R 41,200 / mo</div></div>
-            <div className="stat-pair"><div className="l">Industry growth</div><div className="v">+18% / yr</div></div>
+            <div className="stat-pair">
+              <div className="l">Likely role</div>
+              <div className="v">{topCareer ? topCareer.name : 'Data Scientist'}</div>
+            </div>
+            <div className="stat-pair">
+              <div className="l">Median salary</div>
+              <div className="v">
+                {topCareer?.salary ? `${fmtR(topCareer.salary)} / mo` : 'R\u00A041,200 / mo'}
+              </div>
+            </div>
+            <div className="stat-pair">
+              <div className="l">Industry growth</div>
+              <div className="v">{topCareer?.growth ? `${topCareer.growth} / yr` : '+18% / yr'}</div>
+            </div>
           </div>
           <div className="caption" style={{ marginTop: '0.75rem' }}>
-            Based on labour-market data + your capability graph + 12 generated scenarios.
+            {psychProfile
+              ? `Derived from your RIASEC profile + capability graph. Match score: ${topCareer?.score ?? '—'}/100.`
+              : 'Based on labour-market data + your capability graph + 12 generated scenarios.'}
           </div>
         </div>
 

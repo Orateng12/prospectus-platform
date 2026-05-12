@@ -1,7 +1,7 @@
 'use client';
 
 import { DEADLINES } from '@/lib/data';
-import type { Route } from '@/lib/types';
+import type { Route, DbApplication } from '@/lib/types';
 
 const EXTRA_DEADLINES = [
   { d: 15, m: 'Oct', t: 'Allan Gray Orbis Foundation', sub: '161 days · entrepreneurial essay required', tag: 'info', tagL: 'Open' },
@@ -9,15 +9,39 @@ const EXTRA_DEADLINES = [
   { d: 30, m: 'Aug', t: 'Standard Bank Bursary', sub: '115 days', tag: '', tagL: 'Open' },
 ];
 
-const ALL_DEADLINES = [...DEADLINES, ...EXTRA_DEADLINES];
-
 function urgencyGroup(tag: string): 'urgent' | 'soon' | 'upcoming' {
   if (tag === 'destructive') return 'urgent';
   if (tag === 'warning') return 'soon';
   return 'upcoming';
 }
 
-export default function DeadlinesPage({ navigate }: { navigate?: (r: Route) => void }) {
+export default function DeadlinesPage({
+  navigate,
+  applications = [],
+}: {
+  navigate?: (r: Route) => void;
+  applications?: DbApplication[];
+}) {
+  const today = new Date();
+  const APP_DEADLINES = applications
+    .filter(a => a.deadline)
+    .map(a => {
+      const date     = new Date(a.deadline!);
+      const daysLeft = Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const tag      = daysLeft <= 7 ? 'destructive' : daysLeft <= 21 ? 'warning' : '';
+      const tagL     = daysLeft <= 7 ? 'Urgent' : daysLeft <= 21 ? 'Soon' : 'Open';
+      return {
+        d:    date.getDate(),
+        m:    date.toLocaleDateString('en-ZA', { month: 'short' }),
+        t:    `${a.institution_name} · ${a.programme_name}`,
+        sub:  `${daysLeft > 0 ? `${daysLeft} days` : 'Today'} · application deadline`,
+        tag,
+        tagL,
+      };
+    });
+
+  const ALL_DEADLINES = [...DEADLINES, ...EXTRA_DEADLINES, ...APP_DEADLINES];
+
   const urgent = ALL_DEADLINES.filter(d => urgencyGroup(d.tag) === 'urgent');
   const soon = ALL_DEADLINES.filter(d => urgencyGroup(d.tag) === 'soon');
   const upcoming = ALL_DEADLINES.filter(d => urgencyGroup(d.tag) === 'upcoming');

@@ -1,12 +1,54 @@
 'use client';
 
 import { useState } from 'react';
-import type { Route } from '@/lib/types';
+import type { Route, PsychProfileData, CapabilityData } from '@/lib/types';
 import { PROGRAMMES, CAREERS } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
 
 interface DiscoverPageProps {
   navigate: (r: Route) => void;
+  psychProfile?: PsychProfileData | null;
+  capabilityData?: CapabilityData | null;
+}
+
+type RiasecKey = 'realistic' | 'investigative' | 'artistic' | 'social' | 'enterprising' | 'conventional';
+
+const RIASEC_DESCRIPTORS: Record<RiasecKey, { label: string; cluster: string; examples: string }> = {
+  investigative: { label: 'Investigative',  cluster: 'quantitative analysis',        examples: 'data science, actuarial science and quant finance' },
+  realistic:     { label: 'Realistic',      cluster: 'applied engineering',           examples: 'civil, mechanical and electrical engineering' },
+  artistic:      { label: 'Artistic',       cluster: 'creative and design work',      examples: 'UX design, architecture and media production' },
+  social:        { label: 'Social',         cluster: 'people-centred professions',    examples: 'teaching, social work and healthcare' },
+  enterprising:  { label: 'Enterprising',   cluster: 'business leadership',           examples: 'management, entrepreneurship and law' },
+  conventional:  { label: 'Conventional',   cluster: 'structured finance and admin',  examples: 'accounting, compliance and financial advisory' },
+};
+
+const CAP_LABELS: Array<[keyof CapabilityData, string]> = [
+  ['analytical_thinking',  'Analytical'],
+  ['technical_aptitude',   'Technical'],
+  ['communication_skills', 'Communication'],
+  ['creative_thinking',    'Creative'],
+  ['leadership_potential', 'Leadership'],
+  ['entrepreneurial_drive','Entrepreneurial'],
+];
+
+function buildInsightText(psychProfile: PsychProfileData, capabilityData: CapabilityData | null | undefined): string {
+  const riasecKeys: RiasecKey[] = ['realistic', 'investigative', 'artistic', 'social', 'enterprising', 'conventional'];
+  const sorted = [...riasecKeys].sort((a, b) => (psychProfile[b] as number) - (psychProfile[a] as number));
+  const dominant  = RIASEC_DESCRIPTORS[sorted[0]];
+  const secondary = RIASEC_DESCRIPTORS[sorted[1]];
+
+  let capPhrase = '';
+  if (capabilityData) {
+    const ranked = [...CAP_LABELS].sort((a, b) => (capabilityData[b[0]] as number) - (capabilityData[a[0]] as number));
+    capPhrase = ` and high ${ranked[0][1]} + ${ranked[1][1]} capability scores`;
+  }
+
+  return (
+    `Based on your ${dominant.label} RIASEC profile${capPhrase}, the sharpest career cluster for you is ` +
+    `${dominant.cluster} — spanning ${dominant.examples}. ` +
+    `Your secondary ${secondary.label} tendency also opens doors in ${secondary.cluster}. ` +
+    `All pathways are growing in SA and build directly on your strongest academic subjects.`
+  );
 }
 
 const CATEGORIES = [
@@ -18,7 +60,7 @@ const CATEGORIES = [
   { label: 'Education', icon: '📚', desc: 'Teaching, higher education', route: 'programmes' as Route },
 ];
 
-export default function DiscoverPage({ navigate }: DiscoverPageProps) {
+export default function DiscoverPage({ navigate, psychProfile, capabilityData }: DiscoverPageProps) {
   const [query, setQuery] = useState('');
 
   const filteredProgs = query
@@ -105,13 +147,21 @@ export default function DiscoverPage({ navigate }: DiscoverPageProps) {
           {/* AI insight */}
           <div className="card">
             <div className="eyebrow"><span className="dot" />AI insight · for you</div>
-            <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', lineHeight: 1.6, color: 'hsl(var(--fg))' }}>
-              Based on your Investigative RIASEC profile and high Analytical + Numerical capability scores, the sharpest career cluster for you is <strong>quantitative analysis</strong> — spanning data science, actuarial science and quant finance. All three are growing in SA, all pay above R 40k/mo at mid-career, and all build directly on your Maths trajectory.
-            </p>
-            <div className="row" style={{ marginTop: '0.75rem' }}>
-              <button className="btn btn-outline btn-sm" onClick={() => navigate('careers')}>Career Explorer →</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => navigate('intelligence')}>Why this?</button>
-            </div>
+            {psychProfile ? (
+              <>
+                <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', lineHeight: 1.6, color: 'hsl(var(--fg))' }}>
+                  {buildInsightText(psychProfile, capabilityData)}
+                </p>
+                <div className="row" style={{ marginTop: '0.75rem' }}>
+                  <button className="btn btn-outline btn-sm" onClick={() => navigate('careers')}>Career Explorer →</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => navigate('intelligence')}>Why this?</button>
+                </div>
+              </>
+            ) : (
+              <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', lineHeight: 1.6, color: 'hsl(var(--muted-fg))' }}>
+                Complete your profile assessment to unlock personalised AI insights.
+              </p>
+            )}
           </div>
         </>
       ) : (
