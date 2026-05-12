@@ -1,20 +1,18 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { signInWithGoogle } from '@/app/actions/auth';
 
 export default function GoogleSignInButton({ label = 'Continue with Google' }: { label?: string }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
 
   function handleClick() {
     setError(null);
     startTransition(async () => {
       const result = await signInWithGoogle();
       if ('url' in result) {
-        router.push(result.url);
+        window.location.href = result.url;
       } else {
         setError(result.error);
       }
