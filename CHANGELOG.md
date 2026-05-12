@@ -6,6 +6,19 @@ All notable changes to the Prospectus platform.
 
 ## [Unreleased]
 
+### Added — Phase 9: One living product — last-mile data wiring + detail page depth
+
+**Student model rippled everywhere (last-mile gaps closed):**
+- `components/pages/HomePage.tsx` — Funding KPI now computed live from `computeNsfas()` + `computeBursary()` using real `householdIncome` + `userAps`; "3 things to move the needle" section replaced with `buildFocusItems()` — derives urgent app deadlines, APS leverage opportunities (lowest subject + nearest unlockable programme), and saved-programme reminders from real data
+- `components/Dashboard.tsx` — `SimulatorPage` now receives `displaySubjects` instead of live `subjects`, making `emptyMode` consistent; `liveCareerMatches` `useMemo` computed from scoring engine and threaded to `CompareDrawer` and `CareerComparePage`
+- `components/CompareDrawer.tsx` — Accepts `liveCareerMatches` prop; career subtitles now show live-scored match%, not cached static values
+
+**Detail pages with real depth:**
+- `components/pages/ApplicationDetailPage.tsx` — Added `deriveStages()` (maps `status`/`submitted`/`decided` to timeline stages); `buildDocs()` makes checklist status-aware (submitted = standard docs done); `fmtDate()` formats ISO timestamps; comms log entries use real dates and are hidden when no data exists
+- `components/pages/CareerDetailPage.tsx` — Path viz "Required subjects" now computed from top programme's APS via `inferSubjectsFromAps()`; clicking a leading programme now navigates to its detail (`navigate('programmes', p.id)`); salary trajectory shows Year 1 / Year 5 / Year 10 labels; `navigate` prop updated to accept optional `prog` arg
+- `components/pages/SubjectDetailPage.tsx` — New mark trajectory table: shows APS pts + total APS + new programmes unlocked at marks 50–80; new "Your saved programmes" card shows APS eligibility gap per saved programme; accepts `savedProgrammeIds` prop (threaded from Dashboard)
+- `components/pages/CareerComparePage.tsx` — Accepts `psychProfile`, `capabilityData`, `userAps`, `liveCareerMatches` props; career match scores use live `scoreCareerMatch()` rather than static DB values
+
 ### Added — Phase 8: Deep personalisation Round 4 (Big Five, real match scores, dynamic scholarships, NSFAS dependants, live deadlines)
 - `lib/scoring.ts` — Added `CareerBigFiveRanges` interface and `getCareerBigFiveRanges(careerName)` export; returns ideal `[lo, hi]` tuples per Big Five trait for any career archetype
 - `components/pages/SkillsPage.tsx` — New Big Five personality alignment card: zone-bracket overlay on meter bars shows ideal range for top-matched career; traits sorted in-zone first; gap notes at 3 severity levels

@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type {
   Route, Subject, Programme, Career, CompareItem, Application, Scholarship,
   PsychProfileData, CapabilityData, StrategicScoreData, DbApplication,
 } from '@/lib/types';
-import { SUBJECTS } from '@/lib/data';
+import { SUBJECTS, CAREERS as STATIC_CAREERS } from '@/lib/data';
 import { calcAPS } from '@/lib/utils';
+import { scoreCareerMatch } from '@/lib/scoring';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import HomePage from './pages/HomePage';
@@ -85,6 +86,16 @@ export default function Dashboard({
   const aps = calcAPS(subjects);
   const apsDelta = aps - BASE_APS;
 
+  // Live match scores for every career — used in CompareDrawer subtitles and CareerComparePage
+  const liveCareerMatches = useMemo(() =>
+    (careers ?? STATIC_CAREERS).reduce<Record<string, number>>((acc, c) => {
+      acc[c.name] = psychProfile && capabilityData
+        ? scoreCareerMatch(c.name, psychProfile, capabilityData, aps)
+        : c.match;
+      return acc;
+    }, {}),
+  [careers, psychProfile, capabilityData, aps]);
+
   const emptySubjects = (initialSubjects ?? SUBJECTS).map(s => ({ ...s, mark: 50 }));
   const displaySubjects = emptyMode ? emptySubjects : subjects;
   const displayAps = emptyMode ? calcAPS(emptySubjects) : aps;
@@ -156,7 +167,7 @@ export default function Dashboard({
       case 'simulator':
         return (
           <SimulatorPage
-            subjects={subjects}
+            subjects={displaySubjects}
             onSubjectChange={handleSubjectChange}
             onReset={handleReset}
             onSaved={handleSubjectsSaved}
@@ -210,7 +221,17 @@ export default function Dashboard({
       case 'unis':
         return <UniversitiesPage subjects={displaySubjects} navigate={navigate} compareItems={compareItems} onToggleCompare={toggleCompare} />;
       case 'compare':
-        return <CareerComparePage compareItems={compareItems} onClear={clearCompare} navigate={navigate} />;
+        return (
+          <CareerComparePage
+            compareItems={compareItems}
+            onClear={clearCompare}
+            navigate={navigate}
+            psychProfile={displayPsych}
+            capabilityData={displayCap}
+            userAps={displayAps}
+            liveCareerMatches={liveCareerMatches}
+          />
+        );
       case 'discover':
         return (
           <DiscoverPage
@@ -283,8 +304,9 @@ export default function Dashboard({
         return (
           <SubjectDetailPage
             subject={selectedSubject}
-            subjects={subjects}
+            subjects={displaySubjects}
             programmes={initialProgrammes}
+            savedProgrammeIds={displaySavedIds}
             navigate={navigate}
           />
         );
@@ -333,7 +355,7 @@ export default function Dashboard({
         <div key={route}>
           {renderPage()}
         </div>
-        <CompareDrawer items={compareItems} onToggle={toggleCompare} onClear={clearCompare} navigate={navigate} />
+        <CompareDrawer items={compareItems} onToggle={toggleCompare} onClear={clearCompare} navigate={navigate} liveCareerMatches={liveCareerMatches} />
       </main>
     </div>
   );

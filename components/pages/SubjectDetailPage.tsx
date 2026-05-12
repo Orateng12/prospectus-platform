@@ -8,6 +8,7 @@ interface SubjectDetailPageProps {
   subject: Subject | null;
   subjects: Subject[];
   programmes?: Programme[];
+  savedProgrammeIds?: string[];
   navigate: (r: Route) => void;
 }
 
@@ -42,7 +43,7 @@ function getNextApsThreshold(currentMark: number): { mark: number; pts: number }
   return null;
 }
 
-export default function SubjectDetailPage({ subject, subjects, programmes: propProgrammes, navigate }: SubjectDetailPageProps) {
+export default function SubjectDetailPage({ subject, subjects, programmes: propProgrammes, savedProgrammeIds = [], navigate }: SubjectDetailPageProps) {
   if (!subject) {
     return (
       <div className="page-anim">
@@ -87,6 +88,29 @@ export default function SubjectDetailPage({ subject, subjects, programmes: propP
   impactProgs.sort((a, b) => a.markNeeded - b.markNeeded);
 
   const tips = STUDY_TIPS[subject.id] ?? ['Focus on past papers and timed practice', 'Identify your weakest topics and address them first', 'Seek help from your teacher for topics you struggle with'];
+
+  // Mark trajectory: what would total APS be at key thresholds for this subject
+  const otherAps = subject.designated ? currentAps - currentPts : currentAps;
+  const trajectoryRows = subject.designated
+    ? [50, 55, 60, 65, 70, 75, 80].map(mark => {
+        const pts      = apsPoints(mark);
+        const totalAps = otherAps + pts;
+        const newUnlocked = allProgs.filter(p => p.aps <= totalAps && p.aps > currentAps).length;
+        return { mark, pts, totalAps, newUnlocked };
+      })
+    : [];
+
+  // Saved programmes context: which of the student's saved programmes care about this subject
+  const savedProgs = savedProgrammeIds.length > 0
+    ? allProgs.filter(p => savedProgrammeIds.includes(p.id) && p.aps > 0)
+        .map(p => ({
+          ...p,
+          gap: Math.max(0, p.aps - currentAps),
+          eligible: p.aps <= currentAps,
+        }))
+        .sort((a, b) => a.gap - b.gap)
+        .slice(0, 4)
+    : [];
 
   return (
     <div className="page-anim">
@@ -193,6 +217,71 @@ export default function SubjectDetailPage({ subject, subjects, programmes: propP
 
         {/* Right column */}
         <div className="stack-3">
+          {/* Mark trajectory table */}
+          {subject.designated && trajectoryRows.length > 0 && (
+            <div className="card">
+              <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Mark trajectory</div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
+                  <thead>
+                    <tr>
+                      {['Mark', 'APS pts', 'Total APS', 'New programmes'].map(h => (
+                        <th key={h} style={{ textAlign: h === 'Mark' ? 'left' : 'right', padding: '0.375rem 0.375rem', fontWeight: 600, borderBottom: '1px solid hsl(var(--border))', color: 'hsl(var(--fg-muted))', fontSize: '0.625rem' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {trajectoryRows.map(row => {
+                      const isCurrent = row.mark <= subject.mark && (row.mark + 5 > subject.mark || row.mark === 80);
+                      const highlight = row.mark === [50,55,60,65,70,75,80].find(m => m > subject.mark);
+                      return (
+                        <tr key={row.mark} style={{
+                          background: isCurrent ? 'hsl(var(--primary) / 0.08)' : highlight ? 'hsl(var(--success) / 0.07)' : undefined,
+                          borderLeft: isCurrent ? '3px solid hsl(var(--primary))' : highlight ? '3px solid hsl(var(--success))' : '3px solid transparent',
+                        }}>
+                          <td style={{ padding: '0.4rem 0.375rem', fontWeight: isCurrent ? 700 : 400 }}>{row.mark}%{isCurrent && <span className="caption" style={{ fontSize: '0.5625rem', marginLeft: 4 }}>← you</span>}</td>
+                          <td style={{ padding: '0.4rem 0.375rem', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{row.pts}</td>
+                          <td style={{ padding: '0.4rem 0.375rem', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: highlight ? 'hsl(var(--success))' : undefined }}>{row.totalAps}</td>
+                          <td style={{ padding: '0.4rem 0.375rem', textAlign: 'right', fontSize: '0.75rem' }}>
+                            {row.newUnlocked > 0 ? <span style={{ color: 'hsl(var(--success))', fontWeight: 700 }}>+{row.newUnlocked}</span> : <span className="caption">—</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="caption" style={{ marginTop: '0.625rem', fontSize: '0.6875rem' }}>
+                Next threshold highlighted in green — that&apos;s your nearest leverage point.
+              </div>
+            </div>
+          )}
+
+          {/* Saved programmes context */}
+          {savedProgs.length > 0 && (
+            <div className="card">
+              <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Your saved programmes</div>
+              <div className="stack">
+                {savedProgs.map(p => (
+                  <div key={p.id} style={{ padding: '0.5rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                    <div className="row-between">
+                      <div style={{ fontWeight: 600, fontSize: '0.875rem', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                      <span className={`badge ${p.eligible ? 'success' : 'warning'}`} style={{ flexShrink: 0, marginLeft: '0.5rem', fontSize: '0.5625rem' }}>
+                        {p.eligible ? `APS ${p.aps} ✓` : `Need +${p.gap}`}
+                      </span>
+                    </div>
+                    <div className="caption" style={{ marginTop: 2 }}>{p.uni} · APS {p.aps} required</div>
+                    {!p.eligible && subject.designated && (
+                      <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: 'hsl(var(--fg-muted))' }}>
+                        Raising this subject could contribute {Math.min(p.gap, 2)} APS pts toward closing the gap
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* APS contribution meter */}
           {subject.designated && (
             <div className="card">

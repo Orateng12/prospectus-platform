@@ -1,13 +1,18 @@
 'use client';
 
-import type { CompareItem, Route, Career, Programme, University, Scholarship } from '@/lib/types';
+import type { CompareItem, Route, Career, Programme, University, Scholarship, PsychProfileData, CapabilityData } from '@/lib/types';
 import { PROGRAMMES, CAREERS, UNIS, SCHOLARSHIPS } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
+import { scoreCareerMatch } from '@/lib/scoring';
 
 interface ComparePageProps {
   compareItems: CompareItem[];
   onClear: () => void;
   navigate: (r: Route) => void;
+  psychProfile?: PsychProfileData | null;
+  capabilityData?: CapabilityData | null;
+  userAps?: number;
+  liveCareerMatches?: Record<string, number>;
 }
 
 // ── Reusable section layout ──────────────────────────────────────────────────
@@ -86,11 +91,18 @@ function AddButtons({ navigate }: { navigate: (r: Route) => void }) {
 }
 
 // ── Main page ────────────────────────────────────────────────────────────────
-export default function CareerComparePage({ compareItems, onClear, navigate }: ComparePageProps) {
+export default function CareerComparePage({ compareItems, onClear, navigate, psychProfile, capabilityData, userAps = 0, liveCareerMatches }: ComparePageProps) {
   // Group and look up full objects for each type
   const careers = compareItems
     .filter(c => c.kind === 'career')
-    .map(c => CAREERS.find(x => x.name === c.id))
+    .map(c => {
+      const base = CAREERS.find(x => x.name === c.id);
+      if (!base) return undefined;
+      // Use live score if available, otherwise fall back to static match
+      const liveMatch = liveCareerMatches?.[c.name]
+        ?? (psychProfile && capabilityData ? scoreCareerMatch(c.name, psychProfile, capabilityData, userAps) : base.match);
+      return { ...base, match: liveMatch };
+    })
     .filter((c): c is Career => c !== undefined);
 
   const progs = compareItems

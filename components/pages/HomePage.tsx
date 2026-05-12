@@ -2,8 +2,83 @@
 
 import type { Route, Subject, Programme, DbApplication, StrategicScoreData, PsychProfileData, CapabilityData } from '@/lib/types';
 import { PROGRAMMES, APPS, DEADLINES } from '@/lib/data';
-import { calcAPS, fmtR } from '@/lib/utils';
+import { calcAPS, fmtR, apsPoints } from '@/lib/utils';
 import AiInsightCard from '@/components/AiInsightCard';
+
+function computeNsfas(income: number | undefined): number {
+  if (income === undefined || income <= 350_000) return 115_060;
+  if (income <= 600_000)                         return  48_000;
+  return 0;
+}
+
+function computeBursary(aps: number | undefined): number {
+  const a = aps ?? 0;
+  if (a >= 42) return 165_000;
+  if (a >= 38) return  95_000;
+  if (a >= 32) return  42_000;
+  if (a >= 26) return  18_000;
+  return 0;
+}
+
+function buildFocusItems(
+  applications: DbApplication[],
+  subjects: Subject[],
+  programmes: Programme[],
+  userAps: number,
+  savedProgrammeIds: string[],
+): Array<{ icon: string; text: string; urgency: 'high' | 'med' | 'low'; route: Route }> {
+  const items: Array<{ icon: string; text: string; urgency: 'high' | 'med' | 'low'; route: Route }> = [];
+  const today = new Date();
+
+  // 1. Urgent application deadlines within 14 days
+  const urgentApp = applications
+    .filter(a => a.deadline)
+    .map(a => ({ ...a, daysLeft: Math.ceil((new Date(a.deadline!).getTime() - today.getTime()) / 86_400_000) }))
+    .filter(a => a.daysLeft >= 0 && a.daysLeft <= 14)
+    .sort((a, b) => a.daysLeft - b.daysLeft)[0];
+  if (urgentApp) {
+    items.push({
+      icon: '⚠',
+      text: `${urgentApp.institution_name} deadline in ${urgentApp.daysLeft} day${urgentApp.daysLeft !== 1 ? 's' : ''}`,
+      urgency: urgentApp.daysLeft <= 3 ? 'high' : 'med',
+      route: 'applications',
+    });
+  }
+
+  // 2. Best APS leverage: raise one subject to unlock a nearby programme
+  const nextProg = programmes
+    .filter(p => p.aps > userAps && p.aps <= userAps + 6)
+    .sort((a, b) => a.aps - b.aps)[0];
+  const lowestSubject = [...subjects].filter(s => s.id !== 'lo').sort((a, b) => apsPoints(a.mark) - apsPoints(b.mark))[0];
+  if (lowestSubject && nextProg) {
+    items.push({
+      icon: '📈',
+      text: `Raise ${lowestSubject.name} to unlock ${nextProg.name}`,
+      urgency: 'med',
+      route: 'simulator',
+    });
+  }
+
+  // 3. Saved programmes reminder or fallback prompt
+  const savedCount = savedProgrammeIds.length;
+  if (savedCount > 0) {
+    items.push({
+      icon: '★',
+      text: `${savedCount} saved programme${savedCount !== 1 ? 's' : ''} — check deadlines`,
+      urgency: 'low',
+      route: 'programmes',
+    });
+  } else if (items.length < 2) {
+    items.push({
+      icon: '🎯',
+      text: 'Browse scholarships — multiple matches for your profile',
+      urgency: 'low',
+      route: 'scholarships',
+    });
+  }
+
+  return items.slice(0, 3);
+}
 
 interface HomePageProps {
   subjects: Subject[];
@@ -42,18 +117,29 @@ function statusToStages(status: string): string[] {
   return ['done', 'active', '', ''];
 }
 
-export default function HomePage({ subjects, navigate, programmes, applications = [], strategicScore, householdIncome, savedProgrammeIds, psychProfile, capabilityData }: HomePageProps) {
+export default function HomePage({ subjects, navigate, programmes, applications = [], strategicScore, householdIncome, savedProgrammeIds = [], psychProfile, capabilityData }: HomePageProps) {
   const aps = calcAPS(subjects);
   const allProgs = programmes ?? PROGRAMMES;
   const eligible = allProgs.filter(p => p.aps <= aps);
   const direct = eligible.filter(p => p.pathway === 'direct').length;
   const extended = eligible.filter(p => p.pathway === 'extended' || p.pathway === 'foundation').length;
 
-  const focuses: Array<{ n: string; t: string; s: React.ReactNode; cta: string; primary?: boolean; route: Route }> = [
-    { n: '01', primary: true, t: 'Submit NSFAS supporting documents', s: <>Closes in <strong style={{ color: 'hsl(var(--destructive))' }}>2 days</strong> · ID copy + household income proof</>, cta: 'Open', route: 'documents' },
-    { n: '02', t: 'Apply for Allan Gray Orbis — 92% match', s: 'R 280,000 · closes 15 Oct · you meet every criterion bar one', cta: 'Apply', route: 'scholarships' },
-    { n: '03', t: 'Re-rank programmes after Maths bump', s: 'Your prelim Maths went 72→78 · opens 9 new programmes', cta: 'Re-rank', route: 'simulator' },
+  // Live funding computation
+  const nsfasAmt   = computeNsfas(householdIncome);
+  const bursaryAmt = computeBursary(aps);
+  const scholarAmt = 18_000;
+  const totalFunding = nsfasAmt + bursaryAmt + scholarAmt;
+  const fundingSourceCount = (nsfasAmt > 0 ? 1 : 0) + (bursaryAmt > 0 ? 1 : 0) + 1;
+  const fundingEligible = householdIncome === undefined || householdIncome <= 600_000;
+
+  const rawFocuses = buildFocusItems(applications, subjects, allProgs, aps, savedProgrammeIds);
+  // Pad to 3 items with a fallback if needed
+  const focusFallbacks: typeof rawFocuses = [
+    { icon: '📚', text: 'Re-rank programmes after subject update', urgency: 'low', route: 'simulator' },
+    { icon: '🎯', text: 'Explore scholarship options — multiple matches', urgency: 'low', route: 'scholarships' },
+    { icon: '🏛', text: 'Compare universities side-by-side', urgency: 'low', route: 'unis' },
   ];
+  const focuses = [...rawFocuses, ...focusFallbacks].slice(0, 3);
 
   return (
     <div className="page-anim">
@@ -91,17 +177,17 @@ export default function HomePage({ subjects, navigate, programmes, applications 
           </div>
         </div>
 
-        <div className="card kpi">
+        <div className="card kpi" style={{ cursor: 'pointer' }} onClick={() => navigate('funding')}>
           <div className="lbl">Funding matched</div>
-          {householdIncome !== undefined && householdIncome > 350000 ? (
+          {fundingEligible ? (
             <>
-              <div className="val" style={{ color: 'hsl(var(--destructive))', fontSize: '1.125rem' }}>Not eligible</div>
-              <div className="hint">Household income above NSFAS threshold · merit bursaries available</div>
+              <div className="val" style={{ color: 'hsl(var(--success))' }}>{fmtR(Math.round(totalFunding / 1000) * 1000)}</div>
+              <div className="hint">across <strong style={{ color: 'hsl(var(--fg))' }}>{fundingSourceCount} source{fundingSourceCount !== 1 ? 's' : ''}</strong>{nsfasAmt > 0 ? ' · NSFAS + bursaries' : ' · merit bursaries'}</div>
             </>
           ) : (
             <>
-              <div className="val" style={{ color: 'hsl(var(--success))' }}>R&nbsp;412k</div>
-              <div className="hint">across <strong style={{ color: 'hsl(var(--fg))' }}>9 sources</strong> · NSFAS + 8 bursaries</div>
+              <div className="val" style={{ color: 'hsl(var(--destructive))', fontSize: '1.125rem' }}>Not eligible</div>
+              <div className="hint">Household income above NSFAS threshold · merit bursaries available</div>
             </>
           )}
         </div>
@@ -131,14 +217,20 @@ export default function HomePage({ subjects, navigate, programmes, applications 
               <button className="btn btn-ghost btn-sm" onClick={() => navigate('deadlines')}>View all</button>
             </div>
             <div className="stack">
-              {focuses.map(x => (
-                <div className="focus-item" key={x.n}>
-                  <span className="focus-num">{x.n}</span>
+              {focuses.map((x, i) => (
+                <div className="focus-item" key={x.text}>
+                  <span className="focus-num" style={{ color: x.urgency === 'high' ? 'hsl(var(--destructive))' : undefined }}>
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="focus-title">{x.t}</div>
-                    <div className="caption" style={{ marginTop: 2 }}>{x.s}</div>
+                    <div className="focus-title">{x.icon} {x.text}</div>
                   </div>
-                  <button className={`btn ${x.primary ? 'btn-primary' : 'btn-outline'} btn-sm`} onClick={() => navigate(x.route)}>{x.cta}</button>
+                  <button
+                    className={`btn ${x.urgency === 'high' ? 'btn-primary' : i === 0 ? 'btn-primary' : 'btn-outline'} btn-sm`}
+                    onClick={() => navigate(x.route)}
+                  >
+                    Open
+                  </button>
                 </div>
               ))}
             </div>

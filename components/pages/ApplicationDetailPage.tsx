@@ -9,20 +9,40 @@ interface ApplicationDetailPageProps {
 
 const STAGE_LABELS = ['Applied', 'Docs reviewed', 'Decision', 'Outcome'];
 
-const DOCS = [
-  { label: 'Certified ID copy', done: true },
-  { label: 'NSC certificate / statement of results', done: true },
-  { label: 'Proof of household income', done: false },
-  { label: 'Academic transcript', done: true },
-  { label: 'Application fee proof of payment', done: false },
-];
-
 const STATUS_BADGE: Record<string, string> = {
   success: 'success',
   warning: 'warning',
   info: 'info',
   destructive: 'destructive',
 };
+
+function deriveStages(app: Application): Array<'done' | 'active' | 'fail' | ''> {
+  if (app.status === 'success')     return ['done', 'done', 'done', 'done'];
+  if (app.status === 'destructive') return ['done', 'done', 'fail', ''];
+  if (app.decided)                  return ['done', 'done', 'active', ''];
+  if (app.submitted)                return ['done', 'active', '', ''];
+  return ['active', '', '', ''];
+}
+
+function buildDocs(app: Application): Array<{ label: string; done: boolean }> {
+  // Use submitted status as a proxy for documents provided
+  const submitted = !!app.submitted;
+  const accepted  = app.status === 'success';
+  return [
+    { label: 'Certified ID copy',                      done: submitted || accepted },
+    { label: 'NSC certificate / statement of results', done: submitted || accepted },
+    { label: 'Academic transcript',                    done: submitted || accepted },
+    { label: 'Proof of household income',              done: accepted },
+    { label: 'Application fee proof of payment',       done: accepted },
+  ];
+}
+
+function fmtDate(d: string | undefined): string {
+  if (!d) return '—';
+  const parsed = new Date(d);
+  if (isNaN(parsed.getTime())) return d; // return as-is if not parseable ISO
+  return parsed.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 export default function ApplicationDetailPage({ application, navigate }: ApplicationDetailPageProps) {
   if (!application) {
@@ -36,12 +56,31 @@ export default function ApplicationDetailPage({ application, navigate }: Applica
     );
   }
 
-  const submitted = application.submitted ?? 'Unknown';
+  // Use derived stages if the application object has no real stages data
+  const stages = application.stages?.some(s => s !== '') ? application.stages : deriveStages(application);
+  const docs = buildDocs(application);
+
   const commsLog = [
-    { date: submitted, title: 'Application received', body: 'Your application has been received and is queued for processing.' },
-    { date: application.decided ?? submitted, title: 'Documents under review', body: 'Your supporting documents are being reviewed. Allow 3–5 working days.' },
-    { date: application.decided ?? '—', title: 'Decision communicated', body: 'See your application status above for the current outcome.' },
-  ];
+    application.submitted && {
+      date: fmtDate(application.submitted),
+      title: 'Application submitted',
+      body: `Application to ${application.uni} was received and queued for processing.`,
+    },
+    application.submitted && {
+      date: fmtDate(application.submitted),
+      title: 'Documents under review',
+      body: 'Supporting documents are being reviewed by the admissions office. Allow 3–5 working days.',
+    },
+    application.decided && {
+      date: fmtDate(application.decided),
+      title: `Decision: ${application.label}`,
+      body: application.status === 'success'
+        ? 'Congratulations — offer of admission received. Check your email for next steps.'
+        : application.status === 'destructive'
+        ? 'Your application was unsuccessful. You may apply for alternative programmes or appeal.'
+        : 'Decision has been communicated. See your application status above.',
+    },
+  ].filter((e): e is { date: string; title: string; body: string } => !!e);
 
   return (
     <div className="page-anim">
@@ -77,7 +116,7 @@ export default function ApplicationDetailPage({ application, navigate }: Applica
           <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Stage timeline</div>
           <div className="stack-2">
             {STAGE_LABELS.map((label, i) => {
-              const stageVal = application.stages[i] ?? '';
+              const stageVal = stages[i] ?? '';
               return (
                 <div key={label} className="row" style={{ gap: '0.875rem', alignItems: 'stretch' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '0.125rem', alignSelf: 'stretch' }}>
@@ -106,8 +145,8 @@ export default function ApplicationDetailPage({ application, navigate }: Applica
           <div className="stack-2" style={{ marginTop: '0.25rem' }}>
             {[
               { l: 'Institution', v: application.uni },
-              { l: 'Submitted', v: application.submitted ?? '—' },
-              { l: 'Decision', v: application.decided ?? '—' },
+              { l: 'Submitted', v: fmtDate(application.submitted) },
+              { l: 'Decision', v: fmtDate(application.decided) },
               { l: 'Application fee', v: application.fee ?? '—' },
             ].map(row => (
               <div key={row.l} className="stat-pair">
@@ -123,7 +162,7 @@ export default function ApplicationDetailPage({ application, navigate }: Applica
           <div className="card">
             <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Document checklist</div>
             <div className="stack-2">
-              {DOCS.map(doc => (
+              {docs.map(doc => (
                 <div key={doc.label} className="row" style={{ gap: '0.75rem' }}>
                   <div style={{
                     width: 18, height: 18, borderRadius: 4, flexShrink: 0,
@@ -141,24 +180,30 @@ export default function ApplicationDetailPage({ application, navigate }: Applica
               ))}
             </div>
             <div className="caption" style={{ marginTop: '0.875rem', fontSize: '0.6875rem' }}>
-              {DOCS.filter(d => d.done).length}/{DOCS.length} documents submitted
+              {docs.filter(d => d.done).length}/{docs.length} documents submitted
             </div>
           </div>
 
           {/* Communications log */}
           <div className="card">
             <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Communications log</div>
-            <div className="stack">
-              {commsLog.map((entry, i) => (
-                <div key={i} style={{ paddingBottom: '0.875rem', borderBottom: i < commsLog.length - 1 ? '1px solid hsl(var(--border))' : 'none' }}>
-                  <div className="row-between" style={{ marginBottom: '0.25rem' }}>
-                    <span style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{entry.title}</span>
-                    <span className="caption" style={{ fontSize: '0.6875rem' }}>{entry.date}</span>
+            {commsLog.length === 0 ? (
+              <div className="caption" style={{ padding: '0.5rem 0' }}>
+                No communications recorded yet. Updates will appear here once your application is processed.
+              </div>
+            ) : (
+              <div className="stack">
+                {commsLog.map((entry, i) => (
+                  <div key={i} style={{ paddingBottom: '0.875rem', borderBottom: i < commsLog.length - 1 ? '1px solid hsl(var(--border))' : 'none' }}>
+                    <div className="row-between" style={{ marginBottom: '0.25rem' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{entry.title}</span>
+                      <span className="caption" style={{ fontSize: '0.6875rem' }}>{entry.date}</span>
+                    </div>
+                    <p className="body-text" style={{ fontSize: '0.8125rem', margin: 0 }}>{entry.body}</p>
                   </div>
-                  <p className="body-text" style={{ fontSize: '0.8125rem', margin: 0 }}>{entry.body}</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

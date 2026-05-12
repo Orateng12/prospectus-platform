@@ -9,7 +9,7 @@ interface CareerDetailPageProps {
   career: Career | null;
   programmes?: Programme[];
   capabilityData?: CapabilityData | null;
-  navigate: (r: Route) => void;
+  navigate: (r: Route, prog?: string) => void;
 }
 
 const TAG_TO_CAPS: Record<string, Array<keyof CapabilityData>> = {
@@ -39,6 +39,12 @@ const CAP_LABEL: Record<keyof CapabilityData, string> = {
   academic_readiness: 'Academic readiness',
   career_readiness: 'Career readiness',
 };
+
+function inferSubjectsFromAps(minAps: number): string {
+  if (minAps >= 38) return 'Mathematics (60%+), Physical Sciences or Life Sciences, English HL';
+  if (minAps >= 30) return 'Mathematics or Maths Literacy, English, relevant NSC subject';
+  return 'English Home Language, any 4 NSC subjects at minimum marks';
+}
 
 function sparklinePoints(_baseSalary: number): string {
   const w = 160;
@@ -125,7 +131,7 @@ export default function CareerDetailPage({ career, programmes: propProgrammes, c
             null,
             { icon: '🎓', label: 'Qualification', sub: `${fallbackProgs[0]?.name ?? 'Degree programme'} or similar` },
             null,
-            { icon: '📚', label: 'Required subjects', sub: 'Maths, Sciences, English HL' },
+            { icon: '📚', label: 'Required subjects', sub: inferSubjectsFromAps(fallbackProgs[0]?.aps ?? 30) },
             null,
             { icon: '🧠', label: 'Key capabilities', sub: capList.map(k => CAP_LABEL[k]).join(', ') },
           ].map((item, i) =>
@@ -155,8 +161,8 @@ export default function CareerDetailPage({ career, programmes: propProgrammes, c
                   style={{ padding: '0.75rem 0', borderBottom: '1px solid hsl(var(--border))', cursor: 'pointer' }}
                   role="button"
                   tabIndex={0}
-                  onClick={() => navigate('programmes')}
-                  onKeyDown={e => e.key === 'Enter' && navigate('programmes')}
+                  onClick={() => navigate('programmes', p.id)}
+                  onKeyDown={e => e.key === 'Enter' && navigate('programmes', p.id)}
                 >
                   <div className="row-between" style={{ marginBottom: '0.25rem' }}>
                     <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.name}</div>
@@ -198,8 +204,8 @@ export default function CareerDetailPage({ career, programmes: propProgrammes, c
             </svg>
             <div className="row-between" style={{ marginTop: '0.375rem' }}>
               <span className="caption" style={{ fontSize: '0.625rem' }}>Year 1</span>
-              <span className="caption" style={{ fontSize: '0.625rem', color: 'hsl(var(--success))' }}>Growth {career.growth}</span>
-              <span className="caption" style={{ fontSize: '0.625rem' }}>Year 10</span>
+              <span className="caption" style={{ fontSize: '0.625rem' }}>{fmtR(Math.round(career.salary * 1.2))}/mo · yr 5</span>
+              <span className="caption" style={{ fontSize: '0.625rem', color: 'hsl(var(--success))' }}>{career.growth} · yr 10</span>
             </div>
           </div>
         </div>

@@ -53,5 +53,12 @@ Key classes: `.card`, `.btn`, `.btn-primary`, `.btn-brand`, `.input`, `.badge`, 
 ## Personalisation data flow
 - `psychProfile` (RIASEC + Big Five) flows from `psychological_profiles` DB table → `app/dashboard/page.tsx` → `Dashboard` → page components
 - `capabilityData` (10 dims) flows from `capability_graphs` DB table → same path
-- Pages using live scoring: `CareersPage`, `SkillsPage`, `ProgrammePage`, `DiscoverPage`, `IntelligencePage`, `CareerDetailPage`, `ScholarshipsPage`
-- `emptyMode` (toggled in ProfilePage) suppresses all real data → shows placeholder state across all pages
+- Pages using live scoring: `CareersPage`, `SkillsPage`, `ProgrammePage`, `DiscoverPage`, `IntelligencePage`, `CareerDetailPage`, `ScholarshipsPage`, `CareerComparePage`
+- `emptyMode` (toggled in ProfilePage) suppresses all real data → shows placeholder state across ALL pages including SimulatorPage
+- `liveCareerMatches` — `useMemo` in Dashboard.tsx, computed from `scoreCareerMatch()` for all careers, threaded to `CompareDrawer` (subtitles) and `CareerComparePage` (comparison rows)
+
+## Detail page conventions
+- `navigate(r: Route, prog?: string)` — second arg sets `selectedProg` in Dashboard, opening ProgrammePage at that programme's detail
+- `ApplicationDetailPage` — derives timeline stages from `status`/`submitted`/`decided` via `deriveStages()`; doc checklist is status-aware via `buildDocs()`
+- `SubjectDetailPage` — mark trajectory table shows new programmes unlocked per mark threshold; `savedProgrammeIds` prop shows saved-programme APS gaps
+- `CareerDetailPage` — `inferSubjectsFromAps(minAps)` drives required subjects in path viz; clicking a leading programme navigates to its detail

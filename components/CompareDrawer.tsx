@@ -9,12 +9,14 @@ interface CompareDrawerProps {
   onToggle: (item: CompareItem) => void;
   onClear: () => void;
   navigate: (r: Route) => void;
+  liveCareerMatches?: Record<string, number>;
 }
 
-function getSubtitle(item: CompareItem): string {
+function getSubtitle(item: CompareItem, liveCareerMatches?: Record<string, number>): string {
   if (item.kind === 'career') {
     const c = CAREERS.find(x => x.name === item.id);
-    return c ? `${c.match}% match · ${fmtR(c.salary)}/mo` : 'Career';
+    const match = liveCareerMatches?.[item.name] ?? c?.match ?? '?';
+    return c ? `${match}% match · ${fmtR(c.salary)}/mo` : 'Career';
   }
   if (item.kind === 'prog') {
     const p = PROGRAMMES.find(x => x.id === item.id);
@@ -38,7 +40,7 @@ const KIND_LABEL: Record<CompareItem['kind'], string> = {
   scholarship: 'Bursary',
 };
 
-export default function CompareDrawer({ items, onToggle, onClear, navigate }: CompareDrawerProps) {
+export default function CompareDrawer({ items, onToggle, onClear, navigate, liveCareerMatches }: CompareDrawerProps) {
   if (items.length === 0) return null;
 
   return (
@@ -54,7 +56,7 @@ export default function CompareDrawer({ items, onToggle, onClear, navigate }: Co
             <span className="cd-k">{KIND_LABEL[c.kind]}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: '0.8125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-              <div className="caption" style={{ fontSize: '0.625rem', marginTop: 1 }}>{getSubtitle(c)}</div>
+              <div className="caption" style={{ fontSize: '0.625rem', marginTop: 1 }}>{getSubtitle(c, liveCareerMatches)}</div>
             </div>
             <button onClick={() => onToggle(c)} aria-label={`Remove ${c.name}`}>×</button>
           </div>
