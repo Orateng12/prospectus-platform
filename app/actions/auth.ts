@@ -44,7 +44,7 @@ export async function signUp(formData: FormData): Promise<{ error?: string; need
     password,
     options: {
       data: { full_name: name },
-      redirectTo: `${siteUrl}/auth/callback`,
+      emailRedirectTo: `${siteUrl}/auth/callback`,
     },
   });
 
