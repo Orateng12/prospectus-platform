@@ -14,6 +14,8 @@ interface ProfilePageProps {
   householdIncome?: number;
   capabilityData?: CapabilityData | null;
   psychProfile?: PsychProfileData | null;
+  emptyMode?: boolean;
+  onToggleEmptyMode?: () => void;
 }
 
 export default function ProfilePage({
@@ -25,6 +27,8 @@ export default function ProfilePage({
   householdIncome = 220000,
   capabilityData,
   psychProfile,
+  emptyMode = false,
+  onToggleEmptyMode,
 }: ProfilePageProps) {
   const [editSection, setEditSection] = useState<string | null>(null);
   const initial = userName.charAt(0).toUpperCase();
@@ -58,6 +62,24 @@ export default function ProfilePage({
 
   return (
     <div className="page-anim">
+      {emptyMode && (
+        <div style={{
+          padding: '0.75rem 1rem',
+          background: 'hsl(var(--warning) / 0.12)',
+          border: '1px solid hsl(var(--warning) / 0.4)',
+          borderRadius: 8,
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          fontSize: '0.875rem',
+          fontWeight: 500,
+        }}>
+          <span style={{ fontSize: '1rem' }}>⚠</span>
+          <span>You&apos;re viewing in new student mode — your real data is preserved.</span>
+          <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }} onClick={onToggleEmptyMode}>Exit preview</button>
+        </div>
+      )}
       <div className="page-head">
         <div className="breadcrumb">Self · Profile</div>
         <div className="row-between">
@@ -168,9 +190,9 @@ export default function ProfilePage({
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
           {[
-            { l: 'Applications', v: '4', sub: '1 accepted · 1 pending', c: 'success' },
-            { l: 'Scholarships saved', v: '5', sub: '2 applied · R 445k matched', c: 'brand' },
-            { l: 'Programmes saved', v: '6', sub: 'across 4 universities', c: 'info' },
+            { l: 'Applications', v: emptyMode ? '0' : '4', sub: emptyMode ? 'No applications yet' : '1 accepted · 1 pending', c: 'success' },
+            { l: 'Scholarships saved', v: emptyMode ? '0' : '5', sub: emptyMode ? 'None saved yet' : '2 applied · R 445k matched', c: 'brand' },
+            { l: 'Programmes saved', v: emptyMode ? '0' : '6', sub: emptyMode ? 'None saved yet' : 'across 4 universities', c: 'info' },
           ].map(s => (
             <div key={s.l} className="card compact" style={{ textAlign: 'center' }}>
               <div style={{ fontWeight: 900, fontSize: '2rem', letterSpacing: '-0.04em', fontVariantNumeric: 'tabular-nums' }}>{s.v}</div>
@@ -180,6 +202,29 @@ export default function ProfilePage({
           ))}
         </div>
       </div>
+
+      {/* Preview mode toggle */}
+      {onToggleEmptyMode && (
+        <div className="card" style={{ marginTop: '1.25rem' }}>
+          <div className="row-between">
+            <div>
+              <div className="eyebrow" style={{ marginBottom: '0.375rem' }}><span className="dot" />Preview mode</div>
+              <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>New student view</div>
+              <p className="body-text" style={{ marginTop: '0.375rem', fontSize: '0.875rem', maxWidth: '36rem' }}>
+                Preview exactly what a brand-new student sees — empty lists, default APS, no profile data.
+                Your real data is preserved while this is active.
+              </p>
+            </div>
+            <button
+              className={`btn btn-sm ${emptyMode ? 'btn-primary' : 'btn-outline'}`}
+              onClick={onToggleEmptyMode}
+              style={{ flexShrink: 0 }}
+            >
+              {emptyMode ? 'Exit preview' : 'Enable preview'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

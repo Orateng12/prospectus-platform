@@ -22,9 +22,13 @@ const GREET_TEMPLATE: Record<Route, string | ((name: string) => string)> = {
   scholarships: 'Scholarships',
   nsfas:        'NSFAS Calculator',
   applications: 'Applications',
-  documents:    'Documents',
-  deadlines:    'Deadlines',
-  profile:      'Your Profile',
+  documents:           'Documents',
+  deadlines:           'Deadlines',
+  profile:             'Your Profile',
+  'application-detail': 'Application Detail',
+  'scholarship-detail': 'Scholarship Detail',
+  'career-detail':      'Career Path',
+  'subject-detail':     'Subject Deep-dive',
 };
 
 interface CmdkResult {

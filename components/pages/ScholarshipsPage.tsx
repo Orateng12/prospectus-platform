@@ -3,19 +3,45 @@
 import { useState } from 'react';
 import { SCHOLARSHIPS } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
+import type { CompareItem, Scholarship } from '@/lib/types';
+
+interface ScholarshipsPageProps {
+  userAps?: number;
+  householdIncome?: number;
+  compareItems?: CompareItem[];
+  onToggleCompare?: (item: CompareItem) => void;
+  onOpenDetail?: (scholarship: Scholarship) => void;
+}
+
+function computeMatch(s: Scholarship, userAps?: number, income?: number): number {
+  let score = s.match;
+  if (userAps !== undefined) {
+    const apsMatch = s.eligibility.match(/APS\s*[≥>=]+\s*(\d+)/);
+    if (apsMatch) {
+      const required = parseInt(apsMatch[1]);
+      if (userAps < required) score = Math.min(score, 45);
+    }
+  }
+  if (income !== undefined && s.eligibility.toLowerCase().includes('financial need') && income > 350000) {
+    score = Math.min(score, 50);
+  }
+  return score;
+}
 
 type Tab = 'all' | 'closing' | 'high' | 'mine';
 
-export default function ScholarshipsPage() {
+export default function ScholarshipsPage({ userAps, householdIncome, compareItems = [], onToggleCompare, onOpenDetail }: ScholarshipsPageProps) {
   const [tab, setTab] = useState<Tab>('all');
 
+  const withLiveMatch = SCHOLARSHIPS.map(s => ({ ...s, match: computeMatch(s, userAps, householdIncome) }));
+
   const displayed = (() => {
-    if (tab === 'high') return [...SCHOLARSHIPS].sort((a, b) => b.amount - a.amount);
-    if (tab === 'closing') return [...SCHOLARSHIPS].sort((a, b) => a.deadline.localeCompare(b.deadline));
-    return [...SCHOLARSHIPS].sort((a, b) => b.match - a.match);
+    if (tab === 'high') return [...withLiveMatch].sort((a, b) => b.amount - a.amount);
+    if (tab === 'closing') return [...withLiveMatch].sort((a, b) => a.deadline.localeCompare(b.deadline));
+    return [...withLiveMatch].sort((a, b) => b.match - a.match);
   })();
 
-  const highMatch = SCHOLARSHIPS.filter(s => s.match >= 80).length;
+  const highMatch = withLiveMatch.filter(s => s.match >= 80).length;
 
   return (
     <div className="page-anim">
@@ -62,9 +88,22 @@ export default function ScholarshipsPage() {
                   <div style={{ fontWeight: 800, fontSize: '1.125rem', fontVariantNumeric: 'tabular-nums' }}>{fmtR(s.amount)}</div>
                   <div className="caption">/ year</div>
                 </div>
-                <div className="row" style={{ gap: '0.625rem' }}>
+                <div className="row" style={{ gap: '0.5rem' }}>
                   <div className={`match-circle${s.match < 80 ? ' med' : ''}`}>{s.match}</div>
-                  <button className={`btn ${s.match >= 80 ? 'btn-primary' : 'btn-outline'} btn-sm`}>Apply</button>
+                  {onToggleCompare && (
+                    <button
+                      className={`btn btn-sm ${compareItems.some(ci => ci.id === s.name) ? 'btn-primary' : 'btn-outline'}`}
+                      onClick={() => onToggleCompare({ id: s.name, kind: 'scholarship', name: s.name })}
+                    >
+                      {compareItems.some(ci => ci.id === s.name) ? '✓' : 'Compare'}
+                    </button>
+                  )}
+                  <button
+                    className={`btn ${s.match >= 80 ? 'btn-primary' : 'btn-outline'} btn-sm`}
+                    onClick={() => onOpenDetail?.(s)}
+                  >
+                    {onOpenDetail ? 'View' : 'Apply'}
+                  </button>
                 </div>
               </div>
             ))}

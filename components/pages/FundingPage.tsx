@@ -1,9 +1,15 @@
 import { SCHOLARSHIPS } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
 
-export default function FundingPage() {
+interface FundingPageProps {
+  householdIncome?: number;
+  userAps?: number;
+}
+
+export default function FundingPage({ householdIncome, userAps }: FundingPageProps) {
+  const aboveNsfasThreshold = householdIncome !== undefined && householdIncome > 350000;
   const total   = 165420;
-  const nsfas   = 88000;
+  const nsfas   = aboveNsfasThreshold ? 0 : 88000;
   const bursary = 42000;
   const scholar = 18000;
   const gap     = total - nsfas - bursary - scholar;
@@ -23,6 +29,9 @@ export default function FundingPage() {
             </p>
           </div>
           <div className="row">
+            {aboveNsfasThreshold && (
+              <span className="badge destructive">NSFAS: Above R 350k threshold</span>
+            )}
             <button className="btn btn-outline">Switch programme</button>
             <button className="btn btn-primary">Generate applications</button>
           </div>
@@ -84,7 +93,7 @@ export default function FundingPage() {
 
           <div className="stack-2" style={{ marginTop: '1.25rem' }}>
             {[
-              { cls: 'nsfas',   icon: 'N', label: 'NSFAS',                         amount: nsfas,   sub: 'Government bursary · confirmed eligible' },
+              { cls: 'nsfas',   icon: 'N', label: 'NSFAS',                         amount: nsfas,   sub: aboveNsfasThreshold ? 'Above income threshold · not eligible' : 'Government bursary · confirmed eligible' },
               { cls: 'bursary', icon: 'B', label: 'Investec Bursary',               amount: bursary, sub: 'Matched 88% · application open' },
               { cls: 'scholar', icon: 'S', label: 'NRF Innovation Scholarship',     amount: scholar, sub: 'Matched 74% · application open' },
             ].map(x => (

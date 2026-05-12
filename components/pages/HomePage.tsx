@@ -11,6 +11,8 @@ interface HomePageProps {
   programmes?: Programme[];
   applications?: DbApplication[];
   strategicScore?: StrategicScoreData | null;
+  householdIncome?: number;
+  savedProgrammeIds?: string[];
 }
 
 function statusToBadge(status: string): string {
@@ -38,7 +40,7 @@ function statusToStages(status: string): string[] {
   return ['done', 'active', '', ''];
 }
 
-export default function HomePage({ subjects, navigate, programmes, applications = [], strategicScore }: HomePageProps) {
+export default function HomePage({ subjects, navigate, programmes, applications = [], strategicScore, householdIncome, savedProgrammeIds }: HomePageProps) {
   const aps = calcAPS(subjects);
   const allProgs = programmes ?? PROGRAMMES;
   const eligible = allProgs.filter(p => p.aps <= aps);
@@ -73,19 +75,33 @@ export default function HomePage({ subjects, navigate, programmes, applications 
           </div>
         </div>
 
-        <div className="card kpi">
+        <div className="card kpi" style={{ cursor: 'pointer' }} onClick={() => navigate('programmes')}>
           <div className="lbl">Eligible programmes</div>
           <div className="val">{eligible.length}</div>
-          <div className="row" style={{ gap: '0.25rem', marginTop: '0.5rem' }}>
+          <div className="row" style={{ gap: '0.25rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
             <span className="badge direct">{direct} direct</span>
             <span className="badge extended">{extended} ext.</span>
+            {savedProgrammeIds && savedProgrammeIds.length > 0 && (
+              <span className="badge" style={{ background: 'hsl(var(--primary) / 0.1)', color: 'hsl(var(--primary))', border: '1px solid hsl(var(--primary) / 0.2)' }}>
+                ★ {savedProgrammeIds.length} saved
+              </span>
+            )}
           </div>
         </div>
 
         <div className="card kpi">
           <div className="lbl">Funding matched</div>
-          <div className="val" style={{ color: 'hsl(var(--success))' }}>R&nbsp;412k</div>
-          <div className="hint">across <strong style={{ color: 'hsl(var(--fg))' }}>9 sources</strong> · NSFAS + 8 bursaries</div>
+          {householdIncome !== undefined && householdIncome > 350000 ? (
+            <>
+              <div className="val" style={{ color: 'hsl(var(--destructive))', fontSize: '1.125rem' }}>Not eligible</div>
+              <div className="hint">Household income above NSFAS threshold · merit bursaries available</div>
+            </>
+          ) : (
+            <>
+              <div className="val" style={{ color: 'hsl(var(--success))' }}>R&nbsp;412k</div>
+              <div className="hint">across <strong style={{ color: 'hsl(var(--fg))' }}>9 sources</strong> · NSFAS + 8 bursaries</div>
+            </>
+          )}
         </div>
 
         <div className="card kpi">

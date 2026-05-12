@@ -1,0 +1,262 @@
+'use client';
+
+import type { Subject, Programme, Route } from '@/lib/types';
+import { PROGRAMMES } from '@/lib/data';
+import { calcAPS, apsPoints, fmtR } from '@/lib/utils';
+
+interface SubjectDetailPageProps {
+  subject: Subject | null;
+  subjects: Subject[];
+  programmes?: Programme[];
+  navigate: (r: Route) => void;
+}
+
+const APS_TABLE = [
+  { range: '80–100%', pts: 7 },
+  { range: '70–79%',  pts: 6 },
+  { range: '60–69%',  pts: 5 },
+  { range: '50–59%',  pts: 4 },
+  { range: '40–49%',  pts: 3 },
+  { range: '30–39%',  pts: 2 },
+  { range: '0–29%',   pts: 1 },
+];
+
+const STUDY_TIPS: Record<string, string[]> = {
+  math:     ['Practice past papers from 2021–2025 (DBE website)', 'Focus on algebra, functions, and statistics', 'Do 30 min of timed problem-solving daily'],
+  pscience: ['Master Newton\'s laws and electricity circuits first — highest exam weight', 'Use the CAPS formula sheet in every practice session', 'Pair with a study partner for experimental write-ups'],
+  eng:      ['Read one quality article per day and summarise it in 3 sentences', 'Practice essay structure: introduction, 3 body paragraphs, conclusion', 'Work through past comprehension papers under timed conditions'],
+  lifesci:  ['Use labelled diagrams for cell biology and genetics', 'Make a glossary of technical terms per chapter', 'Focus on ecology and human systems — most frequently tested'],
+  history:  ['Practice source-based questions from all periods', 'Learn to write structured essays with clear argument and evidence', 'Build a timeline for each topic to anchor events'],
+  sesotho:  ['Read Sesotho newspapers or short stories weekly', 'Practise essay writing and formal letter format', 'Focus on grammar rules — consistently tested'],
+  lo:       ['Life Orientation is excluded from APS — focus on core subjects first', 'Aim for 80%+ as it counts toward your NSC certificate', 'Use it as a confidence booster, not an APS driver'],
+};
+
+function getNextApsThreshold(currentMark: number): { mark: number; pts: number } | null {
+  const currentPts = apsPoints(currentMark);
+  const thresholds = [30, 40, 50, 60, 70, 80];
+  for (const t of thresholds) {
+    if (currentMark < t && apsPoints(t) > currentPts) {
+      return { mark: t, pts: apsPoints(t) };
+    }
+  }
+  return null;
+}
+
+export default function SubjectDetailPage({ subject, subjects, programmes: propProgrammes, navigate }: SubjectDetailPageProps) {
+  if (!subject) {
+    return (
+      <div className="page-anim">
+        <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
+          <div className="subheading" style={{ marginBottom: '0.75rem' }}>No subject selected</div>
+          <button className="btn btn-primary btn-sm" onClick={() => navigate('simulator')}>← Back to simulator</button>
+        </div>
+      </div>
+    );
+  }
+
+  const allProgs = propProgrammes && propProgrammes.length > 0 ? propProgrammes : PROGRAMMES;
+  const currentAps = calcAPS(subjects);
+  const currentPts = subject.designated ? apsPoints(subject.mark) : 0;
+  const nextThreshold = subject.designated ? getNextApsThreshold(subject.mark) : null;
+
+  // Find programmes that would become eligible with a small APS boost from this subject
+  const impactProgs: Array<{ prog: Programme; markNeeded: number; apsGain: number }> = [];
+  if (subject.designated) {
+    for (const p of allProgs) {
+      if (p.aps > currentAps && p.aps <= currentAps + 6) {
+        // Binary search for minimum mark that tips APS over threshold
+        let lo = subject.mark + 1, hi = 100;
+        let found = -1;
+        while (lo <= hi) {
+          const mid = Math.floor((lo + hi) / 2);
+          const newAps = calcAPS(subjects.map(s => s.id === subject.id ? { ...s, mark: mid } : s));
+          if (newAps >= p.aps) {
+            found = mid;
+            hi = mid - 1;
+          } else {
+            lo = mid + 1;
+          }
+        }
+        if (found !== -1) {
+          const newAps = calcAPS(subjects.map(s => s.id === subject.id ? { ...s, mark: found } : s));
+          impactProgs.push({ prog: p, markNeeded: found, apsGain: newAps - currentAps });
+        }
+      }
+    }
+  }
+  impactProgs.sort((a, b) => a.markNeeded - b.markNeeded);
+
+  const tips = STUDY_TIPS[subject.id] ?? ['Focus on past papers and timed practice', 'Identify your weakest topics and address them first', 'Seek help from your teacher for topics you struggle with'];
+
+  return (
+    <div className="page-anim">
+      <div className="page-head">
+        <div className="breadcrumb">Workspace · Simulator · Subject</div>
+        <div className="row-between">
+          <div>
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ marginBottom: '0.5rem', padding: 0, fontSize: '0.8125rem' }}
+              onClick={() => navigate('simulator')}
+            >
+              ← Back to simulator
+            </button>
+            <div className="eyebrow"><span className="dot" />Subject deep-dive</div>
+            <h2 className="heading" style={{ marginTop: '0.375rem' }}>{subject.name}</h2>
+            <div className="caption" style={{ marginTop: '0.25rem' }}>
+              {subject.designated ? 'Designated subject · counts toward APS' : 'Life Orientation · excluded from APS'}
+            </div>
+          </div>
+          <div className="row" style={{ gap: '0.75rem', alignItems: 'flex-start' }}>
+            <div className="card compact" style={{ textAlign: 'center', padding: '0.5rem 0.875rem' }}>
+              <div style={{ fontWeight: 900, fontSize: '2rem', letterSpacing: '-0.04em' }}>{subject.mark}%</div>
+              <div className="caption" style={{ fontSize: '0.625rem' }}>current mark</div>
+            </div>
+            {subject.designated && (
+              <div className="card compact" style={{ textAlign: 'center', padding: '0.5rem 0.875rem' }}>
+                <div style={{ fontWeight: 900, fontSize: '2rem', letterSpacing: '-0.04em', color: 'hsl(var(--primary))' }}>{currentPts}/7</div>
+                <div className="caption" style={{ fontSize: '0.625rem' }}>APS pts</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid-2 stack-3" style={{ alignItems: 'start' }}>
+        {/* Left column */}
+        <div className="stack-3">
+          {/* APS conversion table */}
+          <div className="card">
+            <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Mark → APS conversion</div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left', padding: '0.375rem 0.5rem', fontWeight: 600, borderBottom: '1px solid hsl(var(--border))', color: 'hsl(var(--fg-muted))', fontSize: '0.6875rem' }}>Mark range</th>
+                    <th style={{ textAlign: 'right', padding: '0.375rem 0.5rem', fontWeight: 600, borderBottom: '1px solid hsl(var(--border))', color: 'hsl(var(--fg-muted))', fontSize: '0.6875rem' }}>APS points</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {APS_TABLE.map(row => {
+                    const isCurrent = row.pts === currentPts;
+                    return (
+                      <tr
+                        key={row.pts}
+                        style={{
+                          background: isCurrent ? 'hsl(var(--primary) / 0.1)' : undefined,
+                          borderLeft: isCurrent ? '3px solid hsl(var(--primary))' : '3px solid transparent',
+                        }}
+                      >
+                        <td style={{ padding: '0.5rem 0.5rem', fontWeight: isCurrent ? 700 : 400 }}>{row.range}</td>
+                        <td style={{ padding: '0.5rem 0.5rem', textAlign: 'right', fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: isCurrent ? 'hsl(var(--primary))' : undefined }}>
+                          {row.pts} {isCurrent && <span className="caption" style={{ fontSize: '0.625rem', fontWeight: 400 }}>← you</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {nextThreshold && (
+              <div className="card compact" style={{ marginTop: '0.875rem', background: 'hsl(var(--success) / 0.08)', borderColor: 'hsl(var(--success) / 0.3)' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                  Raise to {nextThreshold.mark}% → earn {nextThreshold.pts} pts (+{nextThreshold.pts - currentPts})
+                </div>
+                <div className="caption" style={{ marginTop: '0.25rem', fontSize: '0.6875rem' }}>
+                  That&apos;s {subject.mark < nextThreshold.mark ? nextThreshold.mark - subject.mark : 0}% to go
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Study tips */}
+          <div className="card">
+            <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Study tips</div>
+            <div className="stack-2">
+              {tips.map((tip, i) => (
+                <div key={i} className="row" style={{ gap: '0.75rem', alignItems: 'flex-start' }}>
+                  <div style={{
+                    width: 20, height: 20, borderRadius: 4, flexShrink: 0,
+                    background: 'hsl(var(--primary) / 0.1)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '0.625rem', fontWeight: 800, color: 'hsl(var(--primary))',
+                  }}>
+                    {i + 1}
+                  </div>
+                  <p className="body-text" style={{ fontSize: '0.875rem', margin: 0 }}>{tip}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right column */}
+        <div className="stack-3">
+          {/* APS contribution meter */}
+          {subject.designated && (
+            <div className="card">
+              <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />APS contribution</div>
+              <div className="row-between" style={{ marginBottom: '0.5rem' }}>
+                <span className="caption">This subject contributes</span>
+                <span style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{currentPts} / 7 pts</span>
+              </div>
+              <div className="meter success">
+                <i style={{ width: `${(currentPts / 7) * 100}%` }} />
+              </div>
+              <div className="row-between" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>
+                <span className="caption">Your total APS</span>
+                <span style={{ fontWeight: 700 }}>{currentAps} / 49</span>
+              </div>
+              <div className="meter" style={{ marginTop: '0.375rem' }}>
+                <i style={{ width: `${(currentAps / 49) * 100}%` }} />
+              </div>
+            </div>
+          )}
+
+          {/* Programme impact */}
+          {subject.designated && (
+            <div className="card">
+              <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Programme unlock potential</div>
+              {impactProgs.length === 0 ? (
+                <div className="caption" style={{ textAlign: 'center', padding: '1rem 0' }}>
+                  {subject.mark >= 80
+                    ? 'Already at maximum — all nearby programmes are unlocked!'
+                    : 'No programmes within reach for this subject at current APS. Try raising other subjects.'}
+                </div>
+              ) : (
+                <div className="stack">
+                  {impactProgs.slice(0, 5).map(({ prog, markNeeded, apsGain }) => (
+                    <div key={prog.id} style={{ padding: '0.625rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                      <div className="row-between" style={{ marginBottom: '0.25rem' }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.875rem', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {prog.name}
+                        </div>
+                        <span className="badge success" style={{ flexShrink: 0, marginLeft: '0.5rem' }}>+{apsGain} APS</span>
+                      </div>
+                      <div className="caption" style={{ marginBottom: '0.375rem' }}>{prog.uni} · {fmtR(prog.fees)}/yr</div>
+                      <div style={{ fontSize: '0.8125rem' }}>
+                        Raise to <strong style={{ color: 'hsl(var(--primary))' }}>{markNeeded}%</strong> to unlock
+                        <span className="caption" style={{ marginLeft: '0.375rem' }}>({markNeeded - subject.mark}% to go)</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {!subject.designated && (
+            <div className="card">
+              <div className="eyebrow" style={{ marginBottom: '0.75rem' }}><span className="dot" />Note</div>
+              <p className="body-text" style={{ fontSize: '0.875rem' }}>
+                Life Orientation does not contribute to your APS score but is required for your NSC certificate.
+                Aim for 80%+ to maximise your overall results.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

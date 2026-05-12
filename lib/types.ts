@@ -47,7 +47,7 @@ export interface University {
 
 export interface CompareItem {
   id: string;
-  kind: 'prog' | 'career' | 'uni';
+  kind: 'prog' | 'career' | 'uni' | 'scholarship';
   name: string;
 }
 
@@ -195,7 +195,11 @@ export type Route =
   | 'applications'
   | 'documents'
   | 'deadlines'
-  | 'profile';
+  | 'profile'
+  | 'application-detail'
+  | 'scholarship-detail'
+  | 'career-detail'
+  | 'subject-detail';
 
 export interface InsightContext {
   type: 'home' | 'cognitive' | 'intelligence' | 'career';

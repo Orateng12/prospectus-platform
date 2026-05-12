@@ -13,9 +13,10 @@ interface SimulatorPageProps {
   onSaved?: (subjects: Subject[]) => void;
   programmes?: Programme[];
   onNavigateProgramme?: (progId: string) => void;
+  onOpenDetail?: (subject: Subject) => void;
 }
 
-export default function SimulatorPage({ subjects, onSubjectChange, onReset, onSaved, programmes, onNavigateProgramme }: SimulatorPageProps) {
+export default function SimulatorPage({ subjects, onSubjectChange, onReset, onSaved, programmes, onNavigateProgramme, onOpenDetail }: SimulatorPageProps) {
   const allProgs = programmes ?? PROGRAMMES;
   const aps = calcAPS(subjects);
   // Capture the APS on first render as the baseline for delta display
@@ -104,13 +105,24 @@ export default function SimulatorPage({ subjects, onSubjectChange, onReset, onSa
           <div className="card">
             <div className="row-between" style={{ marginBottom: '0.875rem' }}>
               <h3 className="subheading">Subjects</h3>
-              <span className="caption">Drag slider or type %</span>
+              <span className="caption sub-row-hint">Drag slider or type %</span>
             </div>
             <div className="stack">
               {subjects.map(s => (
                 <div className="sub-row" key={s.id}>
-                  <div style={{ minWidth: 0 }}>
-                    <div className="sub-name">{s.name}</div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div className="row-between" style={{ marginBottom: '0.125rem' }}>
+                      <div className="sub-name">{s.name}</div>
+                      {onOpenDetail && (
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          style={{ padding: '0 0.25rem', height: '1.375rem', fontSize: '0.6875rem', color: 'hsl(var(--primary))' }}
+                          onClick={() => onOpenDetail(s)}
+                        >
+                          Detail →
+                        </button>
+                      )}
+                    </div>
                     <div className="sub-meta">
                       {s.designated ? 'Designated' : 'Life Orientation · excluded'} · {apsPoints(s.mark)} APS pts
                     </div>

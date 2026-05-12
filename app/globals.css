@@ -891,3 +891,135 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
 
 /* ── Topbar right position anchor ── */
 .topbar-right { position: relative; }
+
+/* ─── Mobile responsive — comprehensive fixes ───────────── */
+
+/* ── Touch targets (anything interactive must be ≥ 44px tall on mobile) */
+@media (max-width: 900px) {
+  .btn     { min-height: 44px; }
+  .btn-sm  { min-height: 38px; padding: 0 0.75rem; }
+  .tab     { min-height: 40px; padding: 0.5rem 0.75rem; }
+  .nav-item { min-height: 44px; }
+}
+
+/* ── Topbar: declutter on small phones, keep hamburger/APS/avatar */
+@media (max-width: 480px) {
+  .icon-btn { display: none; }
+  .topbar-right { gap: 0.375rem; }
+  .topbar { gap: 0.5rem; }
+}
+
+/* ── Profile menu: clamp width so it never overflows the screen */
+.profile-menu {
+  max-width: min(280px, calc(100vw - 1rem));
+}
+
+/* ── Compare drawer: full-width on phones */
+@media (max-width: 540px) {
+  .compare-drawer {
+    right: 0.75rem;
+    left: 0.75rem;
+    min-width: 0;
+    max-width: calc(100vw - 1.5rem);
+  }
+}
+
+/* ── Simulator: APS number too large at 4rem on small screens */
+@media (max-width: 480px) {
+  .sim-aps .num { font-size: 2.75rem; }
+  .sim-aps { padding: 1rem 0.75rem; }
+}
+@media (max-width: 360px) {
+  .sim-aps .num { font-size: 2.25rem; }
+}
+
+/* ── Simulator subject rows: prevent overflow, no double scroll */
+.sim-aps { min-width: 0; }
+.sub-row { min-width: 0; }
+.sub-row input[type="range"] { width: 100%; max-width: 100%; }
+/* Hide the "Drag slider or type %" hint on very small screens */
+@media (max-width: 480px) {
+  .sub-row-hint { display: none; }
+}
+
+/* ── Impact rows: hide pathway badge on tiny screens to free space */
+@media (max-width: 480px) {
+  .impact-row .badge.direct,
+  .impact-row .badge.extended,
+  .impact-row .badge.foundation,
+  .impact-row .badge.tvet { display: none; }
+}
+
+/* ── Progress rows: label shrinks on small screens to give meter room */
+@media (max-width: 480px) {
+  .progress-row .label { flex-basis: 68px; font-size: 0.6875rem; }
+  .progress-row { gap: 0.5rem; }
+}
+
+/* ── Scholar rows: on very narrow screens collapse to stacked card */
+@media (max-width: 400px) {
+  .scholar-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    align-items: flex-start;
+  }
+  .scholar-row > div:last-child { align-self: flex-end; }
+}
+
+/* ── Programme filter sidebar */
+.prog-filters { min-width: 0; }
+
+/* ── Path visualization: vertical on mobile, horizontal scroll on wider */
+.path-viz {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.375rem;
+}
+.path-viz-step {
+  text-align: center;
+  padding: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--r-lg);
+  background: hsl(var(--card));
+}
+.path-viz-arrow {
+  text-align: center;
+  font-size: 1rem;
+  color: hsl(var(--muted-fg));
+  line-height: 1;
+  padding: 0.125rem 0;
+  flex-shrink: 0;
+}
+@media (min-width: 640px) {
+  .path-viz {
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    gap: 0;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .path-viz::-webkit-scrollbar { display: none; }
+  .path-viz-step {
+    min-width: 130px;
+    flex: 0 0 auto;
+    border-radius: var(--r-xl);
+  }
+  .path-viz-arrow {
+    font-size: 1.25rem;
+    padding: 0 0.5rem;
+  }
+}
+
+/* ── cd-chip: allow multi-line subtitle */
+.cd-chip { align-items: flex-start; }
+
+/* ── Detail page utilities */
+.stage-connector { width: 2px; background: hsl(var(--border)); flex-shrink: 0; }
+
+/* ── Topbar search wrapper: hide entirely on mobile to prevent ghost flex gap */
+@media (max-width: 900px) {
+  .topbar-search { display: none !important; }
+}

@@ -9,6 +9,8 @@ interface CareersPageProps {
   careers?: Career[];
   compareItems?: CompareItem[];
   onToggleCompare?: (item: CompareItem) => void;
+  userAps?: number;
+  onOpenDetail?: (career: Career) => void;
 }
 
 type Tab = 'fit' | 'demand' | 'growth' | 'salary';
@@ -17,12 +19,19 @@ function parseGrowth(g: string): number {
   return parseFloat(g.replace('%', '')) || 0;
 }
 
-export default function CareersPage({ careers: propCareers, compareItems = [], onToggleCompare }: CareersPageProps) {
+export default function CareersPage({ careers: propCareers, compareItems = [], onToggleCompare, userAps, onOpenDetail }: CareersPageProps) {
   const allCareers = propCareers && propCareers.length > 0 ? propCareers : CAREERS;
   const [activeTab, setActiveTab] = useState<Tab>('fit');
 
+  const withLiveMatch = useMemo(() => allCareers.map(c => ({
+    ...c,
+    match: userAps !== undefined
+      ? Math.min(100, Math.round(c.match * 0.7 + Math.min(userAps / 42 * 30, 30)))
+      : c.match,
+  })), [allCareers, userAps]);
+
   const displayed = useMemo(() => {
-    let list = [...allCareers];
+    let list = [...withLiveMatch];
     if (activeTab === 'demand') {
       list = list.filter(c => c.demand === 'High').sort((a, b) => b.match - a.match);
     } else if (activeTab === 'growth') {
@@ -33,7 +42,7 @@ export default function CareersPage({ careers: propCareers, compareItems = [], o
       list = list.sort((a, b) => b.match - a.match);
     }
     return list.map((c, i) => ({ ...c, rank: i + 1 }));
-  }, [allCareers, activeTab]);
+  }, [withLiveMatch, activeTab]);
 
   const highDemandCount = allCareers.filter(c => c.demand === 'High').length;
 
@@ -115,8 +124,8 @@ export default function CareersPage({ careers: propCareers, compareItems = [], o
               ))}
             </div>
 
-            {onToggleCompare && (
-              <div className="row" style={{ gap: '0.375rem', marginTop: 'auto' }}>
+            <div className="row" style={{ gap: '0.375rem', marginTop: 'auto' }}>
+              {onToggleCompare && (
                 <button
                   className={`btn btn-sm ${compareItems.some(ci => ci.name === c.name) ? 'btn-primary' : 'btn-outline'}`}
                   style={{ flex: 1 }}
@@ -124,9 +133,17 @@ export default function CareersPage({ careers: propCareers, compareItems = [], o
                 >
                   {compareItems.some(ci => ci.name === c.name) ? '✓ Added' : 'Compare'}
                 </button>
-                <button className="btn btn-primary btn-sm" style={{ flex: 1 }}>Open path</button>
-              </div>
-            )}
+              )}
+              {onOpenDetail && (
+                <button
+                  className="btn btn-primary btn-sm"
+                  style={{ flex: 1 }}
+                  onClick={() => onOpenDetail(c)}
+                >
+                  Open path
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>

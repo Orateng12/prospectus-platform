@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import type {
-  Route, Subject, Programme, Career, CompareItem,
+  Route, Subject, Programme, Career, CompareItem, Application, Scholarship,
   PsychProfileData, CapabilityData, StrategicScoreData, DbApplication,
 } from '@/lib/types';
 import { SUBJECTS } from '@/lib/data';
@@ -29,6 +29,10 @@ import DocumentsPage from './pages/DocumentsPage';
 import DeadlinesPage from './pages/DeadlinesPage';
 import ProfilePage from './pages/ProfilePage';
 import CompareDrawer from './CompareDrawer';
+import ApplicationDetailPage from './pages/ApplicationDetailPage';
+import CareerDetailPage from './pages/CareerDetailPage';
+import ScholarshipDetailPage from './pages/ScholarshipDetailPage';
+import SubjectDetailPage from './pages/SubjectDetailPage';
 
 const BASE_APS = 42;
 
@@ -71,9 +75,18 @@ export default function Dashboard({
   );
   const [selectedProg, setSelectedProg] = useState('');
   const [compareItems, setCompareItems] = useState<CompareItem[]>([]);
+  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [selectedScholarship, setSelectedScholarship] = useState<Scholarship | null>(null);
+  const [selectedCareer, setSelectedCareer] = useState<Career | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [emptyMode, setEmptyMode] = useState(false);
 
   const aps = calcAPS(subjects);
   const apsDelta = aps - BASE_APS;
+
+  const emptySubjects = (initialSubjects ?? SUBJECTS).map(s => ({ ...s, mark: 50 }));
+  const displaySubjects = emptyMode ? emptySubjects : subjects;
+  const displayAps = emptyMode ? calcAPS(emptySubjects) : aps;
 
   const navigate = useCallback((r: Route, prog?: string) => {
     setSelectedProg(prog ?? '');
@@ -106,19 +119,36 @@ export default function Dashboard({
 
   const clearCompare = useCallback(() => setCompareItems([]), []);
 
+  const navigateToDetail = useCallback((
+    type: 'application-detail' | 'scholarship-detail' | 'career-detail' | 'subject-detail',
+    item: Application | Scholarship | Career | Subject,
+  ) => {
+    if (type === 'application-detail') setSelectedApplication(item as Application);
+    else if (type === 'scholarship-detail') setSelectedScholarship(item as Scholarship);
+    else if (type === 'career-detail') setSelectedCareer(item as Career);
+    else if (type === 'subject-detail') setSelectedSubject(item as Subject);
+    navigate(type);
+  }, [navigate]);
+
   function renderPage() {
+    const displayApplications = emptyMode ? [] : applications;
+    const displaySavedIds = emptyMode ? [] : savedProgrammeIds;
+    const displayStrategic = emptyMode ? null : strategicScore;
+    const displayPsych = emptyMode ? null : psychProfile;
+    const displayCap = emptyMode ? null : capabilityData;
+
     switch (route) {
       case 'intelligence':
         return (
           <IntelligencePage
             navigate={navigate}
-            strategicScore={strategicScore}
-            capabilityData={capabilityData}
+            strategicScore={displayStrategic}
+            capabilityData={displayCap}
             programmes={initialProgrammes}
             careers={careers}
-            psychProfile={psychProfile}
-            subjects={subjects}
-            userAps={aps}
+            psychProfile={displayPsych}
+            subjects={displaySubjects}
+            userAps={displayAps}
           />
         );
       case 'simulator':
@@ -130,42 +160,64 @@ export default function Dashboard({
             onSaved={handleSubjectsSaved}
             programmes={initialProgrammes}
             onNavigateProgramme={(progId) => navigate('programmes', progId)}
+            onOpenDetail={(s) => navigateToDetail('subject-detail', s)}
           />
         );
       case 'programmes':
         return (
           <ProgrammePage
             selectedProg={selectedProg}
-            subjects={subjects}
+            subjects={displaySubjects}
             navigate={navigate}
             programmes={initialProgrammes}
-            savedProgrammeIds={savedProgrammeIds}
+            savedProgrammeIds={displaySavedIds}
           />
         );
       case 'funding':
-        return <FundingPage />;
+        return <FundingPage householdIncome={householdIncome} userAps={displayAps} />;
       case 'financial':
-        return <FinancialPage subjects={subjects} householdIncome={householdIncome} />;
+        return <FinancialPage subjects={displaySubjects} householdIncome={householdIncome} />;
       case 'careers':
-        return <CareersPage careers={careers} compareItems={compareItems} onToggleCompare={toggleCompare} />;
+        return (
+          <CareersPage
+            careers={careers}
+            compareItems={compareItems}
+            onToggleCompare={toggleCompare}
+            userAps={displayAps}
+            onOpenDetail={(c) => navigateToDetail('career-detail', c)}
+          />
+        );
       case 'cognitive':
-        return <CognitivePage psychProfile={psychProfile} />;
+        return <CognitivePage psychProfile={displayPsych} />;
       case 'skills':
-        return <SkillsPage capabilityData={capabilityData} />;
+        return <SkillsPage capabilityData={displayCap} />;
       case 'map':
         return <MapPage />;
       case 'unis':
-        return <UniversitiesPage subjects={subjects} navigate={navigate} compareItems={compareItems} onToggleCompare={toggleCompare} />;
+        return <UniversitiesPage subjects={displaySubjects} navigate={navigate} compareItems={compareItems} onToggleCompare={toggleCompare} />;
       case 'compare':
         return <CareerComparePage compareItems={compareItems} onClear={clearCompare} navigate={navigate} />;
       case 'discover':
         return <DiscoverPage navigate={navigate} />;
       case 'scholarships':
-        return <ScholarshipsPage />;
+        return (
+          <ScholarshipsPage
+            userAps={displayAps}
+            householdIncome={householdIncome}
+            compareItems={compareItems}
+            onToggleCompare={toggleCompare}
+            onOpenDetail={(s) => navigateToDetail('scholarship-detail', s)}
+          />
+        );
       case 'nsfas':
         return <NSFASPage householdIncome={householdIncome} />;
       case 'applications':
-        return <ApplicationsPage />;
+        return (
+          <ApplicationsPage
+            applications={emptyMode ? [] : (applications.length > 0 ? applications : undefined)}
+            onOpenDetail={(a) => navigateToDetail('application-detail', a)}
+          />
+        );
       case 'documents':
         return <DocumentsPage />;
       case 'deadlines':
@@ -179,18 +231,53 @@ export default function Dashboard({
             userProvince={userProvince}
             subjects={subjects}
             householdIncome={householdIncome}
-            capabilityData={capabilityData}
-            psychProfile={psychProfile}
+            capabilityData={displayCap}
+            psychProfile={displayPsych}
+            emptyMode={emptyMode}
+            onToggleEmptyMode={() => setEmptyMode(p => !p)}
+          />
+        );
+      case 'application-detail':
+        return <ApplicationDetailPage application={selectedApplication} navigate={navigate} />;
+      case 'career-detail':
+        return (
+          <CareerDetailPage
+            career={selectedCareer}
+            programmes={initialProgrammes}
+            capabilityData={displayCap}
+            navigate={navigate}
+          />
+        );
+      case 'scholarship-detail':
+        return (
+          <ScholarshipDetailPage
+            scholarship={selectedScholarship}
+            userAps={displayAps}
+            householdIncome={householdIncome}
+            userProvince={userProvince}
+            userName={userName}
+            navigate={navigate}
+          />
+        );
+      case 'subject-detail':
+        return (
+          <SubjectDetailPage
+            subject={selectedSubject}
+            subjects={subjects}
+            programmes={initialProgrammes}
+            navigate={navigate}
           />
         );
       default:
         return (
           <HomePage
-            subjects={subjects}
+            subjects={displaySubjects}
             navigate={navigate}
             programmes={initialProgrammes}
-            applications={applications}
-            strategicScore={strategicScore}
+            applications={displayApplications}
+            strategicScore={displayStrategic}
+            householdIncome={householdIncome}
+            savedProgrammeIds={displaySavedIds}
           />
         );
     }

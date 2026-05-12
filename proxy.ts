@@ -39,8 +39,7 @@ export async function proxy(request: NextRequest) {
   // Routes where unauthenticated users should be redirected away (to dashboard) when logged in
   const loginOnlyRoute = pathname.startsWith('/login') ||
     pathname.startsWith('/signup') ||
-    pathname.startsWith('/forgot-password') ||
-    pathname.startsWith('/auth');
+    pathname.startsWith('/forgot-password');
 
   // Protect /dashboard and /onboarding — redirect unauthenticated users to login
   if ((pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding')) && !user) {

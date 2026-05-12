@@ -123,10 +123,15 @@ export default function SignupPage() {
       </div>
       <GoogleSignInButton label="Sign up with Google" />
 
-      <p className="caption" style={{ marginTop: '1.25rem', textAlign: 'center' }}>
+      <p className="caption" style={{ marginTop: '1rem', textAlign: 'center' }}>
         Already have an account?{' '}
         <Link href="/login" style={{ color: 'hsl(var(--primary))', fontWeight: 600 }}>
           Sign in
+        </Link>
+      </p>
+      <p className="caption" style={{ marginTop: '1rem', textAlign: 'center' }}>
+        <Link href="/" style={{ color: 'hsl(var(--primary))', fontWeight: 600 }}>
+          Back to home
         </Link>
       </p>
     </div>

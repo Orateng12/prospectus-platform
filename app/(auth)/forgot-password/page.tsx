@@ -32,6 +32,11 @@ export default function ForgotPasswordPage() {
         >
           Back to sign in
         </Link>
+        <p className="caption" style={{ marginTop: '1rem', textAlign: 'center' }}>
+          <Link href="/" style={{ color: 'hsl(var(--primary))', fontWeight: 600 }}>
+            Back to home
+          </Link>
+        </p>
       </div>
     );
   }
