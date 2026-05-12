@@ -99,6 +99,8 @@ export default function SubjectDetailPage({ subject, subjects, programmes: propP
         return { mark, pts, totalAps, newUnlocked };
       })
     : [];
+  // The single row that corresponds to the student's current mark (largest trajectory mark ≤ subject.mark)
+  const currentTrajMark = trajectoryRows.filter(r => r.mark <= subject.mark).slice(-1)[0]?.mark ?? -1;
 
   // Saved programmes context: which of the student's saved programmes care about this subject
   const savedProgs = savedProgrammeIds.length > 0
@@ -232,7 +234,7 @@ export default function SubjectDetailPage({ subject, subjects, programmes: propP
                   </thead>
                   <tbody>
                     {trajectoryRows.map(row => {
-                      const isCurrent = row.mark <= subject.mark && (row.mark + 5 > subject.mark || row.mark === 80);
+                      const isCurrent = row.mark === currentTrajMark;
                       const highlight = row.mark === [50,55,60,65,70,75,80].find(m => m > subject.mark);
                       return (
                         <tr key={row.mark} style={{

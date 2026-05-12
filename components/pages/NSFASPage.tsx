@@ -67,7 +67,7 @@ export default function NSFASPage({ householdIncome = 220000 }: NSFASPageProps) 
                 className="input"
                 style={{ marginTop: '0.375rem', width: '100%' }}
                 type="number"
-                min={1}
+                min={0}
                 max={10}
                 value={dependants}
                 onChange={e => setDependants(Number(e.target.value))}

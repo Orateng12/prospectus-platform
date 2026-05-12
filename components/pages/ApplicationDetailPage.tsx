@@ -19,6 +19,8 @@ const STATUS_BADGE: Record<string, string> = {
 function deriveStages(app: Application): Array<'done' | 'active' | 'fail' | ''> {
   if (app.status === 'success')     return ['done', 'done', 'done', 'done'];
   if (app.status === 'destructive') return ['done', 'done', 'fail', ''];
+  if (app.status === 'info')        return ['done', 'done', 'active', ''];  // in-review: docs done, awaiting decision
+  if (app.status === 'warning')     return ['done', 'active', '', ''];       // pending/queried: docs need attention
   if (app.decided)                  return ['done', 'done', 'active', ''];
   if (app.submitted)                return ['done', 'active', '', ''];
   return ['active', '', '', ''];
@@ -60,6 +62,11 @@ export default function ApplicationDetailPage({ application, navigate }: Applica
   const stages = application.stages?.some(s => s !== '') ? application.stages : deriveStages(application);
   const docs = buildDocs(application);
 
+  // Offset docs-review entry by 3 days after submission so comms log entries have distinct dates
+  const docsReviewDate = application.submitted
+    ? new Date(new Date(application.submitted).getTime() + 3 * 86_400_000).toISOString()
+    : undefined;
+
   const commsLog = [
     application.submitted && {
       date: fmtDate(application.submitted),
@@ -67,7 +74,7 @@ export default function ApplicationDetailPage({ application, navigate }: Applica
       body: `Application to ${application.uni} was received and queued for processing.`,
     },
     application.submitted && {
-      date: fmtDate(application.submitted),
+      date: fmtDate(docsReviewDate),
       title: 'Documents under review',
       body: 'Supporting documents are being reviewed by the admissions office. Allow 3–5 working days.',
     },

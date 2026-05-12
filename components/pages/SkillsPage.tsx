@@ -97,14 +97,16 @@ export default function SkillsPage({ capabilityData, psychProfile, careers = [],
   type B5Key = keyof CareerBigFiveRanges;
   const bigFiveRanges = topCareer ? getCareerBigFiveRanges(topCareer.name) : null;
   const bigFiveItems = bigFiveRanges && psychProfile
-    ? (Object.keys(bigFiveRanges) as B5Key[]).map(trait => {
-        const range = bigFiveRanges[trait]!;
-        const [lo, hi] = range;
-        const yours = (psychProfile[trait as keyof PsychProfileData] as number) ?? 50;
-        const inZone = yours >= lo && yours <= hi;
-        const gap = inZone ? 0 : Math.max(0, lo - yours);
-        return { trait, label: BIG5_LABEL[trait] ?? trait, desc: BIG5_DESC[trait] ?? '', lo, hi, yours, inZone, gap };
-      }).sort((a, b) => a.gap - b.gap)
+    ? (Object.keys(bigFiveRanges) as B5Key[])
+        .filter(trait => (psychProfile[trait as keyof PsychProfileData] as number | null | undefined) != null)
+        .map(trait => {
+          const range = bigFiveRanges[trait]!;
+          const [lo, hi] = range;
+          const yours = psychProfile[trait as keyof PsychProfileData] as number;
+          const inZone = yours >= lo && yours <= hi;
+          const gap = inZone ? 0 : Math.max(0, lo - yours);
+          return { trait, label: BIG5_LABEL[trait] ?? trait, desc: BIG5_DESC[trait] ?? '', lo, hi, yours, inZone, gap };
+        }).sort((a, b) => a.gap - b.gap)
     : [];
 
   // Build gap items: only capabilities the career actually cares about

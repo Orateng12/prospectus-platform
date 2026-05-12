@@ -6,6 +6,13 @@ All notable changes to the Prospectus platform.
 
 ## [Unreleased]
 
+### Fixed — Code review: 6 bugs patched across 5 pages
+- `components/pages/SkillsPage.tsx` — Big Five alignment card: filter out null/undefined psychProfile trait values before mapping; prevents misleading 0-score display for traits the user hasn't completed
+- `components/pages/ScholarshipsPage.tsx` — Guard `withLiveMatch.length > 0` before rendering Top Priority / Stacking Strategy cards to prevent crash when `SCHOLARSHIPS` is empty
+- `components/pages/ApplicationDetailPage.tsx` — `deriveStages()`: add explicit cases for `'info'` (in-review → docs done, awaiting decision) and `'warning'` (pending/queried → docs need attention) status values; deduplicate comms log by offsetting "Documents under review" entry +3 days from submission date
+- `components/pages/SubjectDetailPage.tsx` — Trajectory table `isCurrent` highlight: replaced ambiguous `row.mark + 5 > subject.mark` logic with exact match against `currentTrajMark` (largest trajectory row ≤ subject.mark) so exactly one row is highlighted
+- `components/pages/NSFASPage.tsx` — Dependants input `min` changed from `1` → `0` to allow independent students with no dependants
+
 ### Added — Phase 9: One living product — last-mile data wiring + detail page depth
 
 **Student model rippled everywhere (last-mile gaps closed):**

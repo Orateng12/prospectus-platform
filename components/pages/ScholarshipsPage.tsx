@@ -111,7 +111,7 @@ export default function ScholarshipsPage({ userAps, householdIncome, compareItem
         </div>
       )}
 
-      {(() => {
+      {withLiveMatch.length > 0 && (() => {
         const sortedByPriority = [...withLiveMatch].sort((a, b) => {
           if (b.match !== a.match) return b.match - a.match;
           return a.deadline.localeCompare(b.deadline);
