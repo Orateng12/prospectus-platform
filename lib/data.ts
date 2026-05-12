@@ -9,6 +9,7 @@ import type {
   BigFiveTrait,
   RiasecItem,
   Province,
+  University,
 } from './types';
 
 export const SUBJECTS: Subject[] = [
@@ -33,10 +34,10 @@ export const PROGRAMMES: Programme[] = [
 ];
 
 export const APPS: Application[] = [
-  { uni: 'UCT · BSc Computer Science',    meta: 'Submitted 14 Aug · APS 42 / 38 needed',                   stages: ['done','done','done','done'], status: 'success',     label: 'Accepted'  },
-  { uni: 'Wits · BSc Actuarial Science',  meta: 'Submitted 22 Aug · awaiting matric finals',               stages: ['done','done','active',''],   status: 'warning',     label: 'Pending'   },
-  { uni: 'NSFAS · Funding application',   meta: 'Submitted 12 Aug · documents under review',               stages: ['done','done','active',''],   status: 'info',        label: 'In review' },
-  { uni: 'Stellenbosch · BCom Finance',   meta: 'APS shortfall · consider extended pathway',               stages: ['done','done','fail',''],     status: 'destructive', label: 'Rejected'  },
+  { id: 'app-uct',   short: 'UCT CS',      uni: 'UCT · BSc Computer Science',    meta: 'Submitted 14 Aug · APS 42 / 38 needed',                   stages: ['done','done','done','done'], status: 'success',     label: 'Accepted',  progId: 'uct-cs',   submitted: '14 Aug 2026', decided: '03 Sep 2026',          fee: 'R 250 (waived)' },
+  { id: 'app-wits',  short: 'Wits Act.',   uni: 'Wits · BSc Actuarial Science',  meta: 'Submitted 22 Aug · awaiting matric finals',               stages: ['done','done','active',''],   status: 'warning',     label: 'Pending',   progId: 'wits-act', submitted: '22 Aug 2026', decided: '— pending finals',     fee: 'R 200 (waived)' },
+  { id: 'app-nsfas', short: 'NSFAS',       uni: 'NSFAS · Funding application',   meta: 'Submitted 12 Aug · documents under review',               stages: ['done','done','active',''],   status: 'info',        label: 'In review', progId: null,       submitted: '12 Aug 2026', decided: '— review window 21–35d', fee: 'Free' },
+  { id: 'app-sun',   short: 'SUN Finance', uni: 'Stellenbosch · BCom Finance',   meta: 'APS shortfall · consider extended pathway',               stages: ['done','done','fail',''],     status: 'destructive', label: 'Rejected',  progId: 'sun-fin',  submitted: '10 Aug 2026', decided: '28 Aug 2026',          fee: 'R 200 (waived)' },
 ];
 
 export const DEADLINES: Deadline[] = [
@@ -91,6 +92,19 @@ export const RIASEC: RiasecItem[] = [
   { l: 'Social',        v: 64 },
   { l: 'Enterprising',  v: 71 },
   { l: 'Conventional',  v: 56 },
+];
+
+export const UNIS: University[] = [
+  { name: 'University of Cape Town',          short: 'UCT',  city: 'Cape Town',     province: 'Western Cape',    rank: 1, progs: 142, accept: 14, fees: 76420, tag: 'success', acpt: 'Tier 1' },
+  { name: 'University of the Witwatersrand',  short: 'Wits', city: 'Johannesburg',  province: 'Gauteng',         rank: 2, progs: 168, accept: 18, fees: 82100, tag: 'success', acpt: 'Tier 1' },
+  { name: 'Stellenbosch University',          short: 'SUN',  city: 'Stellenbosch',  province: 'Western Cape',    rank: 3, progs: 154, accept: 22, fees: 71800, tag: 'success', acpt: 'Tier 1' },
+  { name: 'University of Pretoria',           short: 'UP',   city: 'Pretoria',      province: 'Gauteng',         rank: 4, progs: 187, accept: 28, fees: 74100, tag: 'info',    acpt: 'Tier 1' },
+  { name: 'University of KwaZulu-Natal',      short: 'UKZN', city: 'Durban',        province: 'KwaZulu-Natal',   rank: 5, progs: 162, accept: 31, fees: 68200, tag: 'info',    acpt: 'Tier 1' },
+  { name: 'University of Johannesburg',       short: 'UJ',   city: 'Johannesburg',  province: 'Gauteng',         rank: 6, progs: 148, accept: 35, fees: 66800, tag: 'info',    acpt: 'Tier 1' },
+  { name: 'University of the Western Cape',   short: 'UWC',  city: 'Cape Town',     province: 'Western Cape',    rank: 7, progs: 124, accept: 38, fees: 52400, tag: 'info',    acpt: 'Tier 1' },
+  { name: 'Rhodes University',                short: 'RU',   city: 'Makhanda',      province: 'Eastern Cape',    rank: 8, progs: 98,  accept: 42, fees: 61200, tag: 'warning', acpt: 'Tier 1' },
+  { name: 'Cape Peninsula UoT',               short: 'CPUT', city: 'Cape Town',     province: 'Western Cape',    rank: 9, progs: 118, accept: 42, fees: 38200, tag: 'warning', acpt: 'Tier 2' },
+  { name: 'Tshwane University of Technology', short: 'TUT',  city: 'Pretoria',      province: 'Gauteng',         rank: 10, progs: 132, accept: 48, fees: 36400, tag: 'warning', acpt: 'Tier 2' },
 ];
 
 export const PROVINCES: Province[] = [

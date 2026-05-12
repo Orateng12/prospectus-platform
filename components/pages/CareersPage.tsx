@@ -3,10 +3,12 @@
 import { useState, useMemo } from 'react';
 import { CAREERS } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
-import type { Career } from '@/lib/types';
+import type { Career, CompareItem } from '@/lib/types';
 
 interface CareersPageProps {
   careers?: Career[];
+  compareItems?: CompareItem[];
+  onToggleCompare?: (item: CompareItem) => void;
 }
 
 type Tab = 'fit' | 'demand' | 'growth' | 'salary';
@@ -15,7 +17,7 @@ function parseGrowth(g: string): number {
   return parseFloat(g.replace('%', '')) || 0;
 }
 
-export default function CareersPage({ careers: propCareers }: CareersPageProps) {
+export default function CareersPage({ careers: propCareers, compareItems = [], onToggleCompare }: CareersPageProps) {
   const allCareers = propCareers && propCareers.length > 0 ? propCareers : CAREERS;
   const [activeTab, setActiveTab] = useState<Tab>('fit');
 
@@ -112,6 +114,19 @@ export default function CareersPage({ careers: propCareers }: CareersPageProps) 
                 <span key={t} className="career-tag">{t}</span>
               ))}
             </div>
+
+            {onToggleCompare && (
+              <div className="row" style={{ gap: '0.375rem', marginTop: 'auto' }}>
+                <button
+                  className={`btn btn-sm ${compareItems.some(ci => ci.name === c.name) ? 'btn-primary' : 'btn-outline'}`}
+                  style={{ flex: 1 }}
+                  onClick={() => onToggleCompare({ id: c.name, kind: 'career', name: c.name })}
+                >
+                  {compareItems.some(ci => ci.name === c.name) ? '✓ Added' : 'Compare'}
+                </button>
+                <button className="btn btn-primary btn-sm" style={{ flex: 1 }}>Open path</button>
+              </div>
+            )}
           </div>
         ))}
       </div>

@@ -22,15 +22,15 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
       { label: 'Dashboard', route: 'home', dot: true },
       { label: 'APS & Simulator', route: 'simulator' },
       { label: 'Programmes', route: 'programmes' },
-      { label: 'Universities' },
+      { label: 'Universities', route: 'unis' },
     ],
   },
   {
     label: 'Discover',
     items: [
       { label: 'Career Explorer', route: 'careers' },
-      { label: 'Career Compare' },
-      { label: 'Discover', pill: { text: 'AI', variant: 'brand' } },
+      { label: 'Career Compare', route: 'compare' },
+      { label: 'Discover', route: 'discover', pill: { text: 'AI', variant: 'brand' } },
       { label: 'Opportunity Map', route: 'map' },
     ],
   },
@@ -38,21 +38,23 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
     label: 'Fund',
     items: [
       { label: 'Funding Strategy', route: 'funding' },
-      { label: 'Scholarships', pill: { text: '3 new', variant: 'success' } },
+      { label: 'Scholarships', route: 'scholarships', pill: { text: '3 new', variant: 'success' } },
+      { label: 'NSFAS Calculator', route: 'nsfas' },
       { label: 'Financial Aid', route: 'financial' },
     ],
   },
   {
     label: 'Execute',
     items: [
-      { label: 'Applications', pill: { text: '4', variant: 'default' } },
-      { label: 'Documents' },
-      { label: 'Deadlines' },
+      { label: 'Applications', route: 'applications', pill: { text: '4', variant: 'default' } },
+      { label: 'Documents', route: 'documents' },
+      { label: 'Deadlines', route: 'deadlines' },
     ],
   },
   {
     label: 'Self',
     items: [
+      { label: 'Profile', route: 'profile' },
       { label: 'Cognitive Assessment', route: 'cognitive' },
       { label: 'Skills Map', route: 'skills' },
       { label: 'Intelligence', route: 'intelligence', pill: { text: 'PRO', variant: 'dark' } },
@@ -82,8 +84,6 @@ export default function Sidebar({ route, navigate, userName = 'Student', userPro
               key={item.label}
               className={`nav${item.route && route === item.route ? ' active' : ''}`}
               onClick={() => item.route && navigate(item.route)}
-              disabled={!item.route}
-              style={!item.route ? { cursor: 'default', opacity: 0.5 } : undefined}
             >
               {item.dot && (
                 <span style={{

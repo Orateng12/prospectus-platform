@@ -19,11 +19,36 @@ export interface Programme {
 }
 
 export interface Application {
+  id?: string;
   uni: string;
+  short?: string;
   meta: string;
   stages: Array<'done' | 'active' | 'fail' | ''>;
   status: 'success' | 'warning' | 'info' | 'destructive';
   label: string;
+  progId?: string | null;
+  submitted?: string;
+  decided?: string;
+  fee?: string;
+}
+
+export interface University {
+  name: string;
+  short: string;
+  city: string;
+  province: string;
+  rank: number;
+  progs: number;
+  accept: number;
+  fees: number;
+  tag: 'success' | 'info' | 'warning' | 'destructive';
+  acpt: string;
+}
+
+export interface CompareItem {
+  id: string;
+  kind: 'prog' | 'career' | 'uni';
+  name: string;
 }
 
 export interface Deadline {
@@ -161,7 +186,16 @@ export type Route =
   | 'careers'
   | 'cognitive'
   | 'skills'
-  | 'map';
+  | 'map'
+  | 'unis'
+  | 'compare'
+  | 'discover'
+  | 'scholarships'
+  | 'nsfas'
+  | 'applications'
+  | 'documents'
+  | 'deadlines'
+  | 'profile';
 
 export interface InsightContext {
   type: 'home' | 'cognitive' | 'intelligence' | 'career';

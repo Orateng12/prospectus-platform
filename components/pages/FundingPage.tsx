@@ -113,33 +113,77 @@ export default function FundingPage() {
             </h3>
           </div>
           <div className="row">
-            <button className="btn btn-outline btn-sm">Sort by amount</button>
-            <button className="btn btn-primary btn-sm">Auto-apply all</button>
+            <span className="badge success">{SCHOLARSHIPS.filter(s => s.match >= 80).length} ≥ 80%</span>
+            <button className="btn btn-ghost btn-sm">Filters</button>
           </div>
         </div>
         <div className="stack">
           {SCHOLARSHIPS.map(s => (
             <div className="scholar-row" key={s.name}>
               <div>
-                <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{s.name}</div>
-                <div className="caption" style={{ marginTop: '0.25rem' }}>{s.eligibility}</div>
-                <div className="caption" style={{ marginTop: '0.125rem', fontSize: '0.6875rem' }}>
-                  Closes {s.deadline}
-                </div>
-              </div>
-              <div
-                className={`match-circle${s.match < 80 ? ' med' : ''}`}
-              >
-                {s.match}
+                <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>{s.name}</div>
+                <div className="caption" style={{ marginTop: 1 }}>{s.eligibility} · closes {s.deadline}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums', fontSize: '1rem' }}>
-                  {fmtR(s.amount)}
-                </div>
-                <button className="btn btn-outline btn-sm" style={{ marginTop: '0.375rem' }}>Apply</button>
+                <div style={{ fontWeight: 800, fontSize: '1.125rem', fontVariantNumeric: 'tabular-nums' }}>{fmtR(s.amount)}</div>
+                <div className="caption">/ year</div>
+              </div>
+              <div className="row" style={{ gap: '0.625rem' }}>
+                <div className={`match-circle${s.match < 80 ? ' med' : ''}`}>{s.match}</div>
+                <button className={`btn ${s.match >= 80 ? 'btn-primary' : 'btn-outline'} btn-sm`}>Apply</button>
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* 4-year projection + AI commentary */}
+      <div className="grid-2 stack-3" style={{ marginTop: '1.25rem' }}>
+        <div className="card">
+          <div className="eyebrow"><span className="dot" />4-year projection</div>
+          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Total degree cost &amp; coverage</h3>
+          <div className="stack-2" style={{ marginTop: '0.875rem' }}>
+            {[
+              { y: 'Year 1', cost: 165420, cov: 148000 },
+              { y: 'Year 2', cost: 173200, cov: 158400 },
+              { y: 'Year 3', cost: 181800, cov: 166200 },
+            ].map(({ y, cost, cov }) => {
+              const pc = Math.round(cov / cost * 100);
+              return (
+                <div key={y}>
+                  <div className="row-between" style={{ fontSize: '0.8125rem' }}>
+                    <span style={{ fontWeight: 600 }}>{y}</span>
+                    <span style={{ fontWeight: 800 }}>{fmtR(cov)} <span className="caption">/ {fmtR(cost)}</span></span>
+                  </div>
+                  <div className={`meter ${pc >= 90 ? 'success' : pc >= 70 ? 'primary' : 'warning'}`} style={{ marginTop: '0.375rem' }}>
+                    <i style={{ width: `${pc}%` }} />
+                  </div>
+                  <div className="caption" style={{ marginTop: '0.25rem' }}>{pc}% covered</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="eyebrow"><span className="dot" />AI commentary</div>
+          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Strategy notes</h3>
+          <div className="stack-2" style={{ marginTop: '0.875rem' }}>
+            <div className="insight">
+              <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.375rem' }}>Apply to Allan Gray first</div>
+              <p className="body-text" style={{ fontSize: '0.8125rem' }}>
+                Closes 15 Oct, highest amount ({fmtR(280000)}) and you match 92% of criteria. If awarded, decline lower-value bursaries.
+              </p>
+              <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.5rem' }}>GPT-4 · Strategic priority</div>
+            </div>
+            <div className="insight">
+              <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.375rem' }}>Watch the Sasol service contract</div>
+              <p className="body-text" style={{ fontSize: '0.8125rem' }}>
+                Sasol&apos;s {fmtR(198000)} bursary requires a post-graduation service period — limits mobility. Stack only if committed to the energy sector.
+              </p>
+              <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.5rem' }}>Gemini · Risk note</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

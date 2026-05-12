@@ -6,6 +6,30 @@ All notable changes to the Prospectus platform.
 
 ## [Unreleased]
 
+### Added — Phase 4: Design system expansion (9 new pages + global UI)
+- `lib/types.ts` — Expanded `Route` union (+9 routes: `unis`, `compare`, `discover`, `scholarships`, `nsfas`, `applications`, `documents`, `deadlines`, `profile`); added `University` and `CompareItem` interfaces; extended `Application` with `id`, `short`, `progId`, `submitted`, `decided`, `fee`
+- `lib/data.ts` — Added `UNIS` array (10 SA institutions: UCT, Wits, SUN, UP, UKZN, UJ, UWC, RU, CPUT, TUT); updated `APPS` with rich tracking fields
+- `app/globals.css` — Added ~175 lines: `.aps-chip`, `.search-wrap/.search-icon/.search-input/.search-kbd`, `.icon-btn/.avatar-btn`, `.profile-menu/.pm-head/.pm-list/.pm-item`, `.cmdk-backdrop/.cmdk/.cmdk-inputwrap/.cmdk-input/.cmdk-results/.cmdk-section/.cmdk-row/.cmdk-foot`, `.compare-drawer/.cd-head/.cd-list/.cd-chip/.cd-k`
+- `components/Topbar.tsx` — Full rewrite: live APS chip with delta badge, search bar with ⌘K hint, notification/message icon buttons, Apply CTA, avatar profile menu with sign-out, full ⌘K command palette (keyboard-navigable, filters all pages/programmes/careers)
+- `components/Sidebar.tsx` — All 9 new routes wired; pills on Discover (AI), Scholarships (3 new), Applications (4), Intelligence (PRO)
+- `components/Dashboard.tsx` — Imports all 9 new pages + CompareDrawer; lifts `compareItems` state with `toggleCompare`/`clearCompare`; passes live `aps`/`apsDelta` to Topbar
+- `components/CompareDrawer.tsx` — New: fixed bottom-right drawer, persists across page navigation, shows up to 4 items with kind badges and Remove buttons
+- `components/pages/UniversitiesPage.tsx` — New: 10 SA institutions, tabs (All/Eligible/Tier 1/Tier 2/Private), compare toggle per card
+- `components/pages/CareerComparePage.tsx` — New: side-by-side table for up to 4 careers (match, salary, growth, demand, fit meter, why)
+- `components/pages/DiscoverPage.tsx` — New: live search across programmes + careers, category browse (STEM/Finance/Health/Law/Arts/Education), AI insight card
+- `components/pages/ScholarshipsPage.tsx` — New: 5 matched scholarships, 4 tabs (All/Closing soon/High value/My applications), match circles, stacking strategy commentary
+- `components/pages/NSFASPage.tsx` — New: interactive calculator (income, dependants, residence type), live estimated award breakdown, NSFAS category explainers
+- `components/pages/ApplicationsPage.tsx` — New: pipeline tracker with click-to-expand detail panel, tabs (All/Submitted/Pending/Accepted), stage pipeline visualisation
+- `components/pages/DocumentsPage.tsx` — New: document vault grouped by category (Identity/Academic/Household/Financial), upload/view per doc, missing count badge
+- `components/pages/DeadlinesPage.tsx` — New: all deadlines grouped by Urgent/Soon/Upcoming with date boxes and urgency badges
+- `components/pages/ProfilePage.tsx` — New: Personal/Household/Academic/Capability/Activity sections with per-section edit toggle
+- `components/pages/CareersPage.tsx` — Added Compare/Open path button pair per career card; props for `compareItems` + `onToggleCompare`
+- `components/pages/FundingPage.tsx` — Added 4-year degree cost projection (Years 1–3 meters) and AI strategy commentary section
+
+### Fixed
+- `app/actions/generateInsight.ts` — `new Anthropic()` was crashing the server action when `ANTHROPIC_API_KEY` was absent; now checks for the key explicitly and returns a static contextual fallback insight per insight type when the key is not configured
+- `app/globals.css` — Added `color: hsl(var(--fg))` to `.cmdk-input` to prevent invisible text in browsers that don't inherit input colour from parent
+
 ### Added — Forgot password flow
 - `/forgot-password` — email input page; sends Supabase reset link via `requestPasswordReset`
 - `/reset-password` — new password form; calls `updatePassword` server action

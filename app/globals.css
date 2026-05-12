@@ -715,3 +715,179 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
 }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── APS chip ── */
+.aps-chip {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.25rem 0.625rem 0.25rem 0.5rem;
+  border-radius: 999px; background: hsl(var(--fg)); color: white;
+  font-weight: 700; font-size: 0.75rem; letter-spacing: 0.02em;
+}
+.aps-chip .num { font-family: ui-monospace, monospace; font-size: 0.875rem; font-weight: 800; }
+.aps-chip .delta {
+  padding: 1px 0.375rem; border-radius: 999px;
+  font-size: 0.625rem; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.aps-chip .delta.up   { background: hsl(var(--success)); color: white; }
+.aps-chip .delta.dn   { background: hsl(var(--destructive)); color: white; }
+.aps-chip .delta.zero { background: hsl(var(--muted-fg)); color: white; opacity: 0.7; }
+
+/* ── Search decorations ── */
+.search-wrap { position: relative; display: flex; align-items: center; }
+.search-icon {
+  position: absolute; left: 0.75rem; color: hsl(var(--muted-fg));
+  font-size: 0.9375rem; pointer-events: none; line-height: 1;
+}
+.search-input { padding-left: 2.125rem !important; padding-right: 2.75rem !important; width: 340px; }
+@media (max-width: 1100px) { .search-input { width: 220px; } }
+@media (max-width: 900px)  { .search-input { display: none; } }
+.search-kbd {
+  position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);
+  font-size: 0.6875rem; font-weight: 600; color: hsl(var(--muted-fg));
+  background: hsl(var(--muted)); padding: 0.1875rem 0.4375rem;
+  border-radius: 5px; border: 1px solid hsl(var(--border));
+  font-family: ui-monospace, monospace; pointer-events: none;
+}
+
+/* ── Icon button ── */
+.icon-btn {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border));
+  display: grid; place-items: center; font-size: 1rem;
+  position: relative; transition: background var(--d-fast); cursor: pointer;
+  flex-shrink: 0;
+}
+.icon-btn:hover { background: hsl(var(--muted)); }
+.icon-btn .icon-dot {
+  position: absolute; top: 8px; right: 9px;
+  width: 7px; height: 7px; border-radius: 999px;
+  background: hsl(var(--destructive)); border: 1.5px solid hsl(var(--card));
+}
+.avatar-btn {
+  background: transparent; border: 0; padding: 0;
+  border-radius: 999px; cursor: pointer;
+  transition: box-shadow var(--d-fast);
+}
+.avatar-btn:hover { box-shadow: 0 0 0 3px hsl(var(--muted)); }
+
+/* ── Profile menu ── */
+.profile-menu {
+  position: absolute; top: calc(100% + 0.5rem); right: 0;
+  width: 280px; background: hsl(var(--card));
+  border: 1px solid hsl(var(--border)); border-radius: var(--r-xl);
+  box-shadow: 0 16px 48px -16px rgba(0,0,0,0.18);
+  padding: 0.625rem; z-index: 60; display: none;
+}
+.profile-menu.open { display: block; animation: pmIn 180ms cubic-bezier(.2,.8,.2,1); }
+@keyframes pmIn { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: none; } }
+.pm-head {
+  display: flex; align-items: center; gap: 0.625rem;
+  padding: 0.5rem 0.5rem 0.75rem;
+  border-bottom: 1px solid hsl(var(--border)); margin-bottom: 0.5rem;
+}
+.pm-list { display: flex; flex-direction: column; gap: 1px; }
+.pm-item {
+  text-align: left; padding: 0.5rem 0.625rem;
+  border: 0; background: transparent; border-radius: 8px;
+  font-size: 0.875rem; font-weight: 500; cursor: pointer;
+  transition: background var(--d-fast); font-family: inherit; color: inherit;
+}
+.pm-item:hover { background: hsl(var(--muted)); }
+
+/* ── Command palette ── */
+.cmdk-backdrop {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.4);
+  backdrop-filter: blur(4px); z-index: 90; display: none;
+}
+.cmdk-backdrop.open { display: block; animation: backdropIn 160ms; }
+@keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+.cmdk {
+  position: fixed; top: 14vh; left: 50%; transform: translateX(-50%);
+  width: min(640px, 92vw); background: hsl(var(--card));
+  border: 1px solid hsl(var(--border)); border-radius: var(--r-xl);
+  box-shadow: 0 30px 80px -20px rgba(15,23,42,0.35);
+  z-index: 100; display: none; overflow: hidden;
+}
+.cmdk.open { display: block; animation: cmdkIn 220ms cubic-bezier(.2,.8,.2,1); }
+@keyframes cmdkIn { from { opacity: 0; transform: translate(-50%,-8px) scale(0.98); } to { opacity: 1; transform: translateX(-50%); } }
+.cmdk-inputwrap {
+  display: flex; align-items: center; gap: 0.625rem;
+  padding: 0.875rem 1rem; border-bottom: 1px solid hsl(var(--border));
+}
+.cmdk-icon { font-size: 1.125rem; color: hsl(var(--muted-fg)); }
+.cmdk-input { flex: 1; border: 0; background: transparent; font-size: 1rem; outline: none; font-family: inherit; color: hsl(var(--fg)); }
+.cmdk-kbd {
+  font-size: 0.6875rem; font-weight: 600; color: hsl(var(--muted-fg));
+  background: hsl(var(--muted)); padding: 0.1875rem 0.4375rem;
+  border-radius: 5px; border: 1px solid hsl(var(--border));
+  font-family: ui-monospace, monospace;
+}
+.cmdk-results { max-height: 50vh; overflow-y: auto; padding: 0.375rem; }
+.cmdk-section {
+  font-size: 0.6875rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: hsl(var(--muted-fg));
+  padding: 0.625rem 0.625rem 0.375rem;
+}
+.cmdk-row {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.5rem 0.625rem; border-radius: 8px; cursor: pointer;
+}
+.cmdk-row:hover, .cmdk-row.active { background: hsl(var(--muted)); }
+.cmdk-row .ico {
+  width: 28px; height: 28px; border-radius: 7px; background: hsl(var(--muted));
+  display: grid; place-items: center; font-size: 0.75rem; font-weight: 800;
+  color: hsl(var(--fg)); flex-shrink: 0;
+}
+.cmdk-row .body { flex: 1; min-width: 0; }
+.cmdk-row .ttl { font-weight: 600; font-size: 0.875rem; }
+.cmdk-row .sub { font-size: 0.75rem; color: hsl(var(--muted-fg)); margin-top: 1px; }
+.cmdk-row .meta { font-size: 0.75rem; color: hsl(var(--muted-fg)); }
+.cmdk-empty { padding: 2rem 1rem; text-align: center; color: hsl(var(--muted-fg)); font-size: 0.875rem; }
+.cmdk-foot {
+  display: flex; gap: 1rem; padding: 0.625rem 1rem;
+  border-top: 1px solid hsl(var(--border)); background: hsl(var(--muted) / 0.4);
+  font-size: 0.6875rem; color: hsl(var(--muted-fg)); flex-wrap: wrap;
+}
+.cmdk-foot b {
+  font-weight: 700; color: hsl(var(--fg)); background: hsl(var(--card));
+  padding: 1px 5px; border-radius: 4px;
+  border: 1px solid hsl(var(--border)); font-family: ui-monospace, monospace;
+}
+
+/* ── Compare drawer ── */
+.compare-drawer {
+  position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 60;
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border));
+  border-radius: var(--r-xl); padding: 0.75rem;
+  box-shadow: 0 12px 32px -8px rgba(15,23,42,0.18);
+  display: flex; flex-direction: column; gap: 0.5rem;
+  min-width: 320px; max-width: 480px;
+  transform: translateY(140%); opacity: 0;
+  transition: transform var(--d-norm), opacity var(--d-norm);
+}
+.compare-drawer.open { transform: translateY(0); opacity: 1; }
+.cd-head { display: flex; align-items: center; gap: 0.5rem; }
+.cd-head .caption { flex: 1; font-size: 0.6875rem; }
+.cd-list { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+.cd-chip {
+  display: inline-flex; align-items: center; gap: 0.375rem;
+  padding: 0.25rem 0.5rem; border-radius: 999px;
+  background: hsl(var(--muted)); border: 1px solid hsl(var(--border));
+  font-size: 0.75rem; font-weight: 600;
+}
+.cd-chip.empty {
+  background: transparent; border-style: dashed;
+  color: hsl(var(--muted-fg)); font-weight: 500;
+}
+.cd-k {
+  font-size: 0.5625rem; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 1px 0.375rem; border-radius: 4px;
+  background: hsl(var(--fg)); color: white; font-weight: 700;
+}
+.cd-chip button {
+  background: none; border: none; cursor: pointer;
+  color: hsl(var(--muted-fg)); font-size: 0.875rem; line-height: 1; padding: 0;
+}
+
+/* ── Topbar right position anchor ── */
+.topbar-right { position: relative; }
