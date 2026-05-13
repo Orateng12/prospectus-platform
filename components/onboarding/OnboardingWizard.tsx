@@ -52,30 +52,28 @@ const CAP_QUESTIONS = [
 const WORK_STYLES = ['Independent', 'Collaborative', 'Structured', 'Flexible', 'Remote', 'Field-based'];
 const MOTIVATIONS = ['Impact & purpose', 'Financial security', 'Creative freedom', 'Status & recognition', 'Learning & growth', 'Community & service'];
 
+const STEP_LABELS = ['About you', 'Subject marks', 'Personality', 'Strengths', 'Your situation'];
+
 // Rating component: 1–5 scale
 function Rating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
-    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-      {[1, 2, 3, 4, 5].map(n => (
-        <button
-          key={n}
-          type="button"
-          onClick={() => onChange(n)}
-          style={{
-            width: 40, height: 40, borderRadius: '50%', border: '2px solid',
-            borderColor: value === n ? 'hsl(var(--primary))' : 'hsl(var(--border))',
-            background: value === n ? 'hsl(var(--primary))' : 'hsl(var(--card))',
-            color: value === n ? '#fff' : 'hsl(var(--muted-fg))',
-            fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer',
-            transition: 'all 150ms',
-          }}
-        >
-          {n}
-        </button>
-      ))}
-      <span style={{ alignSelf: 'center', fontSize: '0.75rem', color: 'hsl(var(--muted-fg))', marginLeft: '0.25rem' }}>
-        {value === 1 ? 'Not at all' : value === 2 ? 'A little' : value === 3 ? 'Somewhat' : value === 4 ? 'Quite a bit' : value === 5 ? 'Very much' : ''}
-      </span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        {[1, 2, 3, 4, 5].map(n => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => onChange(n)}
+            className={`rating-btn${value === n ? ' selected' : ''}`}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: '0.6875rem', color: 'hsl(var(--ink-light))', fontWeight: 500 }}>Not at all</span>
+        <span style={{ fontSize: '0.6875rem', color: 'hsl(var(--ink-light))', fontWeight: 500 }}>Very much</span>
+      </div>
     </div>
   );
 }
@@ -112,7 +110,6 @@ export default function OnboardingWizard({ initialFirstName = '', initialLastNam
 
   const aps = calcAPS(subjects);
   const totalSteps = 5;
-  const progress = ((step - 1) / totalSteps) * 100;
 
   function canAdvance(): boolean {
     if (step === 1) return firstName.trim().length > 0 && province.length > 0;
@@ -168,67 +165,100 @@ export default function OnboardingWizard({ initialFirstName = '', initialLastNam
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: 'hsl(var(--muted) / 0.4)', padding: '1.5rem' }}>
-      <div style={{ width: '100%', maxWidth: 640 }}>
+    <div className="onboarding-shell">
 
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <span style={{ fontSize: '1.25rem', fontWeight: 900, letterSpacing: '-0.03em' }}>
-            Prospectus<span style={{ color: 'hsl(var(--accent))' }}>.</span>
-          </span>
-          <p className="caption" style={{ marginTop: '0.25rem' }}>Let&apos;s build your profile — takes about 5 minutes</p>
+      {/* ── Sidebar / mobile top bar ──────────────────────── */}
+      <aside className="onboarding-sidebar">
+        <span className="onboarding-sidebar-logo">
+          Prospectus<span style={{ color: 'hsl(var(--amber))' }}>.</span>
+        </span>
+
+        <div className="onboarding-sidebar-steps">
+          {STEP_LABELS.map((label, i) => {
+            const n = i + 1;
+            const isDone = n < step;
+            const isActive = n === step;
+            return (
+              <div key={n} className="onboarding-step-item">
+                <div className={`onboarding-step-marker${isDone ? ' done' : isActive ? ' active' : ''}`}>
+                  {isDone ? '✓' : n}
+                </div>
+                <span className={`onboarding-step-label${isActive ? ' active' : isDone ? ' done' : ''}`}>
+                  {label}
+                </span>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Progress */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div className="row-between" style={{ marginBottom: '0.375rem' }}>
-            <span className="caption">Step {step} of {totalSteps}</span>
-            <span className="caption">{Math.round(progress)}% complete</span>
-          </div>
-          <div className="meter" style={{ height: 6 }}>
-            <i style={{ width: `${progress}%`, background: 'hsl(var(--primary))` ' }} />
-          </div>
-        </div>
+        <p className="onboarding-sidebar-hint">Takes about 5 minutes</p>
+      </aside>
 
-        {/* Card */}
-        <div className="card" style={{ padding: '2rem' }}>
+      {/* ── Main content ──────────────────────────────────── */}
+      <main className="onboarding-content">
+        <div className="onboarding-form-card">
 
           {/* ── Step 1: About you ──────────────────────────── */}
           {step === 1 && (
             <div className="page-anim">
-              <p className="eyebrow" style={{ marginBottom: '0.375rem' }}>Step 1 of 5</p>
-              <h2 className="heading" style={{ marginBottom: '0.25rem' }}>About you</h2>
-              <p className="body-text" style={{ marginBottom: '1.5rem' }}>This helps us personalise your programme and funding matches.</p>
+              <p className="kicker" style={{ marginBottom: '1rem' }}>Step 1 of 5</p>
+              <h2 style={{ fontWeight: 900, fontSize: '2rem', letterSpacing: '-0.03em', lineHeight: 1.05, color: 'hsl(var(--ink))', marginBottom: '0.5rem' }}>
+                About you
+              </h2>
+              <p className="lede" style={{ marginBottom: '1.75rem' }}>
+                This helps us personalise your programme and funding matches.
+              </p>
+              <hr className="ink-rule" style={{ marginBottom: '1.75rem' }} />
 
               <div className="stack-3">
                 <div className="grid-2" style={{ gap: '0.75rem' }}>
                   <div>
-                    <label className="caption" style={{ display: 'block', marginBottom: '0.375rem', fontWeight: 600 }}>First name *</label>
-                    <input className="input" style={{ width: '100%' }} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="e.g. Tumelo" />
+                    <label className="onboarding-label" htmlFor="ob-firstname">First name *</label>
+                    <input
+                      id="ob-firstname"
+                      className="auth-input"
+                      value={firstName}
+                      onChange={e => setFirstName(e.target.value)}
+                      placeholder="e.g. Tumelo"
+                    />
                   </div>
                   <div>
-                    <label className="caption" style={{ display: 'block', marginBottom: '0.375rem', fontWeight: 600 }}>Last name</label>
-                    <input className="input" style={{ width: '100%' }} value={lastName} onChange={e => setLastName(e.target.value)} placeholder="e.g. Tata" />
+                    <label className="onboarding-label" htmlFor="ob-lastname">Last name</label>
+                    <input
+                      id="ob-lastname"
+                      className="auth-input"
+                      value={lastName}
+                      onChange={e => setLastName(e.target.value)}
+                      placeholder="e.g. Tata"
+                    />
                   </div>
                 </div>
 
                 <div>
-                  <label className="caption" style={{ display: 'block', marginBottom: '0.375rem', fontWeight: 600 }}>Province *</label>
-                  <select className="input" style={{ width: '100%' }} value={province} onChange={e => setProvince(e.target.value)}>
+                  <label className="onboarding-label" htmlFor="ob-province">Province *</label>
+                  <select
+                    id="ob-province"
+                    className="auth-input"
+                    value={province}
+                    onChange={e => setProvince(e.target.value)}
+                  >
                     <option value="">Select your province…</option>
                     {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
 
                 <div>
-                  <label className="caption" style={{ display: 'block', marginBottom: '0.375rem', fontWeight: 600 }}>Matric year</label>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <label className="onboarding-label">Matric year</label>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                     {MATRIC_YEARS.map(y => (
                       <button
-                        key={y} type="button"
-                        className={matricYear === y ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm'}
+                        key={y}
+                        type="button"
+                        className={`choice-pill${matricYear === y ? ' selected' : ''}`}
                         onClick={() => setMatricYear(y)}
-                      >{y}</button>
+                      >
+                        {y}
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -239,83 +269,132 @@ export default function OnboardingWizard({ initialFirstName = '', initialLastNam
           {/* ── Step 2: Subjects ───────────────────────────── */}
           {step === 2 && (
             <div className="page-anim">
-              <p className="eyebrow" style={{ marginBottom: '0.375rem' }}>Step 2 of 5</p>
-              <h2 className="heading" style={{ marginBottom: '0.25rem' }}>Your subject marks</h2>
-              <p className="body-text" style={{ marginBottom: '1.5rem' }}>Enter your final (or expected) marks. Your APS updates in real time.</p>
+              <p className="kicker" style={{ marginBottom: '1rem' }}>Step 2 of 5</p>
+              <h2 style={{ fontWeight: 900, fontSize: '2rem', letterSpacing: '-0.03em', lineHeight: 1.05, color: 'hsl(var(--ink))', marginBottom: '0.5rem' }}>
+                Your subject marks
+              </h2>
+              <p className="lede" style={{ marginBottom: '1.75rem' }}>
+                Enter your final (or expected) marks. Your APS updates in real time.
+              </p>
+              <hr className="ink-rule" style={{ marginBottom: '1.75rem' }} />
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem', padding: '0.875rem 1rem', background: 'hsl(var(--muted))', borderRadius: 'var(--r-lg)' }}>
-                <div>
-                  <p className="caption">Your APS</p>
-                  <p className="stat-num" style={{ fontSize: '2rem' }}>{aps}</p>
+              {/* APS panel */}
+              <div className="aps-panel-editorial">
+                <p className="aps-panel-label">Your APS Score</p>
+                <p className="aps-panel-num">{aps}</p>
+                <div className="aps-panel-bar">
+                  <i style={{ width: `${Math.min(100, Math.round((aps / 49) * 100))}%` }} />
                 </div>
-                <div className="meter" style={{ flex: 1 }}>
-                  <i style={{ width: `${Math.min(100, Math.round((aps / 49) * 100))}%`, background: 'hsl(var(--primary))' }} />
-                </div>
-                <span className="caption">/49</span>
+                <p style={{ fontSize: '0.75rem', color: 'hsl(var(--chalk) / 0.35)' }}>out of 49 maximum</p>
               </div>
 
-              <div className="stack-2">
+              {/* Subject rows */}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {subjects.map(s => (
-                  <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', alignItems: 'center', gap: '0.75rem' }}>
-                    <span className="body-text" style={{ fontWeight: s.designated ? 600 : 400 }}>{s.name}</span>
+                  <div
+                    key={s.id}
+                    style={{
+                      display: 'grid', gridTemplateColumns: '1fr auto auto',
+                      alignItems: 'center', gap: '0.75rem',
+                      padding: '0.75rem 0',
+                      borderBottom: '1px solid hsl(var(--ink) / 0.08)',
+                    }}
+                  >
+                    <span style={{ fontSize: '0.9375rem', fontWeight: s.designated ? 600 : 400, color: 'hsl(var(--ink))' }}>
+                      {s.name}
+                    </span>
                     <input
                       type="number" min={0} max={100}
-                      className="input" style={{ width: 72, textAlign: 'center' }}
+                      className="auth-input"
+                      style={{ width: 80, textAlign: 'center' }}
                       value={s.mark}
                       onChange={e => {
                         const mark = Math.max(0, Math.min(100, parseInt(e.target.value) || 0));
                         setSubjects(prev => prev.map(x => x.id === s.id ? { ...x, mark } : x));
                       }}
                     />
-                    <span className="badge" style={{ minWidth: 28, justifyContent: 'center' }}>{apsPoints(s.mark)}</span>
+                    <span className="badge" style={{ minWidth: 28, justifyContent: 'center' }}>
+                      {apsPoints(s.mark)}
+                    </span>
                   </div>
                 ))}
               </div>
-              <p className="caption" style={{ marginTop: '0.75rem' }}>APS points shown per subject (Life Orientation excluded from total).</p>
+              <p className="caption" style={{ marginTop: '0.75rem', color: 'hsl(var(--ink-light))' }}>
+                APS points shown per subject (Life Orientation excluded from total).
+              </p>
             </div>
           )}
 
           {/* ── Step 3: Personality ────────────────────────── */}
           {step === 3 && (
             <div className="page-anim">
-              <p className="eyebrow" style={{ marginBottom: '0.375rem' }}>Step 3 of 5</p>
-              <h2 className="heading" style={{ marginBottom: '0.25rem' }}>Who you are</h2>
-              <p className="body-text" style={{ marginBottom: '1.5rem' }}>Rate how much each statement describes you (1 = not at all, 5 = very much).</p>
+              <p className="kicker" style={{ marginBottom: '1rem' }}>Step 3 of 5</p>
+              <h2 style={{ fontWeight: 900, fontSize: '2rem', letterSpacing: '-0.03em', lineHeight: 1.05, color: 'hsl(var(--ink))', marginBottom: '0.5rem' }}>
+                Who you are
+              </h2>
+              <p className="lede" style={{ marginBottom: '1.75rem' }}>
+                Rate how much each statement describes you (1 = not at all, 5 = very much).
+              </p>
+              <hr className="ink-rule" style={{ marginBottom: '1.75rem' }} />
 
               <div className="stack-3">
                 {BIG5_QUESTIONS.map(q => (
                   <div key={q.key}>
-                    <p className="body-text" style={{ fontWeight: 500 }}>{q.text}</p>
+                    <p style={{ fontSize: '0.9375rem', fontWeight: 500, color: 'hsl(var(--ink))', lineHeight: 1.55 }}>{q.text}</p>
                     <Rating value={ratings[q.key] ?? 0} onChange={v => setRatings(r => ({ ...r, [q.key]: v }))} />
                   </div>
                 ))}
 
-                <div style={{ borderTop: '1px solid hsl(var(--border))', paddingTop: '1.25rem' }}>
-                  <p className="subheading" style={{ marginBottom: '0.75rem' }}>Your interests</p>
-                  <p className="body-text" style={{ marginBottom: '1rem' }}>How much do you enjoy each type of work?</p>
-                  {RIASEC_QUESTIONS.map(q => (
-                    <div key={q.key} style={{ marginBottom: '1rem' }}>
-                      <p className="body-text" style={{ fontWeight: 500 }}>{q.text}</p>
-                      <Rating value={ratings[q.key] ?? 0} onChange={v => setRatings(r => ({ ...r, [q.key]: v }))} />
-                    </div>
-                  ))}
+                <hr className="ink-rule" />
+
+                <div>
+                  <p style={{ fontWeight: 800, fontSize: '1rem', color: 'hsl(var(--ink))', marginBottom: '0.375rem' }}>
+                    Your interests
+                  </p>
+                  <p style={{ fontSize: '0.875rem', color: 'hsl(var(--ink-light))', marginBottom: '1.25rem' }}>
+                    How much do you enjoy each type of work?
+                  </p>
+                  <div className="stack-3">
+                    {RIASEC_QUESTIONS.map(q => (
+                      <div key={q.key}>
+                        <p style={{ fontSize: '0.9375rem', fontWeight: 500, color: 'hsl(var(--ink))', lineHeight: 1.55 }}>{q.text}</p>
+                        <Rating value={ratings[q.key] ?? 0} onChange={v => setRatings(r => ({ ...r, [q.key]: v }))} />
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                <div style={{ borderTop: '1px solid hsl(var(--border))', paddingTop: '1.25rem' }}>
-                  <p className="subheading" style={{ marginBottom: '0.75rem' }}>Work preferences</p>
-                  <div style={{ marginBottom: '1rem' }}>
-                    <label className="caption" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Preferred work style *</label>
+                <hr className="ink-rule" />
+
+                <div>
+                  <p style={{ fontWeight: 800, fontSize: '1rem', color: 'hsl(var(--ink))', marginBottom: '1rem' }}>
+                    Work preferences
+                  </p>
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <label className="onboarding-label">Preferred work style *</label>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                       {WORK_STYLES.map(s => (
-                        <button key={s} type="button" className={workStyle === s ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm'} onClick={() => setWorkStyle(s)}>{s}</button>
+                        <button
+                          key={s} type="button"
+                          className={`choice-pill${workStyle === s ? ' selected' : ''}`}
+                          onClick={() => setWorkStyle(s)}
+                        >
+                          {s}
+                        </button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <label className="caption" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Primary motivation *</label>
+                    <label className="onboarding-label">Primary motivation *</label>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                       {MOTIVATIONS.map(m => (
-                        <button key={m} type="button" className={motivation === m ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm'} onClick={() => setMotivation(m)}>{m}</button>
+                        <button
+                          key={m} type="button"
+                          className={`choice-pill${motivation === m ? ' selected' : ''}`}
+                          onClick={() => setMotivation(m)}
+                        >
+                          {m}
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -327,14 +406,20 @@ export default function OnboardingWizard({ initialFirstName = '', initialLastNam
           {/* ── Step 4: Capabilities ───────────────────────── */}
           {step === 4 && (
             <div className="page-anim">
-              <p className="eyebrow" style={{ marginBottom: '0.375rem' }}>Step 4 of 5</p>
-              <h2 className="heading" style={{ marginBottom: '0.25rem' }}>Your strengths</h2>
-              <p className="body-text" style={{ marginBottom: '1.5rem' }}>Rate your natural strengths honestly — this shapes your career matching.</p>
+              <p className="kicker" style={{ marginBottom: '1rem' }}>Step 4 of 5</p>
+              <h2 style={{ fontWeight: 900, fontSize: '2rem', letterSpacing: '-0.03em', lineHeight: 1.05, color: 'hsl(var(--ink))', marginBottom: '0.5rem' }}>
+                Your strengths
+              </h2>
+              <p className="lede" style={{ marginBottom: '1.75rem' }}>
+                Rate your natural strengths honestly — this shapes your career matching.
+              </p>
+              <hr className="ink-rule" style={{ marginBottom: '1.75rem' }} />
 
+              <p className="kicker" style={{ marginBottom: '1.25rem' }}>Rate 1 – 5</p>
               <div className="stack-3">
                 {CAP_QUESTIONS.map(q => (
                   <div key={q.key}>
-                    <p className="body-text" style={{ fontWeight: 500 }}>{q.text}</p>
+                    <p style={{ fontSize: '0.9375rem', fontWeight: 500, color: 'hsl(var(--ink))', lineHeight: 1.55 }}>{q.text}</p>
                     <Rating value={caps[q.key] ?? 0} onChange={v => setCaps(c => ({ ...c, [q.key]: v }))} />
                   </div>
                 ))}
@@ -345,78 +430,86 @@ export default function OnboardingWizard({ initialFirstName = '', initialLastNam
           {/* ── Step 5: Financial ──────────────────────────── */}
           {step === 5 && (
             <div className="page-anim">
-              <p className="eyebrow" style={{ marginBottom: '0.375rem' }}>Step 5 of 5</p>
-              <h2 className="heading" style={{ marginBottom: '0.25rem' }}>Your situation</h2>
-              <p className="body-text" style={{ marginBottom: '1.5rem' }}>We use this to match funding options — NSFAS, bursaries, and student loans.</p>
+              <p className="kicker" style={{ marginBottom: '1rem' }}>Step 5 of 5</p>
+              <h2 style={{ fontWeight: 900, fontSize: '2rem', letterSpacing: '-0.03em', lineHeight: 1.05, color: 'hsl(var(--ink))', marginBottom: '0.5rem' }}>
+                Your situation
+              </h2>
+              <p className="lede" style={{ marginBottom: '1.75rem' }}>
+                We use this to match funding options — NSFAS, bursaries, and student loans.
+              </p>
+              <hr className="ink-rule" style={{ marginBottom: '1.75rem' }} />
 
               <div className="stack-3">
-                <div style={{ padding: '1.25rem', background: 'hsl(var(--muted))', borderRadius: 'var(--r-lg)' }}>
-                  <div className="row-between" style={{ marginBottom: '0.75rem' }}>
-                    <p className="subheading">Household income</p>
-                    <span className="stat-num" style={{ fontSize: '1.25rem' }}>R {income.toLocaleString('en-ZA')}/yr</span>
-                  </div>
+                {/* Income slider — dark panel */}
+                <div style={{ background: 'hsl(var(--ink))', borderRadius: 'var(--r-xl)', padding: '1.5rem 1.75rem' }}>
+                  <p style={{ fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'hsl(var(--chalk) / 0.4)', marginBottom: '0.375rem' }}>
+                    Household income
+                  </p>
+                  <p style={{ fontWeight: 900, fontSize: '2.25rem', letterSpacing: '-0.04em', color: 'hsl(var(--chalk))', fontVariantNumeric: 'tabular-nums', marginBottom: '1rem' }}>
+                    R {income.toLocaleString('en-ZA')}<span style={{ fontSize: '1rem', fontWeight: 600, color: 'hsl(var(--chalk) / 0.4)' }}>/yr</span>
+                  </p>
                   <input
                     type="range" min={0} max={1_200_000} step={10_000}
                     value={income}
                     onChange={e => setIncome(Number(e.target.value))}
-                    style={{ width: '100%', accentColor: 'hsl(var(--primary))' }}
+                    style={{ width: '100%', accentColor: 'hsl(var(--amber))', marginBottom: '0.625rem' }}
                   />
-                  <div className="row-between">
-                    <span className="caption">R 0</span>
-                    <span className="caption">R 1.2M</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'hsl(var(--chalk) / 0.35)' }}>R 0</span>
+                    <span style={{ fontSize: '0.75rem', color: 'hsl(var(--chalk) / 0.35)' }}>R 1.2M</span>
                   </div>
                 </div>
 
-                <div>
-                  {income <= 350_000 ? (
-                    <div style={{ display: 'flex', gap: '0.75rem', padding: '1rem', background: 'hsl(var(--success) / 0.1)', border: '1px solid hsl(var(--success) / 0.3)', borderRadius: 'var(--r-lg)' }}>
-                      <span style={{ fontSize: '1.25rem' }}>✅</span>
-                      <div>
-                        <p className="subheading" style={{ color: 'hsl(var(--success))' }}>NSFAS eligible</p>
-                        <p className="body-text">Your household income qualifies you for NSFAS funding — up to R 87 000/yr for tuition and accommodation.</p>
-                      </div>
-                    </div>
-                  ) : income <= 600_000 ? (
-                    <div style={{ display: 'flex', gap: '0.75rem', padding: '1rem', background: 'hsl(var(--warning) / 0.1)', border: '1px solid hsl(var(--warning) / 0.3)', borderRadius: 'var(--r-lg)' }}>
-                      <span style={{ fontSize: '1.25rem' }}>⚡</span>
-                      <div>
-                        <p className="subheading" style={{ color: 'hsl(var(--warning))' }}>Missing middle</p>
-                        <p className="body-text">You may not qualify for NSFAS but are eligible for DHET gap bursaries and many private bursary programmes.</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', gap: '0.75rem', padding: '1rem', background: 'hsl(var(--info) / 0.1)', border: '1px solid hsl(var(--info) / 0.3)', borderRadius: 'var(--r-lg)' }}>
-                      <span style={{ fontSize: '1.25rem' }}>💡</span>
-                      <div>
-                        <p className="subheading" style={{ color: 'hsl(var(--info))' }}>Merit bursaries available</p>
-                        <p className="body-text">You don&apos;t qualify for NSFAS, but merit-based bursaries from Allan Gray, Investec, and Sasol are accessible with your profile.</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {saveError && (
-                  <p className="body-text" style={{ color: 'hsl(var(--destructive))' }}>{saveError}</p>
+                {/* Eligibility banner */}
+                {income <= 350_000 ? (
+                  <div className="eligibility-banner success">
+                    <p className="eligibility-banner-title">✅ NSFAS eligible</p>
+                    <p className="eligibility-banner-body">
+                      Your household income qualifies you for NSFAS funding — up to R 87 000/yr for tuition and accommodation.
+                    </p>
+                  </div>
+                ) : income <= 600_000 ? (
+                  <div className="eligibility-banner warning">
+                    <p className="eligibility-banner-title">⚡ Missing middle</p>
+                    <p className="eligibility-banner-body">
+                      You may not qualify for NSFAS but are eligible for DHET gap bursaries and many private bursary programmes.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="eligibility-banner info">
+                    <p className="eligibility-banner-title">💡 Merit bursaries available</p>
+                    <p className="eligibility-banner-body">
+                      You don&apos;t qualify for NSFAS, but merit-based bursaries from Allan Gray, Investec, and Sasol are accessible with your profile.
+                    </p>
+                  </div>
                 )}
 
-                <p className="caption" style={{ textAlign: 'center' }}>
+                {saveError && (
+                  <p style={{ color: 'hsl(var(--destructive))', fontSize: '0.8125rem', fontWeight: 600 }}>
+                    {saveError}
+                  </p>
+                )}
+
+                <p className="caption" style={{ textAlign: 'center', color: 'hsl(var(--ink-light))' }}>
                   Your data is private and only used to personalise your Prospectus experience.
                 </p>
               </div>
             </div>
           )}
 
-          {/* ── Navigation ────────────────────────────────── */}
-          <div className="row-between" style={{ marginTop: '2rem' }}>
+          {/* ── Navigation bar ────────────────────────────── */}
+          <div className="onboarding-nav-bar">
             {step > 1 ? (
-              <button type="button" className="btn btn-outline" onClick={() => setStep(s => s - 1)}>← Back</button>
+              <button type="button" className="btn-onboarding-back" onClick={() => setStep(s => s - 1)}>
+                ← Back
+              </button>
             ) : (
               <div />
             )}
             {step < totalSteps ? (
               <button
                 type="button"
-                className="btn btn-brand"
+                className="btn-onboarding-next"
                 disabled={!canAdvance()}
                 onClick={() => setStep(s => s + 1)}
               >
@@ -425,7 +518,7 @@ export default function OnboardingWizard({ initialFirstName = '', initialLastNam
             ) : (
               <button
                 type="button"
-                className="btn btn-brand btn-lg"
+                className="btn-onboarding-next"
                 disabled={isPending}
                 onClick={handleFinish}
               >
@@ -433,8 +526,9 @@ export default function OnboardingWizard({ initialFirstName = '', initialLastNam
               </button>
             )}
           </div>
+
         </div>
-      </div>
+      </main>
     </div>
   );
 }
