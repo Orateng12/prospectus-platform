@@ -72,16 +72,16 @@ const INSTITUTIONS = [
 ];
 
 const mockSubjects = [
-  { name: 'Mathematics', pts: 6 },
-  { name: 'Physical Sciences', pts: 5 },
-  { name: 'English HL', pts: 6 },
-  { name: 'Life Sciences', pts: 6 },
+  { name: 'Mathematics', pct: 72 },
+  { name: 'Physical Science', pct: 68 },
+  { name: 'English HL', pct: 65 },
+  { name: 'Life Orientation', pct: 80 },
 ];
 
 const mockMatches = [
-  { prog: 'BSc Computer Science', inst: 'UCT', aps: 42 },
-  { prog: 'BSc Engineering', inst: 'Wits', aps: 38 },
-  { prog: 'BCom Finance', inst: 'Stellenbosch', aps: 36 },
+  { prog: 'BSc Engineering', inst: 'Wits University', aps: 32 },
+  { prog: 'BSc Computer Science', inst: 'UCT', aps: 30 },
+  { prog: 'BCom', inst: 'Stellenbosch University', aps: 28 },
 ];
 
 const footerCols = [
@@ -167,10 +167,10 @@ export default function LandingPage() {
               </p>
               <div className="hero-cta-row">
                 <Link href="/signup" className="btn-hero-primary">
-                  Start for free →
+                  Check my eligibility →
                 </Link>
-                <Link href="/login" className="btn-hero-outline">
-                  Sign in
+                <Link href="/signup" className="btn-hero-outline">
+                  Create free account
                 </Link>
               </div>
               <p className="hero-trust">
@@ -194,7 +194,7 @@ export default function LandingPage() {
                     <span className="hero-panel-dot hero-panel-dot-amber" />
                     <span className="hero-panel-dot hero-panel-dot-green" />
                   </div>
-                  <span className="hero-panel-title">aps-snapshot.tsx</span>
+                  <span className="hero-panel-title">eligibility-report.prospectus</span>
                 </div>
                 <div className="hero-panel-status">
                   <span className="hero-panel-status-dot" aria-hidden="true" />
@@ -210,9 +210,9 @@ export default function LandingPage() {
                     <span className="hero-panel-subject-name">{s.name}</span>
                     <div className="hero-panel-bar-row">
                       <div className="hero-panel-bar-wrap">
-                        <div className="hero-panel-bar-fill" style={{ width: `${(s.pts / 7) * 100}%`, background: 'hsl(220 92% 7%)' }} />
+                        <div className="hero-panel-bar-fill" style={{ width: `${s.pct}%`, background: 'hsl(220 92% 7%)' }} />
                       </div>
-                      <span className="hero-panel-subject-pts">{Math.round((s.pts / 7) * 100)}%</span>
+                      <span className="hero-panel-subject-pts">{s.pct}%</span>
                     </div>
                   </div>
                 ))}
@@ -221,9 +221,9 @@ export default function LandingPage() {
               {/* Stats strip */}
               <div className="hero-panel-stats">
                 {[
-                  { num: '187', label: 'Programmes' },
+                  { num: '47', label: 'Programmes' },
                   { num: '23', label: 'Universities' },
-                  { num: '12', label: 'Bursaries' },
+                  { num: '8', label: 'Bursaries' },
                 ].map(s => (
                   <div key={s.label} className="hero-panel-stat">
                     <span className="hero-panel-stat-num">{s.num}</span>
