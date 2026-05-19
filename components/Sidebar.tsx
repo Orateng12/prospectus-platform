@@ -31,9 +31,6 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
     label: 'Discover',
     items: [
       { label: 'Career Explorer', route: 'careers' },
-      { label: 'Career Compare', route: 'compare' },
-      { label: 'Discover', route: 'discover', pill: { text: 'AI', variant: 'brand' } },
-      { label: 'Opportunity Map', route: 'map' },
     ],
   },
   {
@@ -41,24 +38,19 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
     items: [
       { label: 'Funding Strategy', route: 'funding' },
       { label: 'Scholarships', route: 'scholarships', pill: { text: '3 new', variant: 'success' } },
-      { label: 'NSFAS Calculator', route: 'nsfas' },
-      { label: 'Financial Aid', route: 'financial' },
     ],
   },
   {
     label: 'Execute',
     items: [
       { label: 'Applications', route: 'applications', pill: { text: '4', variant: 'default' } },
-      { label: 'Documents', route: 'documents' },
-      { label: 'Deadlines', route: 'deadlines' },
     ],
   },
   {
     label: 'Self',
     items: [
       { label: 'Profile', route: 'profile' },
-      { label: 'Cognitive Assessment', route: 'cognitive' },
-      { label: 'Skills Map', route: 'skills' },
+      { label: 'Assessment', route: 'cognitive' },
       { label: 'Intelligence', route: 'intelligence', pill: { text: 'PRO', variant: 'dark' } },
     ],
   },

@@ -203,6 +203,10 @@ export type Route =
   | 'career-detail'
   | 'subject-detail';
 
+// Routes still in the type for backward-compatibility with navigate() callsites.
+// Sidebar items removed: financial, skills, map, discover, nsfas, documents, deadlines, compare
+// These routes now land on the correct tab of their merged parent page.
+
 export interface InsightContext {
   type: 'home' | 'cognitive' | 'intelligence' | 'career';
   aps: number;

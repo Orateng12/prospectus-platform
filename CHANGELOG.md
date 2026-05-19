@@ -37,6 +37,34 @@ All notable changes to the Prospectus platform.
 
 ## [Unreleased]
 
+### Added — Landing redesign + marketing pages
+- `/about` marketing page — mission statement, core values (Radical clarity, Free always, Whole-person matching, Privacy by default), problems solved for SA students
+- `/pricing` page — "Free. Always." model, full feature list (1600+ programmes, AI career matching, bursary/NSFAS screening, application tracker), comparison table, FAQ
+- `components/landing/HeroSection` — reusable hero with SA-focused copy ("Every opportunity you didn't know existed") and animated eligibility card
+- `components/landing/EligibilityResultsCard` — animated eligibility results display component
+- `components/landing/AppWindowCard` — desktop-style window card component
+- `components/landing/CountUp` — number count-up animation component
+- `framer-motion` v12 dependency for UI animations
+- Fraunces (variable serif display) + Plus Jakarta Sans fonts via Google Fonts
+- Editorial typography design system: `display-xl`, `kicker`, `lede`, `number-xl` classes
+- Marketing layout helpers: `landing-container`, `section-gap`, `mkt-page` scope
+- Extended color palette: ink, paper, chalk, amber editorial tones
+
+### Changed — Landing redesign + marketing pages
+- `app/page.tsx` — full homepage redesign using new `HeroSection` component; richer SA-focused copy emphasising "89 institutions", "NSFAS", "TVET pathways"; added `nscPoints()` and `progBracket()` helpers; `provinces` (9 SA provinces with institution counts) and `familiar` (3 common student questions) data arrays
+- `app/layout.tsx` — updated metadata title to "Prospectus — South Africa's University Decision Engine"; comprehensive value-prop description; applied Fraunces + Plus Jakarta Sans font variables to HTML root
+- `components/Sidebar.tsx` — navigation consolidated; removed standalone pages (financial, skills, map, discover, nsfas, documents, deadlines, compare) which now live as tabs within parent pages; backward-compatible via `Route` type
+- `components/Dashboard.tsx` — component signature and prop handling updated to match consolidated routing
+- `components/pages/ApplicationsPage.tsx` — full feature implementation with application tracking, timeline stages, document checklist
+- `components/pages/CareersPage.tsx` — enhanced career-matching UI with live scoring display
+- `components/pages/CognitivePage.tsx` — cognitive and personality assessment section expanded
+- `components/pages/FundingPage.tsx` — complete funding hub redesign covering NSFAS, bursaries, scholarships
+- `components/pages/SimulatorPage.tsx` — APS simulator with interactive mark controls
+- `components/pages/UniversitiesPage.tsx` — universities browser with province/type filtering
+- `lib/types.ts` — route backward-compatibility comments documenting removed sidebar items
+
+---
+
 ### Added — Phase 11: Application Lifecycle + Real Values Everywhere
 
 **New server actions:**

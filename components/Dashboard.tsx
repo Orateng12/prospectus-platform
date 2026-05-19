@@ -15,19 +15,12 @@ import IntelligencePage from './pages/IntelligencePage';
 import SimulatorPage from './pages/SimulatorPage';
 import ProgrammePage from './pages/ProgrammePage';
 import FundingPage from './pages/FundingPage';
-import FinancialPage from './pages/FinancialPage';
 import CareersPage from './pages/CareersPage';
 import CognitivePage from './pages/CognitivePage';
-import SkillsPage from './pages/SkillsPage';
-import MapPage from './pages/MapPage';
 import UniversitiesPage from './pages/UniversitiesPage';
 import CareerComparePage from './pages/CareerComparePage';
-import DiscoverPage from './pages/DiscoverPage';
 import ScholarshipsPage from './pages/ScholarshipsPage';
-import NSFASPage from './pages/NSFASPage';
 import ApplicationsPage from './pages/ApplicationsPage';
-import DocumentsPage from './pages/DocumentsPage';
-import DeadlinesPage from './pages/DeadlinesPage';
 import ProfilePage from './pages/ProfilePage';
 import CompareDrawer from './CompareDrawer';
 import ApplicationDetailPage from './pages/ApplicationDetailPage';
@@ -201,8 +194,10 @@ export default function Dashboard({
         );
       case 'funding':
         return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} />;
+      case 'nsfas':
+        return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} initialTab="nsfas" />;
       case 'financial':
-        return <FinancialPage subjects={displaySubjects} householdIncome={householdIncome} navigate={navigate} />;
+        return <FundingPage householdIncome={householdIncome} userAps={displayAps} subjects={displaySubjects} navigate={navigate} initialTab="financial" />;
       case 'careers':
         return (
           <CareersPage
@@ -213,21 +208,44 @@ export default function Dashboard({
             psychProfile={displayPsych}
             capabilityData={displayCap}
             onOpenDetail={(c) => navigateToDetail('career-detail', c)}
+            navigate={navigate}
+          />
+        );
+      case 'discover':
+        return (
+          <CareersPage
+            careers={careers}
+            compareItems={compareItems}
+            onToggleCompare={toggleCompare}
+            userAps={displayAps}
+            psychProfile={displayPsych}
+            capabilityData={displayCap}
+            onOpenDetail={(c) => navigateToDetail('career-detail', c)}
+            navigate={navigate}
+            initialTab="discover"
           />
         );
       case 'cognitive':
-        return <CognitivePage psychProfile={displayPsych} />;
-      case 'skills':
         return (
-          <SkillsPage
-            capabilityData={displayCap}
+          <CognitivePage
             psychProfile={displayPsych}
+            capabilityData={displayCap}
             careers={careers}
             userAps={displayAps}
           />
         );
+      case 'skills':
+        return (
+          <CognitivePage
+            psychProfile={displayPsych}
+            capabilityData={displayCap}
+            careers={careers}
+            userAps={displayAps}
+            initialTab="skills"
+          />
+        );
       case 'map':
-        return <MapPage />;
+        return <UniversitiesPage subjects={displaySubjects} navigate={navigate} compareItems={compareItems} onToggleCompare={toggleCompare} />;
       case 'unis':
         return <UniversitiesPage subjects={displaySubjects} navigate={navigate} compareItems={compareItems} onToggleCompare={toggleCompare} />;
       case 'compare':
@@ -242,14 +260,6 @@ export default function Dashboard({
             liveCareerMatches={liveCareerMatches}
           />
         );
-      case 'discover':
-        return (
-          <DiscoverPage
-            navigate={navigate}
-            psychProfile={displayPsych}
-            capabilityData={displayCap}
-          />
-        );
       case 'scholarships':
         return (
           <ScholarshipsPage
@@ -261,8 +271,6 @@ export default function Dashboard({
             appliedScholarshipNames={emptyMode ? [] : appliedScholarshipNames}
           />
         );
-      case 'nsfas':
-        return <NSFASPage householdIncome={householdIncome} />;
       case 'applications':
         return (
           <ApplicationsPage
