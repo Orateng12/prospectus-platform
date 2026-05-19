@@ -41,3 +41,16 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# AI agent tooling — local only (large framework dirs, never commit)
+.agent/
+.agents/
+.qwen/
+_bmad/
+
+# Claude Code — ignore everything except project-specific config + custom skills
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/skills/bmad-*/
+.claude/skills/gds-*/
+.claude/skills/frontend-design/
