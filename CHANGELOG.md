@@ -6,6 +6,18 @@ All notable changes to the Prospectus platform.
 
 ## [Unreleased]
 
+### Added — Test suite: 138 tests, 0% → full coverage of critical modules
+- **Framework** — Vitest + `@vitest/coverage-v8`; `npm test` / `npm run test:coverage` scripts added
+- `tests/lib/utils.test.ts` — `apsPoints` (all 7 band boundaries), `calcAPS` (LO filtering, best-6 selection, sample dataset), `fmtR`
+- `tests/lib/scoring.test.ts` — `scoreCareerMatch` output clamp [35, 97], APS gate (at/below/no-minAps), Big Five above-`hi` penalty, known exact score (Teacher profile = 93); `computeStrategicScore` all sub-score formulas (academic_readiness capped at 95, 5 income bands, 3 merit bonus thresholds, skill_readiness excludes academic/career readiness from mean, overall weighted composite); `rankCareersByMatch` sort order and property preservation; `getCareerCapRequirements` / `getCareerBigFiveRanges` key mapping and keyword inference fallback
+- `tests/proxy.test.ts` — /dashboard and /onboarding protected when unauthenticated; /login, /signup, /forgot-password redirect authenticated users to dashboard; /reset-password passes through when authenticated; Supabase error and thrown exception both treated as unauthenticated
+- `tests/actions/auth.test.ts` — `signIn` (error, redirect); `signUp` (no siteUrl guard, email-confirmation path, immediate-session redirect, Supabase error); `signOut`; `signInWithGoogle` (no siteUrl, OAuth URL, no URL returned); `requestPasswordReset`; `updatePassword` (length < 8, mismatch, auth failure, success)
+- `tests/actions/saveOnboarding.test.ts` — auth guard; `user_profiles` upsert before parallel psych+caps upserts; `academic_readiness` = mean(analytical_thinking, perseverance); `career_readiness` = mean(communication_skills, leadership_potential); APS computed and stored; strategic score shape validation; non-blocking insert (resolved error ignored, redirect still fires)
+- `tests/actions/generateInsight.test.ts` — auth guard; fallback copy for all 4 context types when `ANTHROPIC_API_KEY` absent; API call shape (model `claude-opus-4-6`, max_tokens 400, South African system prompt); empty content array → error; thrown API error → error
+- `tests/actions/saveApplication.test.ts` — duplicate deduplication (returns existing id without inserting); insert payload (status=draft, deadline, user_id); insert error propagation
+- `tests/actions/toggleSavedProgramme.test.ts` — delete path (eq filter args, returns `{ saved: false }`); insert path (payload user_id + programme_id, returns `{ saved: true }`); error propagation for both paths
+- `tests/actions/saveSubjects.test.ts` — update payload, user_id filter, error propagation
+
 ### Fixed — Code review: 6 bugs patched across 5 pages
 - `components/pages/SkillsPage.tsx` — Big Five alignment card: filter out null/undefined psychProfile trait values before mapping; prevents misleading 0-score display for traits the user hasn't completed
 - `components/pages/ScholarshipsPage.tsx` — Guard `withLiveMatch.length > 0` before rendering Top Priority / Stacking Strategy cards to prevent crash when `SCHOLARSHIPS` is empty
