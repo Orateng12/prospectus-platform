@@ -1126,7 +1126,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
   color: hsl(var(--muted-fg)); white-space: nowrap;
 }
 .marquee-wrap {
-  position: relative; overflow: hidden;
+  position: relative; overflow-x: hidden;
 }
 .marquee-fade-left {
   position: absolute; top: 0; bottom: 0; left: 0; width: 6rem;
