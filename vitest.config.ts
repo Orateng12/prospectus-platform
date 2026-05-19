@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     clearMocks: true,
-    restoreAllMocks: true,
+    restoreMocks: true,
     coverage: {
       provider: 'v8',
       include: ['lib/**', 'app/actions/**', 'proxy.ts'],
