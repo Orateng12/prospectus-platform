@@ -21,6 +21,8 @@ import UniversitiesPage from './pages/UniversitiesPage';
 import CareerComparePage from './pages/CareerComparePage';
 import ScholarshipsPage from './pages/ScholarshipsPage';
 import ApplicationsPage from './pages/ApplicationsPage';
+import DocumentsPage from './pages/DocumentsPage';
+import DeadlinesPage from './pages/DeadlinesPage';
 import ProfilePage from './pages/ProfilePage';
 import CompareDrawer from './CompareDrawer';
 import ApplicationDetailPage from './pages/ApplicationDetailPage';
@@ -195,9 +197,9 @@ export default function Dashboard({
       case 'funding':
         return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} />;
       case 'nsfas':
-        return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} initialTab="nsfas" />;
+        return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} />;
       case 'financial':
-        return <FundingPage householdIncome={householdIncome} userAps={displayAps} subjects={displaySubjects} navigate={navigate} initialTab="financial" />;
+        return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} />;
       case 'careers':
         return (
           <CareersPage
