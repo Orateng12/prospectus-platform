@@ -327,6 +327,7 @@ export default function Dashboard({
             career={selectedCareer}
             programmes={initialProgrammes}
             capabilityData={displayCap}
+            psychProfile={displayPsych}
             navigate={navigate}
           />
         );

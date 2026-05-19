@@ -1,6 +1,6 @@
 'use client';
 
-import type { Career, Programme, CapabilityData, Route } from '@/lib/types';
+import type { Career, Programme, CapabilityData, PsychProfileData, Route } from '@/lib/types';
 import { PROGRAMMES } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
 import { getCareerCapRequirements } from '@/lib/scoring';
@@ -9,6 +9,7 @@ interface CareerDetailPageProps {
   career: Career | null;
   programmes?: Programme[];
   capabilityData?: CapabilityData | null;
+  psychProfile?: PsychProfileData | null;
   navigate: (r: Route, prog?: string) => void;
 }
 
@@ -60,7 +61,26 @@ function sparklinePoints(_baseSalary: number): string {
     .join(' ');
 }
 
-export default function CareerDetailPage({ career, programmes: propProgrammes, capabilityData, navigate }: CareerDetailPageProps) {
+const RIASEC_CAREER_MAP: Record<string, [keyof PsychProfileData, keyof PsychProfileData]> = {
+  'Software Engineer':    ['investigative', 'realistic'],
+  'Data Scientist':       ['investigative', 'conventional'],
+  'Actuary':              ['investigative', 'conventional'],
+  'Financial Advisor':    ['enterprising', 'conventional'],
+  'Doctor (MBChB)':       ['investigative', 'social'],
+  'Doctor':               ['investigative', 'social'],
+  'Nurse':                ['social', 'realistic'],
+  'Lawyer':               ['enterprising', 'investigative'],
+  'Teacher':              ['social', 'conventional'],
+  'Entrepreneur':         ['enterprising', 'artistic'],
+  'Accountant':           ['conventional', 'investigative'],
+  'Product Manager':      ['enterprising', 'social'],
+  'Civil Engineer':       ['realistic', 'investigative'],
+  'Mechanical Engineer':  ['realistic', 'investigative'],
+  'Architect':            ['artistic', 'realistic'],
+  'Psychologist':         ['social', 'investigative'],
+};
+
+export default function CareerDetailPage({ career, programmes: propProgrammes, capabilityData, psychProfile, navigate }: CareerDetailPageProps) {
   if (!career) {
     return (
       <div className="page-anim">
@@ -234,6 +254,48 @@ export default function CareerDetailPage({ career, programmes: propProgrammes, c
               ))}
             </div>
           </div>
+
+          {/* RIASEC alignment */}
+          {psychProfile && (() => {
+            const types = RIASEC_CAREER_MAP[career.name];
+            const riasecKeys: Array<keyof PsychProfileData> = ['realistic', 'investigative', 'artistic', 'social', 'enterprising', 'conventional'];
+            const sorted = [...riasecKeys].sort((a, b) => (psychProfile[b] as number) - (psychProfile[a] as number));
+            const dominant = sorted[0];
+            const secondary = sorted[1];
+            const ideal = types ?? [dominant, secondary];
+            const matches = ideal.filter(k => (psychProfile[k] as number) >= 60).length;
+            const matchLabel = matches === 2 ? 'Strong RIASEC alignment' : matches === 1 ? 'Partial RIASEC alignment' : 'Weak RIASEC alignment';
+            const matchColor = matches === 2 ? 'hsl(var(--success))' : matches === 1 ? 'hsl(var(--warning))' : 'hsl(var(--muted-fg))';
+            return (
+              <div className="card" style={{ marginBottom: 0 }}>
+                <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Personality alignment</div>
+                <div style={{ fontWeight: 700, fontSize: '0.875rem', color: matchColor, marginBottom: '0.625rem' }}>{matchLabel}</div>
+                <div className="stack-2">
+                  {ideal.map(k => {
+                    const val = psychProfile[k] as number;
+                    const label = k.charAt(0).toUpperCase() + k.slice(1);
+                    const met = val >= 60;
+                    return (
+                      <div key={String(k)}>
+                        <div className="row-between" style={{ marginBottom: '0.25rem' }}>
+                          <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>{label}</span>
+                          <span style={{ fontSize: '0.8125rem', fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: met ? 'hsl(var(--success))' : 'hsl(var(--warning))' }}>
+                            {val} {met ? '✓' : '↑'}
+                          </span>
+                        </div>
+                        <div className="meter">
+                          <i style={{ width: `${val}%`, background: met ? undefined : 'hsl(var(--warning))' }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="caption" style={{ marginTop: '0.75rem', fontSize: '0.6875rem' }}>
+                  {career.name} typically suits {ideal.map(k => (k as string).charAt(0).toUpperCase() + (k as string).slice(1)).join(' + ')} RIASEC profiles. 60+ is a strong signal.
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Skills gap */}
           {capabilityData && (
