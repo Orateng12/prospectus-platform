@@ -26,11 +26,13 @@ function buildFocusItems(
   programmes: Programme[],
   userAps: number,
   savedProgrammeIds: string[],
-): Array<{ icon: string; text: string; urgency: 'high' | 'med' | 'low'; route: Route }> {
-  const items: Array<{ icon: string; text: string; urgency: 'high' | 'med' | 'low'; route: Route }> = [];
+  householdIncome?: number,
+  capabilityData?: import('@/lib/types').CapabilityData | null,
+): Array<{ icon: string; text: string; detail?: string; urgency: 'high' | 'med' | 'low'; route: Route }> {
+  const items: Array<{ icon: string; text: string; detail?: string; urgency: 'high' | 'med' | 'low'; route: Route }> = [];
   const today = new Date();
 
-  // 1. Urgent application deadlines within 14 days
+  // 1. Urgent application deadlines
   const urgentApp = applications
     .filter(a => a.deadline)
     .map(a => ({ ...a, daysLeft: Math.ceil((new Date(a.deadline!).getTime() - today.getTime()) / 86_400_000) }))
@@ -40,44 +42,82 @@ function buildFocusItems(
     items.push({
       icon: '⚠',
       text: `${urgentApp.institution_name} deadline in ${urgentApp.daysLeft} day${urgentApp.daysLeft !== 1 ? 's' : ''}`,
+      detail: `${urgentApp.programme_name} · Don't lose this application.`,
       urgency: urgentApp.daysLeft <= 3 ? 'high' : 'med',
       route: 'applications',
     });
   }
 
-  // 2. Best APS leverage: raise one subject to unlock a nearby programme
-  const nextProg = programmes
-    .filter(p => p.aps > userAps && p.aps <= userAps + 6)
-    .sort((a, b) => a.aps - b.aps)[0];
+  // 2. APS leverage: name the exact subject + mark target + programmes unlocked
+  const nearMissProgs = programmes.filter(p => p.aps > userAps && p.aps <= userAps + 2);
   const lowestSubject = [...subjects].filter(s => s.id !== 'lo').sort((a, b) => apsPoints(a.mark) - apsPoints(b.mark))[0];
-  if (lowestSubject && nextProg) {
+  if (lowestSubject && nearMissProgs.length > 0) {
+    const nextMark = lowestSubject.mark < 50 ? 50 : lowestSubject.mark < 60 ? 60 : 70;
+    const unlockCount = nearMissProgs.length;
     items.push({
       icon: '📈',
-      text: `Raise ${lowestSubject.name} to unlock ${nextProg.name}`,
+      text: `Raise ${lowestSubject.name} from ${lowestSubject.mark}% → ${nextMark}%`,
+      detail: `Adds 1 APS point and unlocks ${unlockCount} programme${unlockCount !== 1 ? 's' : ''} you can't access yet.`,
       urgency: 'med',
       route: 'simulator',
     });
+  } else if (lowestSubject) {
+    const nextProg = programmes.filter(p => p.aps > userAps && p.aps <= userAps + 6).sort((a, b) => a.aps - b.aps)[0];
+    if (nextProg) {
+      items.push({
+        icon: '📈',
+        text: `Raise ${lowestSubject.name} to reach ${nextProg.name}`,
+        detail: `${nextProg.uni} requires APS ${nextProg.aps} — you need ${nextProg.aps - userAps} more point${nextProg.aps - userAps !== 1 ? 's' : ''}.`,
+        urgency: 'med',
+        route: 'simulator',
+      });
+    }
   }
 
-  // 3. Saved programmes reminder or fallback prompt
+  // 3. Communication gap — blocks most leadership/PM careers
+  const commScore = capabilityData?.communication_skills;
+  if (commScore !== undefined && commScore < 60 && items.length < 2) {
+    items.push({
+      icon: '🗣',
+      text: 'Communication score limits 12+ careers',
+      detail: `Your score (${commScore}/100) is below the threshold for Product Manager, Marketing, and HR roles. Fixable through practice.`,
+      urgency: 'med',
+      route: 'skills',
+    });
+  }
+
+  // 4. NSFAS eligibility — prompt to apply if income qualifies
+  const nsfasEligible = householdIncome === undefined || householdIncome <= 350_000;
+  if (nsfasEligible && applications.length === 0 && items.length < 3) {
+    items.push({
+      icon: '💰',
+      text: 'NSFAS application opens — you qualify',
+      detail: 'Household income qualifies for R 115,060 annual coverage. Apply before 30 April to secure your funding.',
+      urgency: 'med',
+      route: 'funding',
+    });
+  }
+
+  // 5. Saved programmes reminder
   const savedCount = savedProgrammeIds.length;
-  if (savedCount > 0) {
+  if (savedCount > 0 && items.length < 3) {
     items.push({
       icon: '★',
-      text: `${savedCount} saved programme${savedCount !== 1 ? 's' : ''} — check deadlines`,
+      text: `${savedCount} saved programme${savedCount !== 1 ? 's' : ''} — verify deadlines`,
+      detail: 'Application windows close at different times. Check each saved programme now.',
       urgency: 'low',
       route: 'programmes',
     });
-  } else if (items.length < 2) {
-    items.push({
-      icon: '🎯',
-      text: 'Browse scholarships — multiple matches for your profile',
-      urgency: 'low',
-      route: 'scholarships',
-    });
   }
 
-  return items.slice(0, 3);
+  // 6. Generic fallbacks
+  const fallbacks: typeof items = [
+    { icon: '🎯', text: 'Browse scholarships — multiple profile matches', detail: 'Your APS and subject mix qualify you for at least 3 bursary programmes.', urgency: 'low', route: 'scholarships' },
+    { icon: '🏛',  text: 'Compare universities side-by-side', detail: 'Use the Universities page to weigh fees, acceptance rates, and provincial proximity.', urgency: 'low', route: 'unis' },
+    { icon: '🔭', text: 'Explore career matches on Discover', detail: 'The Discover page surfaces careers you may not have considered based on your profile.', urgency: 'low', route: 'discover' },
+  ];
+
+  return [...items, ...fallbacks].slice(0, 3);
 }
 
 interface HomePageProps {
@@ -167,7 +207,7 @@ export default function HomePage({ subjects, navigate, programmes, applications 
   const fundingSourceCount = (nsfasAmt > 0 ? 1 : 0) + (bursaryAmt > 0 ? 1 : 0) + 1;
   const fundingEligible = householdIncome === undefined || householdIncome <= 600_000;
 
-  const rawFocuses = buildFocusItems(applications, subjects, allProgs, aps, savedProgrammeIds);
+  const rawFocuses = buildFocusItems(applications, subjects, allProgs, aps, savedProgrammeIds, householdIncome, capabilityData);
   // Pad to 3 items with a fallback if needed
   const focusFallbacks: typeof rawFocuses = [
     { icon: '📚', text: 'Re-rank programmes after subject update', urgency: 'low', route: 'simulator' },
@@ -261,6 +301,9 @@ export default function HomePage({ subjects, navigate, programmes, applications 
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="focus-title">{x.icon} {x.text}</div>
+                    {x.detail && (
+                      <div className="caption" style={{ marginTop: '0.125rem', color: 'hsl(var(--muted-fg))' }}>{x.detail}</div>
+                    )}
                   </div>
                   <button
                     className={`btn ${x.urgency === 'high' ? 'btn-primary' : i === 0 ? 'btn-primary' : 'btn-outline'} btn-sm`}

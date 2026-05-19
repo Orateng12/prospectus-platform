@@ -1,7 +1,10 @@
+'use client';
+
+import { useState } from 'react';
 import type { Route, StrategicScoreData, CapabilityData, Capability, Programme, Career, PsychProfileData, Subject } from '@/lib/types';
 import { CAPS, CAREERS } from '@/lib/data';
 import { scoreCareerMatch } from '@/lib/scoring';
-import { fmtR } from '@/lib/utils';
+import { fmtR, apsPoints } from '@/lib/utils';
 import DonutChart from '@/components/DonutChart';
 import AiInsightCard from '@/components/AiInsightCard';
 
@@ -27,6 +30,122 @@ const DB_TO_CAP: Array<[keyof CapabilityData, string]> = [
   ['entrepreneurial_drive','Practical'],
 ];
 
+interface SubScoreNarrative { why: string; action: string; fixable: boolean }
+
+function buildSubScoreNarratives(
+  aps: number,
+  subjects: Subject[],
+  psychProfile: PsychProfileData | null,
+  capabilityData: CapabilityData | null,
+  strategicScore: StrategicScoreData | null,
+  programmes: Programme[],
+  householdIncome?: number,
+): Record<string, SubScoreNarrative> {
+  const eligible = programmes.filter(p => p.aps <= aps).length;
+  const nearMiss = programmes.filter(p => p.aps > aps && p.aps <= aps + 2).length;
+  const lowestSub = [...subjects].filter(s => s.id !== 'lo').sort((a, b) => apsPoints(a.mark) - apsPoints(b.mark))[0];
+  const nextMark = lowestSub ? (lowestSub.mark < 50 ? 50 : lowestSub.mark < 60 ? 60 : 70) : null;
+
+  const nsfas = householdIncome === undefined || householdIncome <= 350_000 ? 115_060
+    : householdIncome <= 600_000 ? 48_000 : 0;
+  const bursary = aps >= 42 ? 165_000 : aps >= 38 ? 95_000 : aps >= 32 ? 42_000 : 18_000;
+
+  const riasecEntries = psychProfile ? ([
+    ['Investigative', psychProfile.investigative ?? 0],
+    ['Realistic', psychProfile.realistic ?? 0],
+    ['Enterprising', psychProfile.enterprising ?? 0],
+    ['Social', psychProfile.social ?? 0],
+    ['Conventional', psychProfile.conventional ?? 0],
+    ['Artistic', psychProfile.artistic ?? 0],
+  ] as [string, number][]).sort((a, b) => b[1] - a[1]) : [];
+  const topR = riasecEntries[0];
+
+  const capEntries = capabilityData ? [
+    { name: 'Analytical thinking', v: capabilityData.analytical_thinking ?? 60 },
+    { name: 'Technical aptitude', v: capabilityData.technical_aptitude ?? 60 },
+    { name: 'Communication', v: capabilityData.communication_skills ?? 60 },
+    { name: 'Creative thinking', v: capabilityData.creative_thinking ?? 60 },
+    { name: 'Leadership', v: capabilityData.leadership_potential ?? 60 },
+    { name: 'Perseverance', v: capabilityData.perseverance ?? 60 },
+  ].sort((a, b) => a.v - b.v) : [];
+  const lowestCap = capEntries[0];
+  const highestCap = capEntries[capEntries.length - 1];
+
+  const mobilityScore = strategicScore?.global_mobility_potential ?? 0;
+  const alignScore = strategicScore?.career_demand_alignment ?? 0;
+
+  return {
+    academic: {
+      why: `APS ${aps}/49 opens ${eligible} programmes.${nearMiss > 0 ? ` ${nearMiss} more are within 2 APS points — just one grade bump away.` : ' You\'re fully eligible for your current target programmes.'}`,
+      action: lowestSub && nearMiss > 0 && nextMark
+        ? `Raise ${lowestSub.name} from ${lowestSub.mark}% → ${nextMark}% — adds 1 APS point and unlocks ${nearMiss} more programme${nearMiss !== 1 ? 's' : ''}. Open the Simulator to model it.`
+        : 'Your academic profile is strong. Book the NBT (National Benchmark Test) to strengthen individual university applications.',
+      fixable: nearMiss > 0,
+    },
+    career: {
+      why: topR
+        ? `Your dominant RIASEC type is ${topR[0]} (${topR[1]}/100). ${alignScore >= 75 ? 'This type is in strong demand across SA\'s tech, finance, and engineering sectors.' : 'Investigative + Realistic types attract the most SA job postings — your profile aligns partially.'}`
+        : 'Career alignment is estimated from your academic profile. Complete the personality assessment for a personalised score.',
+      action: alignScore < 75
+        ? 'Filter Career Explorer by "High demand" — those roles have 3× more SA job postings than average. Sort by "Fit" to see which high-demand careers match your profile.'
+        : 'Your profile maps to growing SA sectors. Explore the Discover page to find niche roles that match your combination.',
+      fixable: !psychProfile,
+    },
+    financial: {
+      why: nsfas > 0
+        ? `Household income qualifies for NSFAS (R ${Math.round(nsfas / 1000)}k). APS ${aps} puts you in the R ${Math.round(bursary / 1000)}k bursary tier.`
+        : `Income is above the NSFAS threshold. APS ${aps} qualifies for the R ${Math.round(bursary / 1000)}k merit bursary tier — no income test applied.`,
+      action: nsfas > 0 && bursary > 0
+        ? `Stack NSFAS (R ${Math.round(nsfas / 1000)}k) + APS bursary (R ${Math.round(bursary / 1000)}k) = R ${Math.round((nsfas + bursary) / 1000)}k. Apply order: NSFAS first (April deadline), then merit bursaries (August).`
+        : 'Focus on merit scholarships: Sasol, Old Mutual Actuarial, NRF — none require an income test. Apply by September.',
+      fixable: aps < 42,
+    },
+    personality: {
+      why: psychProfile
+        ? (() => {
+            const top = [
+              ['Conscientiousness', psychProfile.conscientiousness ?? 0],
+              ['Openness', psychProfile.openness ?? 0],
+              ['Extraversion', psychProfile.extraversion ?? 0],
+              ['Agreeableness', psychProfile.agreeableness ?? 0],
+            ].sort((a, b) => (b[1] as number) - (a[1] as number))[0];
+            const label = top[0] === 'Conscientiousness' ? 'organised and persistent — high fit for structured professions'
+              : top[0] === 'Openness' ? 'curious and inventive — high fit for research and tech'
+              : top[0] === 'Extraversion' ? 'energetic and expressive — high fit for leadership and client-facing roles'
+              : 'cooperative and empathetic — high fit for health, education, and social careers';
+            return `Dominant trait: ${top[0]} (${top[1]}/100). You are ${label}.`;
+          })()
+        : 'Personality fit uses your Big Five profile against career trait requirements. Complete the cognitive assessment to personalise this score.',
+      action: psychProfile
+        ? 'Open Career Explorer → sort by "Fit" — these results factor in your personality profile, not just APS.'
+        : 'Complete the cognitive assessment (≈15 min) to see which careers align with your Big Five profile.',
+      fixable: !psychProfile,
+    },
+    global: {
+      why: mobilityScore >= 75
+        ? `Academic strength (APS ${aps}) + strong Investigative profile creates competitive international postgraduate potential. SA students with this combination qualify for UK, Canadian, and Australian programmes.`
+        : `Your profile qualifies for regional African scholarships and select international programmes. Research experience or a strong honours year significantly improves this score.`,
+      action: mobilityScore >= 75
+        ? 'Explore: Commonwealth Scholarship (UK), Vanier Graduate Scholarship (Canada), Endeavour (Australia). Your profile is competitive for 2028 entry.'
+        : 'Focus on graduating top 20% in Year 1 — that single outcome is the fastest path to international scholarship eligibility.',
+      fixable: true,
+    },
+    skills: {
+      why: capabilityData && lowestCap
+        ? `Strongest: ${highestCap?.name} (${highestCap?.v}/100). Lowest: ${lowestCap.name} (${lowestCap.v}/100) — this limits access to careers requiring ${lowestCap.name.toLowerCase()} above ${lowestCap.v + 15}.`
+        : 'Skills readiness is estimated from your academic profile. Complete the capability assessment for a breakdown across 8 dimensions.',
+      action: lowestCap?.name === 'Communication'
+        ? 'Communication is the highest-leverage gap. Join a debating society or structured writing programme — most students see +12–18 points after 6 months of consistent practice.'
+        : lowestCap?.name === 'Technical aptitude'
+          ? 'Technical aptitude is buildable. A 6-week coding bootcamp, Arduino project, or electronics short course typically raises this by 15–20 points.'
+          : capabilityData
+            ? `Raise ${lowestCap?.name} to unlock careers that currently gate on this dimension. Open the Skills Map to see the specific gap for each career you\'re targeting.`
+            : 'Complete the capability assessment to see your exact gaps across analytical, technical, communication, creative, leadership, and perseverance dimensions.',
+      fixable: true,
+    },
+  };
+}
+
 const FALLBACK_PROBS = [
   { name: 'Software Engineer', score: 88, salary: undefined as number | undefined, growth: '+22%' },
   { name: 'Data Analyst',      score: 82, salary: undefined as number | undefined, growth: '+18%' },
@@ -35,19 +154,22 @@ const FALLBACK_PROBS = [
   { name: 'Doctor',            score: 41, salary: undefined as number | undefined, growth: '+7%'  },
 ];
 
-export default function IntelligencePage({ navigate, strategicScore, capabilityData, programmes = [], careers = [], psychProfile, subjects = [], userAps = 0 }: IntelligencePageProps) {
+export default function IntelligencePage({ navigate, strategicScore, capabilityData, programmes = [], careers = [], psychProfile, subjects = [], userAps = 0, householdIncome }: IntelligencePageProps & { householdIncome?: number }) {
+  const [expandedScore, setExpandedScore] = useState<string | null>(null);
   const score = strategicScore?.overall ?? 74;
   const prev  = strategicScore?.previous_score;
   const delta = prev != null ? score - prev : 6;
   const trend = strategicScore?.trend ?? 'improving';
 
+  const narratives = buildSubScoreNarratives(userAps, subjects, psychProfile ?? null, capabilityData ?? null, strategicScore ?? null, programmes, householdIncome);
+
   const subScores = [
-    { l: 'Academic readiness',   v: strategicScore?.academic_readiness        ?? 86, sub: 'APS, subject mix, prerequisite gaps',                c: 'success' },
-    { l: 'Career alignment',     v: strategicScore?.career_demand_alignment    ?? 68, sub: 'Labour market signal vs. your top careers',          c: 'primary' },
-    { l: 'Financial feasibility',v: strategicScore?.financial_feasibility      ?? 71, sub: 'NSFAS + bursary fit · scholarship pipeline',         c: 'accent'  },
-    { l: 'Personality fit',      v: strategicScore?.personality_career_fit     ?? 79, sub: 'Big Five · RIASEC vs. target career profiles',       c: 'warning' },
-    { l: 'Global mobility',      v: strategicScore?.global_mobility_potential  ?? 68, sub: 'International demand × academic strength',           c: 'primary' },
-    { l: 'Skill readiness',      v: strategicScore?.skill_readiness            ?? 72, sub: 'Mean of 8 core capability dimensions',               c: 'success' },
+    { key: 'academic',    l: 'Academic readiness',    v: strategicScore?.academic_readiness        ?? 86, sub: 'APS, subject mix, prerequisite gaps',           c: 'success' },
+    { key: 'career',      l: 'Career alignment',      v: strategicScore?.career_demand_alignment    ?? 68, sub: 'Labour market signal vs. your top careers',     c: 'primary' },
+    { key: 'financial',   l: 'Financial feasibility', v: strategicScore?.financial_feasibility      ?? 71, sub: 'NSFAS + bursary fit · scholarship pipeline',    c: 'accent'  },
+    { key: 'personality', l: 'Personality fit',       v: strategicScore?.personality_career_fit     ?? 79, sub: 'Big Five · RIASEC vs. target career profiles',  c: 'warning' },
+    { key: 'global',      l: 'Global mobility',       v: strategicScore?.global_mobility_potential  ?? 68, sub: 'International demand × academic strength',      c: 'primary' },
+    { key: 'skills',      l: 'Skill readiness',       v: strategicScore?.skill_readiness            ?? 72, sub: 'Mean of 8 core capability dimensions',          c: 'success' },
   ];
 
   const caps: Capability[] = capabilityData
@@ -146,18 +268,41 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
             Six sub-scores combine on a weighted average. Move any of them and the composite moves with it.
           </p>
           <div className="stack-2" style={{ marginTop: '1rem' }}>
-            {subScores.map(x => (
-              <div key={x.l}>
-                <div className="row-between">
-                  <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{x.l}</span>
-                  <span style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{x.v}</span>
+            {subScores.map(x => {
+              const narr = narratives[x.key];
+              const isOpen = expandedScore === x.key;
+              return (
+                <div key={x.l}>
+                  <button
+                    className="row-between"
+                    style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
+                    onClick={() => setExpandedScore(isOpen ? null : x.key)}
+                    aria-expanded={isOpen}
+                  >
+                    <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{x.l}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{x.v}</span>
+                      <span className="caption" style={{ color: 'hsl(var(--muted-fg))', fontSize: '0.7rem' }}>{isOpen ? '▲' : '▼'}</span>
+                    </span>
+                  </button>
+                  <div className={`meter ${x.c}`} style={{ marginTop: '0.375rem' }}>
+                    <i style={{ width: `${x.v}%` }} />
+                  </div>
+                  <div className="caption" style={{ marginTop: '0.25rem' }}>{x.sub}</div>
+                  {isOpen && narr && (
+                    <div style={{ marginTop: '0.625rem', padding: '0.75rem', background: 'hsl(var(--muted) / 0.5)', borderRadius: 'var(--r-md)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <p style={{ fontSize: '0.8125rem', lineHeight: 1.5, margin: 0 }}>{narr.why}</p>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: narr.fixable ? 'hsl(var(--success))' : 'hsl(var(--muted-fg))', background: narr.fixable ? 'hsl(var(--success) / 0.1)' : 'hsl(var(--muted))', borderRadius: '4px', padding: '0.125rem 0.375rem', whiteSpace: 'nowrap', marginTop: '0.125rem' }}>
+                          {narr.fixable ? '↑ Improvable' : '✓ Structural'}
+                        </span>
+                        <p style={{ fontSize: '0.8125rem', lineHeight: 1.5, margin: 0, color: 'hsl(var(--muted-fg))' }}>{narr.action}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className={`meter ${x.c}`} style={{ marginTop: '0.375rem' }}>
-                  <i style={{ width: `${x.v}%` }} />
-                </div>
-                <div className="caption" style={{ marginTop: '0.25rem' }}>{x.sub}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

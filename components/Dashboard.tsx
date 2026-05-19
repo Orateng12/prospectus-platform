@@ -180,6 +180,7 @@ export default function Dashboard({
             psychProfile={displayPsych}
             subjects={displaySubjects}
             userAps={displayAps}
+            householdIncome={householdIncome}
           />
         );
       case 'simulator':
