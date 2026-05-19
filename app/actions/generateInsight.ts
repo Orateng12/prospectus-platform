@@ -53,11 +53,24 @@ function buildPrompt(ctx: InsightContext): string {
     lines.push(`Top career matches: ${careers}`);
   }
 
+  if (ctx.householdIncome !== undefined) {
+    lines.push(`Household income: R${ctx.householdIncome.toLocaleString()}/year`);
+  }
+  if (ctx.applicationCount !== undefined) {
+    lines.push(`Active applications: ${ctx.applicationCount}`);
+  }
+
   const typeInstructions: Record<InsightContext['type'], string> = {
     home: 'Give a single specific insight about the most important action this student should take right now based on their APS and programme fit.',
     cognitive: 'Give a specific insight about how this student\'s personality profile (Big Five + RIASEC) aligns with their top career matches, and what this means for choosing a field of study.',
     intelligence: 'Give a specific insight about what is driving their strategic score — which sub-score has the most room to improve and what they should do about it.',
     career: 'Give a specific insight about which career path has the best combination of demand, growth, and fit for this student given their profile.',
+    funding: 'Give a specific insight about this student\'s funding situation — which combination of NSFAS, bursaries and scholarships best covers their gap, and what they should apply for first. Reference their APS and household income.',
+    scholarships: 'Give a specific insight about the 1-2 scholarships this student has the highest chance of winning given their APS, income and subject profile. Mention the application deadline urgency.',
+    simulator: 'Given the student\'s current APS and marks, identify the single subject where a small improvement unlocks the most new programmes. Be specific about the mark delta and what it opens.',
+    skills: 'Based on this student\'s capability graph, identify the one skill gap that most limits their career options, and suggest one concrete action to close it within 3 months.',
+    careers_page: 'Given this student\'s RIASEC profile and capability scores, name the single career that best balances fit, SA market demand, and salary trajectory. Explain the fit in one sentence.',
+    programmes_page: 'Based on this student\'s APS and top subject marks, recommend the single programme with the best combination of fit score, career outcome and financial feasibility. Be specific.',
   };
 
   lines.push(`\nTask: ${typeInstructions[ctx.type]}`);
@@ -78,6 +91,12 @@ export async function generateInsight(context: InsightContext): Promise<{ text: 
         cognitive: 'Your Investigative RIASEC profile combined with high Analytical and Numerical capability aligns closely with quantitative fields. Data Science and Actuarial Science are your sharpest career clusters — both have high demand in SA finance and tech.',
         intelligence: 'Your Academic Readiness sub-score has the most room for improvement. Lifting your Mathematics and Physical Sciences marks by 5–8% would push your APS above 45 and unlock direct entry at Wits and SUN.',
         career: 'Software Engineering and Data Science offer the best combination of fit, growth (+22% and +18%) and demand for your profile. Both are remote-friendly in SA with mid-career salaries above R38k/month.',
+        funding: 'With your APS above 38, you qualify for a merit bursary worth R95,000 — apply to Investec or Old Mutual directly. Stack this with NSFAS if your household income is below R350k to cover 100% of year-one costs. Submit both applications before September to avoid the rush.',
+        scholarships: 'The Thuthuka Bursary and Funza Lushaka align best with your profile — both offer full cost-of-study funding with fewer applicants than NSFAS. Apply to Thuthuka first; the March deadline is earliest. Your APS qualifies you for the merit track on both.',
+        simulator: 'Your Physical Sciences mark is closest to the next APS threshold. Raising it by 5% adds one APS point and unlocks Engineering programmes at UKZN and TUT. That single change has the highest leverage of any subject in your current profile.',
+        skills: 'Your Communication score is your most limiting capability — it sits below the threshold for Business, Law and Management programmes. A focused 6-week public-speaking or debate practice adds measurable lift and directly impacts your career readiness score.',
+        careers_page: 'Based on your Investigative RIASEC score and high Analytical capability, Data Science is your sharpest career match — it has High demand in SA, 18% annual growth, and median salaries above R45k/month at 5 years. Your current APS already qualifies you for BSc Data Science at WITS and UCT.',
+        programmes_page: 'Your highest fit score goes to BCom Accounting at UNISA — your APS clears the minimum by 6 points, your Conscientiousness profile suits its structure, and NSFAS covers 68% of fees. Apply by 30 September; the distance-learning format also lets you work part-time.',
       };
       return { text: fallbacks[context.type] };
     }

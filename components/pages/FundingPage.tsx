@@ -1,12 +1,16 @@
 import { SCHOLARSHIPS } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
-import type { Programme, Route } from '@/lib/types';
+import type { Programme, Route, Subject, PsychProfileData, CapabilityData } from '@/lib/types';
+import AiInsightCard from '@/components/AiInsightCard';
 
 interface FundingPageProps {
   householdIncome?: number;
   userAps?: number;
   programmes?: Programme[];
   navigate?: (r: Route) => void;
+  subjects?: Subject[];
+  psychProfile?: PsychProfileData | null;
+  capabilityData?: CapabilityData | null;
 }
 
 function computeNsfas(income: number | undefined): number {
@@ -27,7 +31,7 @@ function computeBursary(aps: number | undefined): number {
 const DEFAULT_YEAR1_COST = 165_420;
 const INFLATION = 0.048;
 
-export default function FundingPage({ householdIncome, userAps, programmes, navigate }: FundingPageProps) {
+export default function FundingPage({ householdIncome, userAps, programmes, navigate, subjects = [], psychProfile, capabilityData }: FundingPageProps) {
   const aboveNsfasThreshold = householdIncome !== undefined && householdIncome > 350_000;
 
   // Derive top programme — highest fit score from the real list, or fallback label
@@ -222,35 +226,20 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
           </div>
         </div>
 
-        <div className="card">
-          <div className="eyebrow"><span className="dot" />AI commentary</div>
-          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Strategy notes</h3>
-          <div className="stack-2" style={{ marginTop: '0.875rem' }}>
-            {topScholar && (
-              <div className="insight">
-                <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
-                  Apply to {topScholar.name} first
-                </div>
-                <p className="body-text" style={{ fontSize: '0.8125rem' }}>
-                  Closes {topScholar.deadline}, highest amount ({fmtR(topScholar.amount)}) and you match {topScholar.match}% of criteria.
-                  {gap === 0 ? ' Combined with your other funding, this fully covers your degree.' : ' If awarded, decline lower-value bursaries.'}
-                </p>
-                <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.5rem' }}>Strategic priority</div>
-              </div>
-            )}
-            {serviceScholar && (
-              <div className="insight">
-                <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
-                  Watch the {serviceScholar.name} service contract
-                </div>
-                <p className="body-text" style={{ fontSize: '0.8125rem' }}>
-                  {serviceScholar.name}&apos;s {fmtR(serviceScholar.amount)} bursary requires a post-graduation service period — limits mobility. Stack only if committed to the sector.
-                </p>
-                <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.5rem' }}>Risk note</div>
-              </div>
-            )}
-          </div>
-        </div>
+        <AiInsightCard
+          context={{
+            type: 'funding',
+            aps: userAps ?? 0,
+            subjects,
+            psychProfile: psychProfile ?? null,
+            capabilityData: capabilityData ?? null,
+            strategicScore: null,
+            topProgrammes: programmes ? programmes.slice(0, 4) : [],
+            topCareers: [],
+            householdIncome,
+          }}
+          navigate={navigate}
+        />
       </div>
     </div>
   );

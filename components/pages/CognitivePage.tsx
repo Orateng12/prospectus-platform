@@ -221,7 +221,7 @@ export default function CognitivePage({
             </div>
 
             <AiInsightCard
-              context={{ type: 'cognitive', aps: 0, subjects: [], psychProfile: psychProfile ?? null, capabilityData: null, strategicScore: null, topProgrammes: [], topCareers: [] }}
+              context={{ type: 'cognitive', aps: userAps, subjects: [], psychProfile: psychProfile ?? null, capabilityData: capabilityData ?? null, strategicScore: null, topProgrammes: [], topCareers: topCareer ? [topCareer] : [] }}
             />
           </div>
         </div>

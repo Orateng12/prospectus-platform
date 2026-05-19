@@ -2,13 +2,15 @@ import { CAPS } from '@/lib/data';
 import RadarChart from '@/components/RadarChart';
 import { rankCareersByMatch, getCareerCapRequirements, getCareerBigFiveRanges } from '@/lib/scoring';
 import type { CareerBigFiveRanges } from '@/lib/scoring';
-import type { CapabilityData, Capability, PsychProfileData, Career } from '@/lib/types';
+import type { CapabilityData, Capability, PsychProfileData, Career, Route } from '@/lib/types';
+import AiInsightCard from '@/components/AiInsightCard';
 
 interface SkillsPageProps {
   capabilityData?: CapabilityData | null;
   psychProfile?: PsychProfileData | null;
   careers?: Career[];
   userAps?: number;
+  navigate?: (r: Route) => void;
 }
 
 const DESCRIPTIONS: Record<string, string> = {
@@ -53,7 +55,7 @@ const CAP_DB_LABEL: Record<keyof CapabilityData, string> = {
   career_readiness:     'Career readiness',
 };
 
-export default function SkillsPage({ capabilityData, psychProfile, careers = [], userAps = 0 }: SkillsPageProps) {
+export default function SkillsPage({ capabilityData, psychProfile, careers = [], userAps = 0, navigate }: SkillsPageProps) {
   let caps: Capability[] = CAPS.map(c => ({ ...c }));
 
   if (capabilityData) {
@@ -313,6 +315,20 @@ export default function SkillsPage({ capabilityData, psychProfile, careers = [],
           </div>
         ))}
       </div>
+
+      <AiInsightCard
+        context={{
+          type: 'skills',
+          aps: userAps,
+          subjects: [],
+          psychProfile: psychProfile ?? null,
+          capabilityData: capabilityData ?? null,
+          strategicScore: null,
+          topProgrammes: [],
+          topCareers: topCareer ? [topCareer] : [],
+        }}
+        navigate={navigate}
+      />
     </div>
   );
 }

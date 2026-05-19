@@ -5,6 +5,7 @@ import { CAREERS, PROGRAMMES } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
 import { scoreCareerMatch } from '@/lib/scoring';
 import type { Career, CompareItem, PsychProfileData, CapabilityData, Route } from '@/lib/types';
+import AiInsightCard from '@/components/AiInsightCard';
 
 interface CareersPageProps {
   careers?: Career[];
@@ -219,24 +220,19 @@ export default function CareersPage({
               </div>
 
               {/* AI insight */}
-              <div className="card">
-                <div className="eyebrow"><span className="dot" />AI insight · for you</div>
-                {psychProfile ? (
-                  <>
-                    <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', lineHeight: 1.6, color: 'hsl(var(--fg))' }}>
-                      {buildInsightText(psychProfile, capabilityData)}
-                    </p>
-                    <div className="row" style={{ marginTop: '0.75rem' }}>
-                      <button className="btn btn-outline btn-sm" onClick={() => setActiveTab('fit')}>Best Fit →</button>
-                      <button className="btn btn-ghost btn-sm" onClick={() => navigate?.('intelligence')}>Why this?</button>
-                    </div>
-                  </>
-                ) : (
-                  <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', lineHeight: 1.6, color: 'hsl(var(--muted-fg))' }}>
-                    Complete your profile assessment to unlock personalised AI insights.
-                  </p>
-                )}
-              </div>
+              <AiInsightCard
+                context={{
+                  type: 'careers_page',
+                  aps: userAps ?? 0,
+                  subjects: [],
+                  psychProfile: psychProfile ?? null,
+                  capabilityData: capabilityData ?? null,
+                  strategicScore: null,
+                  topProgrammes: [],
+                  topCareers: displayed.slice(0, 4),
+                }}
+                navigate={navigate}
+              />
             </>
           ) : (
             <div className="stack-3">
