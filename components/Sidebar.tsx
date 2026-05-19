@@ -8,6 +8,8 @@ interface SidebarProps {
   userProvince?: string;
   isOpen?: boolean;
   onClose?: () => void;
+  pendingAppCount?: number;
+  unappliedScholarshipCount?: number;
 }
 
 interface NavItem {
@@ -17,48 +19,63 @@ interface NavItem {
   dot?: boolean;
 }
 
-const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
-  {
-    label: 'Plan',
-    items: [
-      { label: 'Dashboard', route: 'home', dot: true },
-      { label: 'APS & Simulator', route: 'simulator' },
-      { label: 'Programmes', route: 'programmes' },
-      { label: 'Universities', route: 'unis' },
-    ],
-  },
-  {
-    label: 'Discover',
-    items: [
-      { label: 'Career Explorer', route: 'careers' },
-    ],
-  },
-  {
-    label: 'Fund',
-    items: [
-      { label: 'Funding Strategy', route: 'funding' },
-      { label: 'Scholarships', route: 'scholarships', pill: { text: '3 new', variant: 'success' } },
-    ],
-  },
-  {
-    label: 'Execute',
-    items: [
-      { label: 'Applications', route: 'applications', pill: { text: '4', variant: 'default' } },
-    ],
-  },
-  {
-    label: 'Self',
-    items: [
-      { label: 'Profile', route: 'profile' },
-      { label: 'Assessment', route: 'cognitive' },
-      { label: 'Intelligence', route: 'intelligence', pill: { text: 'PRO', variant: 'dark' } },
-    ],
-  },
-];
+function buildNavGroups(pendingAppCount: number, unappliedScholarshipCount: number): Array<{ label: string; items: NavItem[] }> {
+  return [
+    {
+      label: 'Plan',
+      items: [
+        { label: 'Dashboard', route: 'home', dot: true },
+        { label: 'APS & Simulator', route: 'simulator' },
+        { label: 'Programmes', route: 'programmes' },
+        { label: 'Universities', route: 'unis' },
+      ],
+    },
+    {
+      label: 'Discover',
+      items: [
+        { label: 'Career Explorer', route: 'careers' },
+      ],
+    },
+    {
+      label: 'Fund',
+      items: [
+        { label: 'Funding Strategy', route: 'funding' },
+        {
+          label: 'Scholarships',
+          route: 'scholarships',
+          ...(unappliedScholarshipCount > 0
+            ? { pill: { text: `${unappliedScholarshipCount} new`, variant: 'success' as const } }
+            : {}),
+        },
+      ],
+    },
+    {
+      label: 'Execute',
+      items: [
+        {
+          label: 'Applications',
+          route: 'applications',
+          ...(pendingAppCount > 0
+            ? { pill: { text: String(pendingAppCount), variant: 'default' as const } }
+            : {}),
+        },
+      ],
+    },
+    {
+      label: 'Self',
+      items: [
+        { label: 'Profile', route: 'profile' },
+        { label: 'Assessment', route: 'cognitive' },
+        { label: 'Intelligence', route: 'intelligence' },
+      ],
+    },
+  ];
+}
 
-export default function Sidebar({ route, navigate, userName = 'Student', userProvince, isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ route, navigate, userName = 'Student', userProvince, isOpen, onClose, pendingAppCount = 0, unappliedScholarshipCount = 0 }: SidebarProps) {
   const initial = userName.charAt(0).toUpperCase();
   const caption = userProvince ? `Free plan · ${userProvince}` : 'Free plan';
+  const navGroups = buildNavGroups(pendingAppCount, unappliedScholarshipCount);
 
   return (
     <aside className={`sidebar${isOpen ? ' open' : ''}`}>
@@ -71,7 +88,7 @@ export default function Sidebar({ route, navigate, userName = 'Student', userPro
         </div>
       </div>
 
-      {NAV_GROUPS.map(group => (
+      {navGroups.map(group => (
         <div className="nav-group" key={group.label}>
           <div className="nav-label">{group.label}</div>
           {group.items.map(item => (

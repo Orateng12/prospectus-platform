@@ -8,17 +8,32 @@ import type { Subject, Route, CompareItem } from '@/lib/types';
 type Tab = 'all' | 'eligible' | 'tier1' | 'tvet' | 'private';
 type ViewMode = 'list' | 'map';
 
+// Maps full province names (from user_profiles) to PROVINCES ids
+const PROVINCE_NAME_TO_ID: Record<string, string> = {
+  'Limpopo': 'lp',
+  'Gauteng': 'gp',
+  'Mpumalanga': 'mp',
+  'KwaZulu-Natal': 'kzn',
+  'Free State': 'fs',
+  'Eastern Cape': 'ec',
+  'Western Cape': 'wc',
+  'Northern Cape': 'nc',
+  'North West': 'nw',
+};
+
 interface UniversitiesPageProps {
   subjects: Subject[];
   navigate: (r: Route) => void;
   compareItems: CompareItem[];
   onToggleCompare: (item: CompareItem) => void;
+  userProvince?: string;
 }
 
-export default function UniversitiesPage({ subjects, navigate, compareItems, onToggleCompare }: UniversitiesPageProps) {
+export default function UniversitiesPage({ subjects, navigate, compareItems, onToggleCompare, userProvince }: UniversitiesPageProps) {
   const [tab, setTab] = useState<Tab>('all');
   const [view, setView] = useState<ViewMode>('list');
   const aps = calcAPS(subjects);
+  const homeProvinceId = userProvince ? (PROVINCE_NAME_TO_ID[userProvince] ?? null) : null;
 
   const displayed = useMemo(() => {
     if (tab === 'tier1') return UNIS.filter(u => u.acpt === 'Tier 1');
@@ -97,7 +112,7 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
                           cy={p.y}
                           r={r}
                           className="za-bubble"
-                          style={p.you ? { fill: 'hsl(var(--accent))' } : undefined}
+                          style={(homeProvinceId ? p.id === homeProvinceId : p.you) ? { fill: 'hsl(var(--accent))' } : undefined}
                         />
                         <text x={p.x} y={p.y - 4} className="za-label">{p.n}</text>
                         <text
@@ -146,13 +161,13 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
                     >
                       <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>
                         {p.name}
-                        {p.you && (
+                        {(homeProvinceId ? p.id === homeProvinceId : p.you) && (
                           <span className="badge success" style={{ height: '1rem', fontSize: '0.5625rem', padding: '0 0.3125rem', marginLeft: '0.25rem' }}>
                             Home
                           </span>
                         )}
                       </div>
-                      <div className={`meter ${p.you ? 'accent' : p.n >= 15 ? 'success' : 'primary'}`}>
+                      <div className={`meter ${(homeProvinceId ? p.id === homeProvinceId : p.you) ? 'accent' : p.n >= 15 ? 'success' : 'primary'}`}>
                         <i style={{ width: `${(p.n / 21) * 100}%` }} />
                       </div>
                       <div style={{ fontWeight: 800, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: '0.875rem' }}>

@@ -14,6 +14,7 @@ interface AssessmentPageProps {
   careers?: Career[];
   userAps?: number;
   initialTab?: 'personality' | 'skills';
+  onRetake?: () => void;
 }
 
 type Tab = 'personality' | 'skills';
@@ -68,6 +69,7 @@ export default function CognitivePage({
   careers = [],
   userAps = 0,
   initialTab = 'personality',
+  onRetake,
 }: AssessmentPageProps) {
   const [tab, setTab] = useState<Tab>(initialTab);
 
@@ -157,7 +159,9 @@ export default function CognitivePage({
             <span className={`badge ${hasData ? 'success' : 'warning'}`}>
               {hasData ? 'Profile loaded · real data' : 'Showing defaults · take assessment'}
             </span>
-            <button className="btn btn-outline">Re-take</button>
+            {onRetake && (
+              <button className="btn btn-outline" onClick={onRetake}>Re-take</button>
+            )}
           </div>
         </div>
       </div>

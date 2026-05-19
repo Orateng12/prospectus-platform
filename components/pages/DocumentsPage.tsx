@@ -5,6 +5,14 @@ import { useRouter } from 'next/navigation';
 import type { Route, DbDocument } from '@/lib/types';
 import { uploadDocument } from '@/app/actions/uploadDocument';
 import { deleteDocument } from '@/app/actions/deleteDocument';
+import { refreshDocumentUrl } from '@/app/actions/refreshDocumentUrl';
+
+// Signed URLs last 1 hour — consider stale after 55 minutes
+const URL_TTL_MS = 55 * 60 * 1000;
+
+function isUrlStale(uploadedAt: string): boolean {
+  return Date.now() - new Date(uploadedAt).getTime() > URL_TTL_MS;
+}
 
 interface DocMeta {
   type: string;
@@ -51,9 +59,23 @@ export default function DocumentsPage({ navigate, documents = [] }: DocumentsPag
   const [rowError, setRowError] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
 
+  // Overridden URLs for refreshed signed links
+  const [freshUrls, setFreshUrls] = useState<Record<string, string>>({});
+  const [refreshingUrl, setRefreshingUrl] = useState<string | null>(null);
+
   const uploadedMap: Record<string, DbDocument> = Object.fromEntries(
     documents.map(d => [d.doc_type, d]),
   );
+
+  async function handleViewFresh(docType: string) {
+    setRefreshingUrl(docType);
+    const result = await refreshDocumentUrl(docType);
+    setRefreshingUrl(null);
+    if ('signedUrl' in result) {
+      setFreshUrls(prev => ({ ...prev, [docType]: result.signedUrl }));
+      window.open(result.signedUrl, '_blank', 'noopener,noreferrer');
+    }
+  }
 
   const uploaded = DOC_CATALOG.filter(d => uploadedMap[d.type]).length;
   const missing = DOC_CATALOG.length - uploaded;
@@ -194,16 +216,29 @@ export default function DocumentsPage({ navigate, documents = [] }: DocumentsPag
                         </span>
                         {isUploaded ? (
                           <>
-                            {dbDoc.signed_url && (
-                              <a
-                                href={dbDoc.signed_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="btn btn-ghost btn-sm"
-                              >
-                                View
-                              </a>
-                            )}
+                            {(dbDoc.signed_url || freshUrls[doc.type]) && (() => {
+                              const url = freshUrls[doc.type] ?? dbDoc.signed_url!;
+                              const stale = !freshUrls[doc.type] && isUrlStale(dbDoc.uploaded_at);
+                              const isRefreshing = refreshingUrl === doc.type;
+                              return stale ? (
+                                <button
+                                  className="btn btn-ghost btn-sm"
+                                  onClick={() => handleViewFresh(doc.type)}
+                                  disabled={isRefreshing}
+                                >
+                                  {isRefreshing ? '…' : 'View'}
+                                </button>
+                              ) : (
+                                <a
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="btn btn-ghost btn-sm"
+                                >
+                                  View
+                                </a>
+                              );
+                            })()}
                             <button
                               className="btn btn-ghost btn-sm"
                               onClick={() => triggerUpload(doc.type)}

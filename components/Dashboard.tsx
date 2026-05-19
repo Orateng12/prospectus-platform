@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import type {
   Route, Subject, Programme, Career, CompareItem, Application, Scholarship,
   PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbDocument,
 } from '@/lib/types';
-import { SUBJECTS, CAREERS as STATIC_CAREERS } from '@/lib/data';
+import { SUBJECTS, CAREERS as STATIC_CAREERS, SCHOLARSHIPS as STATIC_SCHOLARSHIPS } from '@/lib/data';
 import { calcAPS } from '@/lib/utils';
 import { scoreCareerMatch } from '@/lib/scoring';
 import Sidebar from './Sidebar';
@@ -75,6 +76,7 @@ export default function Dashboard({
   documents = [],
   unreadNotificationCount = 0,
 }: DashboardProps) {
+  const router = useRouter();
   const [route, setRoute] = useState<Route>('home');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [subjects, setSubjects] = useState<Subject[]>(
@@ -100,6 +102,13 @@ export default function Dashboard({
       return acc;
     }, {}),
   [careers, psychProfile, capabilityData, aps]);
+
+  // Sidebar live counts
+  const pendingAppCount = applications.filter(a =>
+    ['draft', 'pending', 'submitted'].includes(a.status.toLowerCase())
+  ).length;
+  const appliedSet = new Set(appliedScholarshipNames);
+  const unappliedScholarshipCount = STATIC_SCHOLARSHIPS.filter(s => !appliedSet.has(s.name)).length;
 
   const emptySubjects = (initialSubjects ?? SUBJECTS).map(s => ({ ...s, mark: 50 }));
   const displaySubjects = emptyMode ? emptySubjects : subjects;
@@ -234,6 +243,7 @@ export default function Dashboard({
             capabilityData={displayCap}
             careers={careers}
             userAps={displayAps}
+            onRetake={() => router.push('/onboarding?retake=true')}
           />
         );
       case 'skills':
@@ -244,12 +254,13 @@ export default function Dashboard({
             careers={careers}
             userAps={displayAps}
             initialTab="skills"
+            onRetake={() => router.push('/onboarding?retake=true')}
           />
         );
       case 'map':
-        return <UniversitiesPage subjects={displaySubjects} navigate={navigate} compareItems={compareItems} onToggleCompare={toggleCompare} />;
+        return <UniversitiesPage subjects={displaySubjects} navigate={navigate} compareItems={compareItems} onToggleCompare={toggleCompare} userProvince={userProvince} />;
       case 'unis':
-        return <UniversitiesPage subjects={displaySubjects} navigate={navigate} compareItems={compareItems} onToggleCompare={toggleCompare} />;
+        return <UniversitiesPage subjects={displaySubjects} navigate={navigate} compareItems={compareItems} onToggleCompare={toggleCompare} userProvince={userProvince} />;
       case 'compare':
         return (
           <CareerComparePage
@@ -361,6 +372,8 @@ export default function Dashboard({
         userProvince={userProvince}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        pendingAppCount={pendingAppCount}
+        unappliedScholarshipCount={unappliedScholarshipCount}
       />
       <div
         className={`sidebar-backdrop${sidebarOpen ? ' open' : ''}`}

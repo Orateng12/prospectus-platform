@@ -1,6 +1,6 @@
 'use client';
 
-import type { Route, Subject, Programme, DbApplication, StrategicScoreData, PsychProfileData, CapabilityData } from '@/lib/types';
+import type { Route, Subject, Programme, DbApplication, StrategicScoreData, PsychProfileData, CapabilityData, Deadline } from '@/lib/types';
 import { PROGRAMMES, APPS, DEADLINES } from '@/lib/data';
 import { calcAPS, fmtR, apsPoints } from '@/lib/utils';
 import AiInsightCard from '@/components/AiInsightCard';
@@ -92,6 +92,41 @@ interface HomePageProps {
   capabilityData?: CapabilityData | null;
 }
 
+const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function buildDeadlines(applications: DbApplication[]): Deadline[] {
+  const now = Date.now();
+  const appDeadlines: (Deadline & { ts: number })[] = applications
+    .filter(a => a.deadline)
+    .map(a => {
+      const date = new Date(a.deadline!);
+      const ts = date.getTime();
+      const daysLeft = Math.ceil((ts - now) / 86_400_000);
+      const isPast = daysLeft < 0;
+      const isUrgent = daysLeft >= 0 && daysLeft <= 7;
+      return {
+        ts,
+        d: date.getDate(),
+        m: MONTH_ABBR[date.getMonth()],
+        t: `${a.institution_name} — ${a.programme_name}`,
+        sub: isPast ? 'Deadline passed' : daysLeft === 0 ? 'Today' : `${daysLeft} day${daysLeft === 1 ? '' : 's'}`,
+        tag: isPast ? 'destructive' : isUrgent ? 'warning' : '',
+        tagL: isPast ? 'Overdue' : isUrgent ? 'Soon' : 'Open',
+      };
+    })
+    .sort((a, b) => a.ts - b.ts);
+
+  // Fill remaining slots with static deadlines (future ones only)
+  const staticFuture = DEADLINES.filter(d => {
+    const year = new Date().getFullYear();
+    const ts = new Date(`${d.d} ${d.m} ${year}`).getTime();
+    return ts >= now;
+  });
+
+  const merged = [...appDeadlines, ...staticFuture];
+  return merged.slice(0, 3);
+}
+
 function statusToBadge(status: string): string {
   const s = status.toLowerCase();
   if (s === 'accepted' || s === 'offer') return 'success';
@@ -140,6 +175,8 @@ export default function HomePage({ subjects, navigate, programmes, applications 
     { icon: '🏛', text: 'Compare universities side-by-side', urgency: 'low', route: 'unis' },
   ];
   const focuses = [...rawFocuses, ...focusFallbacks].slice(0, 3);
+
+  const deadlineItems = buildDeadlines(applications);
 
   return (
     <div className="page-anim">
@@ -381,7 +418,7 @@ export default function HomePage({ subjects, navigate, programmes, applications 
             <div className="eyebrow"><span className="dot" />Deadlines</div>
             <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Next 14 days</h3>
             <div className="stack" style={{ marginTop: '0.875rem' }}>
-              {DEADLINES.slice(0, 3).map(d => (
+              {deadlineItems.map(d => (
                 <div className="deadline" key={d.t}>
                   <div className="dl-date">
                     <span className="d">{d.d}</span>

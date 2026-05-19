@@ -37,6 +37,17 @@ All notable changes to the Prospectus platform.
 
 ## [Unreleased]
 
+### Fixed — Phase 13: Dashboard data integrity + live counts
+
+- **Sidebar pills now show live counts** — Applications pill reflects real pending/draft/submitted count; Scholarships pill shows unapplied count from static catalogue. Both pills hide when count is 0. PRO badge removed from Intelligence nav item (no pro tier exists).
+- **UniversitiesPage home province** — `userProvince` prop (full name e.g. "KwaZulu-Natal") now passed from Dashboard and mapped to province code; map bubble and distribution list correctly highlight the user's actual home province instead of hardcoding Limpopo.
+- **Assessment re-take button wired** — "Re-take" button in CognitivePage (Assessment route) now calls `router.push('/onboarding?retake=true')` via `onRetake` prop passed from Dashboard. Button only renders when the handler is provided.
+- **HomePage deadlines use real application data** — Deadlines widget now prioritises applications with `deadline` fields (sorted by date, urgency-badged), falling back to static DEADLINES for empty slots. Past deadlines show "Overdue" badge.
+- **DocumentsPage signed URL refresh** — "View" button detects expired signed URLs (>55 min since upload) and fetches a fresh one via new `refreshDocumentUrl` server action before opening in a new tab.
+
+### New server actions
+- `refreshDocumentUrl(docType)` — generates a fresh 1h signed URL for the authenticated user's document without a full page reload.
+
 ### Added — Landing redesign + marketing pages
 - `/about` marketing page — mission statement, core values (Radical clarity, Free always, Whole-person matching, Privacy by default), problems solved for SA students
 - `/pricing` page — "Free. Always." model, full feature list (1600+ programmes, AI career matching, bursary/NSFAS screening, application tracker), comparison table, FAQ
