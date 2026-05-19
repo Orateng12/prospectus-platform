@@ -57,10 +57,10 @@ export default async function Page() {
   if (!auth.ok) redirect('/login');
   const { user, supabase } = auth;
 
-  const [profileResult, progResult, psychResult, capResult, scoreResult, appsResult, careersResult, savedResult] = await Promise.all([
+  const [profileResult, progResult, psychResult, capResult, scoreResult, appsResult, careersResult, savedResult, scholarshipAppsResult] = await Promise.all([
     supabase
       .from('user_profiles')
-      .select('aps_score, subject_marks, first_name, last_name, province, household_income')
+      .select('aps_score, subject_marks, first_name, last_name, province, household_income, matric_year')
       .eq('id', user.id)
       .single(),
     supabase
@@ -88,7 +88,7 @@ export default async function Page() {
       .maybeSingle(),
     supabase
       .from('student_applications')
-      .select('id, status, applied_at, deadline, outcome, programmes ( name ), institutions ( name )')
+      .select('id, status, applied_at, deadline, outcome, notes, programmes ( name, institutions ( name ) )')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(20),
@@ -100,6 +100,10 @@ export default async function Page() {
     supabase
       .from('saved_programmes')
       .select('programme_id')
+      .eq('user_id', user.id),
+    supabase
+      .from('scholarship_applications')
+      .select('scholarship_name')
       .eq('user_id', user.id),
   ]);
 
@@ -181,22 +185,30 @@ export default async function Page() {
   let applications: DbApplication[] = [];
   if (appsResult.data && appsResult.data.length > 0) {
     applications = appsResult.data.map(a => {
-      const prog = (a.programmes as unknown) as { name: string } | null;
-      const inst = (a.institutions as unknown) as { name: string } | null;
+      const prog = (a.programmes as unknown) as { name: string; institutions: { name: string } | null } | null;
       return {
         id: a.id,
         programme_name: prog?.name ?? 'Unknown Programme',
-        institution_name: inst?.name ?? 'Unknown Institution',
+        institution_name: prog?.institutions?.name ?? 'Unknown Institution',
         status: a.status ?? 'draft',
         applied_at: a.applied_at ?? undefined,
         deadline: a.deadline ?? undefined,
         outcome: a.outcome ?? undefined,
+        notes: (a as Record<string, unknown>).notes as string | undefined,
       };
     });
   }
 
   // Saved programmes
   const savedProgrammeIds: string[] = (savedResult.data ?? []).map((r: { programme_id: string }) => r.programme_id);
+
+  // Applied scholarships
+  const appliedScholarshipNames: string[] = (scholarshipAppsResult.data ?? []).map(
+    (r: { scholarship_name: string }) => r.scholarship_name,
+  );
+
+  // Matric year
+  const matricYear: number | undefined = (profile as Record<string, unknown> | null)?.matric_year as number | undefined;
 
   // Careers
   let careers: Career[] = CAREERS;
@@ -215,12 +227,14 @@ export default async function Page() {
       userEmail={user.email ?? undefined}
       userProvince={profile?.province ?? undefined}
       householdIncome={profile?.household_income ?? undefined}
+      matricYear={matricYear}
       psychProfile={psychProfile}
       capabilityData={capabilityData}
       strategicScore={strategicScore}
       applications={applications}
       careers={careers}
       savedProgrammeIds={savedProgrammeIds}
+      appliedScholarshipNames={appliedScholarshipNames}
     />
   );
 }

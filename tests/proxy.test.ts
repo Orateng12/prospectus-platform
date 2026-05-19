@@ -57,6 +57,12 @@ function makeReq(path: string) {
   } as Parameters<typeof proxy>[0];
 }
 
+// Helper — the mock NextResponse returns plain objects; cast through unknown
+// so TypeScript doesn't reject the __type / location property accesses.
+function r(res: unknown): { __type: string; location?: string } {
+  return res as { __type: string; location?: string };
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('proxy', () => {
@@ -69,77 +75,77 @@ describe('proxy', () => {
 
   it('redirects unauthenticated users from /dashboard to /login', async () => {
     mockGetUser.mockResolvedValue(ANON);
-    const res = await proxy(makeReq('/dashboard'));
+    const res = r(await proxy(makeReq('/dashboard')));
     expect(res.__type).toBe('redirect');
-    expect((res as { location: string }).location).toBe('/login');
+    expect(res.location).toBe('/login');
   });
 
   it('redirects unauthenticated users from /onboarding to /login', async () => {
     mockGetUser.mockResolvedValue(ANON);
-    const res = await proxy(makeReq('/onboarding'));
+    const res = r(await proxy(makeReq('/onboarding')));
     expect(res.__type).toBe('redirect');
-    expect((res as { location: string }).location).toBe('/login');
+    expect(res.location).toBe('/login');
   });
 
   it('redirects unauthenticated users from /onboarding/step-2 to /login', async () => {
     mockGetUser.mockResolvedValue(ANON);
-    const res = await proxy(makeReq('/onboarding/step-2'));
+    const res = r(await proxy(makeReq('/onboarding/step-2')));
     expect(res.__type).toBe('redirect');
-    expect((res as { location: string }).location).toBe('/login');
+    expect(res.location).toBe('/login');
   });
 
   // ── Auth routes (authenticated) ──────────────────────────────────────────────
 
   it('redirects authenticated users from /login to /dashboard', async () => {
     mockGetUser.mockResolvedValue(AUTH);
-    const res = await proxy(makeReq('/login'));
+    const res = r(await proxy(makeReq('/login')));
     expect(res.__type).toBe('redirect');
-    expect((res as { location: string }).location).toBe('/dashboard');
+    expect(res.location).toBe('/dashboard');
   });
 
   it('redirects authenticated users from /signup to /dashboard', async () => {
     mockGetUser.mockResolvedValue(AUTH);
-    const res = await proxy(makeReq('/signup'));
+    const res = r(await proxy(makeReq('/signup')));
     expect(res.__type).toBe('redirect');
-    expect((res as { location: string }).location).toBe('/dashboard');
+    expect(res.location).toBe('/dashboard');
   });
 
   it('redirects authenticated users from /forgot-password to /dashboard', async () => {
     mockGetUser.mockResolvedValue(AUTH);
-    const res = await proxy(makeReq('/forgot-password'));
+    const res = r(await proxy(makeReq('/forgot-password')));
     expect(res.__type).toBe('redirect');
-    expect((res as { location: string }).location).toBe('/dashboard');
+    expect(res.location).toBe('/dashboard');
   });
 
   // ── Pass-through cases ────────────────────────────────────────────────────────
 
   it('passes through unauthenticated users on /login', async () => {
     mockGetUser.mockResolvedValue(ANON);
-    const res = await proxy(makeReq('/login'));
+    const res = r(await proxy(makeReq('/login')));
     expect(res.__type).toBe('next');
   });
 
   it('passes through unauthenticated users on /signup', async () => {
     mockGetUser.mockResolvedValue(ANON);
-    const res = await proxy(makeReq('/signup'));
+    const res = r(await proxy(makeReq('/signup')));
     expect(res.__type).toBe('next');
   });
 
   it('passes through authenticated users on /dashboard', async () => {
     mockGetUser.mockResolvedValue(AUTH);
-    const res = await proxy(makeReq('/dashboard'));
+    const res = r(await proxy(makeReq('/dashboard')));
     expect(res.__type).toBe('next');
   });
 
   it('passes through authenticated users on /reset-password (allowed while logged in)', async () => {
     mockGetUser.mockResolvedValue(AUTH);
-    const res = await proxy(makeReq('/reset-password'));
+    const res = r(await proxy(makeReq('/reset-password')));
     expect(res.__type).toBe('next');
   });
 
   it('passes through requests to the public landing page', async () => {
     mockGetUser.mockResolvedValue(ANON);
-    const res = await proxy(makeReq('/'));
+    const res = r(await proxy(makeReq('/')));
     expect(res.__type).toBe('next');
   });
 
@@ -147,15 +153,15 @@ describe('proxy', () => {
 
   it('treats a Supabase auth error as unauthenticated and protects /dashboard', async () => {
     mockGetUser.mockResolvedValue(ERROR);
-    const res = await proxy(makeReq('/dashboard'));
+    const res = r(await proxy(makeReq('/dashboard')));
     expect(res.__type).toBe('redirect');
-    expect((res as { location: string }).location).toBe('/login');
+    expect(res.location).toBe('/login');
   });
 
   it('treats a thrown getUser exception as unauthenticated and protects /dashboard', async () => {
     mockGetUser.mockRejectedValue(new Error('network failure'));
-    const res = await proxy(makeReq('/dashboard'));
+    const res = r(await proxy(makeReq('/dashboard')));
     expect(res.__type).toBe('redirect');
-    expect((res as { location: string }).location).toBe('/login');
+    expect(res.location).toBe('/login');
   });
 });

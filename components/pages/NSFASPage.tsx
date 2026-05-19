@@ -131,9 +131,15 @@ export default function NSFASPage({ householdIncome = 220000 }: NSFASPageProps) 
 
           <hr className="divider" />
 
-          <button className="btn btn-primary btn-sm" style={{ width: '100%' }}>
+          <a
+            href="https://my.nsfas.org.za"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-primary btn-sm"
+            style={{ width: '100%', textAlign: 'center', display: 'block' }}
+          >
             Open NSFAS application →
-          </button>
+          </a>
         </div>
       </div>
 

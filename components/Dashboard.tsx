@@ -47,12 +47,14 @@ interface DashboardProps {
   userEmail?: string;
   userProvince?: string;
   householdIncome?: number;
+  matricYear?: number;
   psychProfile?: PsychProfileData | null;
   capabilityData?: CapabilityData | null;
   strategicScore?: StrategicScoreData | null;
   applications?: DbApplication[];
   careers?: Career[];
   savedProgrammeIds?: string[];
+  appliedScholarshipNames?: string[];
 }
 
 export default function Dashboard({
@@ -65,12 +67,14 @@ export default function Dashboard({
   userEmail = '',
   userProvince,
   householdIncome,
+  matricYear,
   psychProfile,
   capabilityData,
   strategicScore,
   applications = [],
   careers,
   savedProgrammeIds = [],
+  appliedScholarshipNames = [],
 }: DashboardProps) {
   const [route, setRoute] = useState<Route>('home');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -192,7 +196,7 @@ export default function Dashboard({
           />
         );
       case 'funding':
-        return <FundingPage householdIncome={householdIncome} userAps={displayAps} />;
+        return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} />;
       case 'financial':
         return <FinancialPage subjects={displaySubjects} householdIncome={householdIncome} navigate={navigate} />;
       case 'careers':
@@ -250,6 +254,7 @@ export default function Dashboard({
             compareItems={compareItems}
             onToggleCompare={toggleCompare}
             onOpenDetail={(s) => navigateToDetail('scholarship-detail', s)}
+            appliedScholarshipNames={emptyMode ? [] : appliedScholarshipNames}
           />
         );
       case 'nsfas':
@@ -259,6 +264,7 @@ export default function Dashboard({
           <ApplicationsPage
             applications={emptyMode ? [] : (applications.length > 0 ? applications : undefined)}
             onOpenDetail={(a) => navigateToDetail('application-detail', a)}
+            programmes={initialProgrammes}
           />
         );
       case 'documents':
@@ -273,6 +279,7 @@ export default function Dashboard({
             userLastName={userLastName}
             userEmail={userEmail}
             userProvince={userProvince}
+            matricYear={matricYear}
             subjects={subjects}
             householdIncome={householdIncome}
             capabilityData={displayCap}

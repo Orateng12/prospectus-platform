@@ -160,6 +160,7 @@ export interface DbApplication {
   applied_at?: string;
   deadline?: string;
   outcome?: string;
+  notes?: string;
 }
 
 export interface DbCareer {

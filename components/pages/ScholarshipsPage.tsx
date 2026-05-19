@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { SCHOLARSHIPS } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
 import type { CompareItem, Scholarship } from '@/lib/types';
+import { toggleScholarshipApplication } from '@/app/actions/toggleScholarshipApplication';
 
 interface ScholarshipsPageProps {
   userAps?: number;
@@ -11,6 +13,7 @@ interface ScholarshipsPageProps {
   compareItems?: CompareItem[];
   onToggleCompare?: (item: CompareItem) => void;
   onOpenDetail?: (scholarship: Scholarship) => void;
+  appliedScholarshipNames?: string[];
 }
 
 function computeMatch(s: Scholarship, userAps?: number, income?: number): number {
@@ -30,8 +33,11 @@ function computeMatch(s: Scholarship, userAps?: number, income?: number): number
 
 type Tab = 'all' | 'closing' | 'high' | 'mine';
 
-export default function ScholarshipsPage({ userAps, householdIncome, compareItems = [], onToggleCompare, onOpenDetail }: ScholarshipsPageProps) {
+export default function ScholarshipsPage({ userAps, householdIncome, compareItems = [], onToggleCompare, onOpenDetail, appliedScholarshipNames = [] }: ScholarshipsPageProps) {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>('all');
+  const [applying, setApplying] = useState<string | null>(null);
+  const [localApplied, setLocalApplied] = useState<Set<string>>(() => new Set(appliedScholarshipNames));
 
   const withLiveMatch = SCHOLARSHIPS.map(s => ({ ...s, match: computeMatch(s, userAps, householdIncome) }));
 
@@ -42,6 +48,21 @@ export default function ScholarshipsPage({ userAps, householdIncome, compareItem
   })();
 
   const highMatch = withLiveMatch.filter(s => s.match >= 80).length;
+  const appliedList = withLiveMatch.filter(s => localApplied.has(s.name));
+
+  async function handleApply(scholarshipName: string) {
+    setApplying(scholarshipName);
+    const result = await toggleScholarshipApplication(scholarshipName);
+    setApplying(null);
+    if ('error' in result) return;
+    setLocalApplied(prev => {
+      const next = new Set(prev);
+      if (result.applied) next.add(scholarshipName);
+      else next.delete(scholarshipName);
+      return next;
+    });
+    router.refresh();
+  }
 
   return (
     <div className="page-anim">
@@ -57,7 +78,7 @@ export default function ScholarshipsPage({ userAps, householdIncome, compareItem
           </div>
           <div className="row">
             <span className="badge success">{highMatch} ≥ 80% match</span>
-            <span className="badge warning">3 new</span>
+            {localApplied.size > 0 && <span className="badge brand">{localApplied.size} applied</span>}
           </div>
         </div>
       </div>
@@ -70,11 +91,41 @@ export default function ScholarshipsPage({ userAps, householdIncome, compareItem
       </div>
 
       {tab === 'mine' ? (
-        <div className="card" style={{ textAlign: 'center', padding: '2.5rem' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>🏆</div>
-          <div className="subheading" style={{ marginBottom: '0.5rem' }}>No applications yet</div>
-          <p className="caption">Click Apply on any scholarship to start tracking your applications here.</p>
-        </div>
+        appliedList.length === 0 ? (
+          <div className="card" style={{ textAlign: 'center', padding: '2.5rem' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>🏆</div>
+            <div className="subheading" style={{ marginBottom: '0.5rem' }}>No applications yet</div>
+            <p className="caption">Click &ldquo;Apply&rdquo; on any scholarship to start tracking your applications here.</p>
+          </div>
+        ) : (
+          <div className="card">
+            <div className="stack">
+              {appliedList.map(s => (
+                <div key={s.name} className="scholar-row">
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>{s.name}</div>
+                    <div className="caption" style={{ marginTop: 1 }}>{s.eligibility} · closes {s.deadline}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 800, fontSize: '1.125rem', fontVariantNumeric: 'tabular-nums' }}>{fmtR(s.amount)}</div>
+                    <div className="caption">/ year</div>
+                  </div>
+                  <div className="row" style={{ gap: '0.5rem' }}>
+                    <div className={`match-circle${s.match < 80 ? ' med' : ''}`}>{s.match}</div>
+                    <span className="badge success" style={{ height: '1.75rem' }}>Applied</span>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => handleApply(s.name)}
+                      disabled={applying === s.name}
+                    >
+                      {applying === s.name ? '…' : 'Withdraw'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
       ) : (
         <div className="card">
           <div className="stack">
@@ -98,11 +149,20 @@ export default function ScholarshipsPage({ userAps, householdIncome, compareItem
                       {compareItems.some(ci => ci.id === s.name) ? '✓' : 'Compare'}
                     </button>
                   )}
+                  {onOpenDetail && (
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={() => onOpenDetail(s)}
+                    >
+                      View
+                    </button>
+                  )}
                   <button
-                    className={`btn ${s.match >= 80 ? 'btn-primary' : 'btn-outline'} btn-sm`}
-                    onClick={() => onOpenDetail?.(s)}
+                    className={`btn btn-sm ${localApplied.has(s.name) ? 'btn-ghost' : s.match >= 80 ? 'btn-primary' : 'btn-outline'}`}
+                    onClick={() => handleApply(s.name)}
+                    disabled={applying === s.name}
                   >
-                    {onOpenDetail ? 'View' : 'Apply'}
+                    {applying === s.name ? '…' : localApplied.has(s.name) ? '✓ Applied' : 'Apply'}
                   </button>
                 </div>
               </div>

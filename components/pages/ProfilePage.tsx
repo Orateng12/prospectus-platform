@@ -19,6 +19,7 @@ interface ProfilePageProps {
   userLastName?: string;
   userEmail?: string;
   userProvince?: string;
+  matricYear?: number;
   subjects?: Subject[];
   householdIncome?: number;
   capabilityData?: CapabilityData | null;
@@ -34,6 +35,7 @@ export default function ProfilePage({
   userLastName = '',
   userEmail = 'lerato.mokoena@gmail.com',
   userProvince = 'Limpopo',
+  matricYear,
   subjects = [],
   householdIncome = 220000,
   capabilityData,
@@ -49,6 +51,7 @@ export default function ProfilePage({
   const [firstName, setFirstName] = useState(userFirstName);
   const [lastName, setLastName] = useState(userLastName);
   const [province, setProvince] = useState(userProvince ?? '');
+  const [matricYearStr, setMatricYearStr] = useState(String(matricYear ?? ''));
   const [personalSaving, setPersonalSaving] = useState(false);
   const [personalError, setPersonalError] = useState<string | null>(null);
 
@@ -85,7 +88,8 @@ export default function ProfilePage({
   async function savePersonal() {
     setPersonalSaving(true);
     setPersonalError(null);
-    const result = await updateProfile({ firstName, lastName, province });
+    const parsedYear = matricYearStr ? parseInt(matricYearStr, 10) : undefined;
+    const result = await updateProfile({ firstName, lastName, province, matricYear: parsedYear });
     setPersonalSaving(false);
     if ('error' in result) {
       setPersonalError(result.error);
@@ -271,6 +275,22 @@ export default function ProfilePage({
             <div>
               <div className="caption" style={{ fontSize: '0.6875rem' }}>Email</div>
               <div style={{ fontWeight: 600, marginTop: '0.125rem' }}>{userEmail || '—'}</div>
+            </div>
+            <div>
+              <div className="caption" style={{ fontSize: '0.6875rem' }}>Matric year</div>
+              {editSection === 'personal' ? (
+                <input
+                  className="input"
+                  type="number"
+                  min={2000}
+                  max={2030}
+                  value={matricYearStr}
+                  onChange={e => setMatricYearStr(e.target.value)}
+                  style={{ width: '100%', marginTop: '0.25rem' }}
+                />
+              ) : (
+                <div style={{ fontWeight: 600, marginTop: '0.125rem' }}>{matricYearStr || '—'}</div>
+              )}
             </div>
             <div>
               <div className="caption" style={{ fontSize: '0.6875rem' }}>Province</div>

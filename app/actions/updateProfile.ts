@@ -9,6 +9,7 @@ export interface UpdateProfileInput {
   lastName?: string;
   province?: string;
   householdIncome?: number;
+  matricYear?: number;
 }
 
 export async function updateProfile(
@@ -19,10 +20,11 @@ export async function updateProfile(
   const { user, supabase } = auth;
 
   const update: Record<string, unknown> = {};
-  if (input.firstName !== undefined) update.first_name = input.firstName;
-  if (input.lastName !== undefined) update.last_name = input.lastName;
-  if (input.province !== undefined) update.province = input.province;
+  if (input.firstName !== undefined)    update.first_name = input.firstName;
+  if (input.lastName !== undefined)     update.last_name = input.lastName;
+  if (input.province !== undefined)     update.province = input.province;
   if (input.householdIncome !== undefined) update.household_income = input.householdIncome;
+  if (input.matricYear !== undefined)   update.matric_year = input.matricYear;
 
   const { error } = await supabase
     .from('user_profiles')

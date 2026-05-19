@@ -6,6 +6,64 @@ All notable changes to the Prospectus platform.
 
 ## [Unreleased]
 
+### Added — Phase 11: Application Lifecycle + Real Values Everywhere
+
+**New server actions:**
+- `app/actions/updateApplication.ts` — updates `student_applications` for `{status, notes}`; automatically sets `applied_at` when status transitions to `submitted`; user-scoped with double `.eq('id').eq('user_id')` guard
+- `app/actions/deleteApplication.ts` — hard-deletes a `student_applications` row; user-scoped
+- `app/actions/toggleScholarshipApplication.ts` — checks for existing row via `maybeSingle()`; inserts → `{ applied: true }` if absent; deletes → `{ applied: false }` if present; writes to new `scholarship_applications` table
+
+**Supabase migration:**
+- `scholarship_applications` table — `id, user_id, scholarship_name, applied_at`; RLS policy restricts to `auth.uid() = user_id`
+
+**ApplicationDetailPage rewritten (`components/pages/ApplicationDetailPage.tsx`):**
+- Status-update buttons: "Mark submitted" (draft), "Mark accepted"/"Mark rejected" (submitted); each calls `updateApplication` then `router.refresh()`
+- Editable notes textarea — saves via `updateApplication`
+- "Delete application" with inline confirmation; calls `deleteApplication`, refreshes, navigates to applications list
+
+**ApplicationsPage extended (`components/pages/ApplicationsPage.tsx`):**
+- `AddApplicationModal` component — search over real `programmes` prop; optional deadline field; calls `saveApplication` + `router.refresh()` on submit
+- "+ Add application" button now opens the modal
+
+**ScholarshipsPage wired (`components/pages/ScholarshipsPage.tsx`):**
+- Accepts `appliedScholarshipNames: string[]` prop (from DB via 9th parallel query in dashboard)
+- `localApplied: Set<string>` state for optimistic UI — updated immediately before server round-trip
+- "Apply" button shows "✓ Applied" for applied scholarships; calls `toggleScholarshipApplication`
+- "My applications" tab renders actual applied list with "Withdraw" affordance
+- Applied badge count is real (`localApplied.size`)
+
+**DeadlinesPage rewritten (`components/pages/DeadlinesPage.tsx`):**
+- Static deadlines replaced with `BURSARY_DEADLINES` array (Allan Gray, Investec, Standard Bank) using month/day anchors
+- `computeDynamic(month, day, today)` — computes real days remaining with year rollover; tags as Urgent (≤7d) / Soon (≤21d)
+- "Add deadline" opens inline form → appends to `customDeadlines` state
+- AI reminder text computed dynamically from urgency groups (e.g. "1 deadline closing in 7 days")
+
+**FundingPage: real programme data (`components/pages/FundingPage.tsx`):**
+- Now accepts `programmes?: Programme[]` prop; derives `topProg` as highest-fit programme
+- `year1Cost = topProg ? Math.round(topProg.fees * 1.8) : 165_420` — reflects real programme fees
+- "Switch programme" → `navigate('programmes')`; "View applications" → `navigate('applications')`
+
+**NSFASPage (`components/pages/NSFASPage.tsx`):**
+- "Open NSFAS application" button changed to `<a href="https://my.nsfas.org.za" target="_blank">` — actually opens the portal
+
+**Data threading — real values closed:**
+- Applications SELECT: `programmes ( name, institutions ( name ) )` nested join — institution name no longer ever "Unknown Institution"
+- `saveApplication` now fetches `institution_id` from `programmes` before inserting
+- `matric_year` added to profile SELECT; passed to Dashboard → ProfilePage; editable in ProfilePage
+- `appliedScholarshipNames` 9th parallel query added to `app/dashboard/page.tsx`; threaded to ScholarshipsPage
+- `programmes` + `navigate` now passed to FundingPage
+- `programmes` now passed to ApplicationsPage
+
+**New tests — Phase 11 (`tests/actions/`):**
+- `updateApplication.test.ts` (6 cases) — auth guard; success; DB error; `applied_at` set on submit status; `applied_at` absent for non-submit status; `notes` field included
+- `deleteApplication.test.ts` (4 cases) — auth guard; success; DB error; double-eq filter verified
+- `toggleScholarshipApplication.test.ts` (4 cases) — auth guard; insert + `{ applied: true }`; delete + `{ applied: false }`; insert error propagation
+
+**TypeScript fix:**
+- `tests/proxy.test.ts` — eliminated pre-existing `__type` / `location` type errors by casting mock results through `unknown` via local helper `r()`
+
+---
+
 ### Added — Phase 10: Profile Ownership — students can now edit and persist their own data
 
 **New server action:**

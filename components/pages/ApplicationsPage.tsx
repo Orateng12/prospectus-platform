@@ -1,15 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { APPS } from '@/lib/data';
-import type { Application, DbApplication } from '@/lib/types';
+import type { Application, DbApplication, Programme } from '@/lib/types';
+import { saveApplication } from '@/app/actions/saveApplication';
 
 interface ApplicationsPageProps {
-  // When provided: real data from Supabase.
-  // undefined → no real data yet, fall back to mock APPS.
-  // [] (empty array) → explicitly empty (e.g. emptyMode).
   applications?: DbApplication[];
   onOpenDetail?: (app: Application) => void;
+  programmes?: Programme[];
 }
 
 type Tab = 'all' | 'submitted' | 'pending' | 'accepted';
@@ -73,17 +73,135 @@ function dbToApp(a: DbApplication): Application {
   };
 }
 
+// ── Add-application modal ────────────────────────────────────────────────────
+
+function AddApplicationModal({
+  programmes,
+  onClose,
+  onAdded,
+}: {
+  programmes: Programme[];
+  onClose: () => void;
+  onAdded: () => void;
+}) {
+  const router = useRouter();
+  const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState<Programme | null>(null);
+  const [deadline, setDeadline] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const filtered = query.trim()
+    ? programmes.filter(p =>
+        p.name.toLowerCase().includes(query.toLowerCase()) ||
+        p.uni.toLowerCase().includes(query.toLowerCase()),
+      ).slice(0, 8)
+    : programmes.slice(0, 8);
+
+  async function handleAdd() {
+    if (!selected) return;
+    setSaving(true);
+    setError(null);
+    const result = await saveApplication(selected.id, selected.name, selected.uni, deadline || undefined);
+    setSaving(false);
+    if ('error' in result) {
+      setError(result.error);
+    } else {
+      router.refresh();
+      onAdded();
+      onClose();
+    }
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 1000,
+      background: 'hsl(var(--bg) / 0.85)',
+      backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '1rem',
+    }} onClick={onClose}>
+      <div
+        className="card"
+        style={{ width: '100%', maxWidth: '28rem', maxHeight: '80vh', overflowY: 'auto' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="row-between" style={{ marginBottom: '1rem' }}>
+          <h3 className="subheading">Add application</h3>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+
+        <div style={{ marginBottom: '0.75rem' }}>
+          <div className="caption" style={{ fontSize: '0.6875rem', marginBottom: '0.25rem' }}>Search programme or institution</div>
+          <input
+            className="input"
+            style={{ width: '100%' }}
+            placeholder="e.g. Computer Science, UCT…"
+            value={query}
+            onChange={e => { setQuery(e.target.value); setSelected(null); }}
+            autoFocus
+          />
+        </div>
+
+        <div className="stack" style={{ marginBottom: '0.875rem', maxHeight: '14rem', overflowY: 'auto' }}>
+          {filtered.length === 0 && (
+            <div className="caption" style={{ padding: '0.5rem', textAlign: 'center' }}>No programmes found.</div>
+          )}
+          {filtered.map(p => (
+            <div
+              key={p.id}
+              onClick={() => setSelected(p)}
+              style={{
+                padding: '0.5rem 0.625rem',
+                borderRadius: 6,
+                cursor: 'pointer',
+                background: selected?.id === p.id ? 'hsl(var(--primary) / 0.1)' : 'transparent',
+                border: selected?.id === p.id ? '1px solid hsl(var(--primary) / 0.4)' : '1px solid transparent',
+              }}
+            >
+              <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.name}</div>
+              <div className="caption" style={{ fontSize: '0.75rem' }}>{p.uni} · APS {p.aps}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginBottom: '1rem' }}>
+          <div className="caption" style={{ fontSize: '0.6875rem', marginBottom: '0.25rem' }}>Application deadline (optional)</div>
+          <input
+            className="input"
+            type="date"
+            style={{ width: '100%' }}
+            value={deadline}
+            onChange={e => setDeadline(e.target.value)}
+          />
+        </div>
+
+        {error && <p style={{ color: 'hsl(var(--destructive))', fontSize: '0.8125rem', marginBottom: '0.625rem' }}>{error}</p>}
+
+        <div className="row" style={{ justifyContent: 'flex-end', gap: '0.5rem' }}>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
+          <button
+            className="btn btn-primary btn-sm"
+            disabled={!selected || saving}
+            onClick={handleAdd}
+          >
+            {saving ? 'Adding…' : 'Add application'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
-export default function ApplicationsPage({ applications: dbApps, onOpenDetail }: ApplicationsPageProps) {
+
+export default function ApplicationsPage({ applications: dbApps, onOpenDetail, programmes = [] }: ApplicationsPageProps) {
   const [tab, setTab] = useState<Tab>('all');
   const [selected, setSelected] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
-  // undefined = no real apps yet → show rich mock data for demo/new users
-  // [] = explicitly empty (emptyMode) → show empty state
-  // [...] = real data → convert and show
   const apps: Application[] = dbApps === undefined ? APPS : dbApps.map(dbToApp);
 
-  // Compute status counts from actual data
   const counts = {
     accepted: apps.filter(a => a.status === 'success').length,
     pending:  apps.filter(a => a.status === 'warning').length,
@@ -92,8 +210,8 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail }:
   };
 
   const displayed = (() => {
-    if (tab === 'accepted') return apps.filter(a => a.status === 'success');
-    if (tab === 'pending')  return apps.filter(a => a.status === 'warning' || a.status === 'info');
+    if (tab === 'accepted')  return apps.filter(a => a.status === 'success');
+    if (tab === 'pending')   return apps.filter(a => a.status === 'warning' || a.status === 'info');
     if (tab === 'submitted') return apps.filter(a => !!a.submitted);
     return apps;
   })();
@@ -106,6 +224,14 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail }:
 
   return (
     <div className="page-anim">
+      {showAddModal && programmes.length > 0 && (
+        <AddApplicationModal
+          programmes={programmes}
+          onClose={() => setShowAddModal(false)}
+          onAdded={() => setShowAddModal(false)}
+        />
+      )}
+
       <div className="page-head">
         <div className="breadcrumb">Execute · Applications</div>
         <div className="row-between">
@@ -121,7 +247,12 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail }:
             {counts.pending  > 0 && <span className="badge warning">{counts.pending} pending</span>}
             {counts.review   > 0 && <span className="badge info">{counts.review} review</span>}
             {counts.rejected > 0 && <span className="badge destructive">{counts.rejected} rejected</span>}
-            <button className="btn btn-primary">+ Add application</button>
+            <button
+              className="btn btn-primary"
+              onClick={() => setShowAddModal(true)}
+            >
+              + Add application
+            </button>
           </div>
         </div>
       </div>
@@ -138,8 +269,9 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail }:
           <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>📋</div>
           <div className="subheading" style={{ marginBottom: '0.5rem' }}>No applications yet</div>
           <p className="body-text" style={{ maxWidth: '28rem', margin: '0 auto 1rem' }}>
-            Add applications from the Programme Explorer — open any programme and click &ldquo;Add to applications&rdquo;.
+            Add applications from the Programme Explorer or click &ldquo;+ Add application&rdquo; above.
           </p>
+          <button className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>+ Add application</button>
         </div>
       ) : (
         <div className="app-grid grid-2 stack-3" style={{ gridTemplateColumns: selectedApp ? '1fr 1fr' : '1fr', alignItems: 'start' }}>

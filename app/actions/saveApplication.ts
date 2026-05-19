@@ -22,11 +22,19 @@ export async function saveApplication(
 
   if (existing) return { id: existing.id };
 
+  // Fetch institution_id so the institution join returns the correct name
+  const { data: prog } = await supabase
+    .from('programmes')
+    .select('institution_id')
+    .eq('id', programmeId)
+    .maybeSingle();
+
   const { data, error } = await supabase
     .from('student_applications')
     .insert({
       user_id: user.id,
       programme_id: programmeId,
+      institution_id: prog?.institution_id ?? null,
       status: 'draft',
       deadline: deadline ?? null,
     })

@@ -1,9 +1,12 @@
 import { SCHOLARSHIPS } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
+import type { Programme, Route } from '@/lib/types';
 
 interface FundingPageProps {
   householdIncome?: number;
   userAps?: number;
+  programmes?: Programme[];
+  navigate?: (r: Route) => void;
 }
 
 function computeNsfas(income: number | undefined): number {
@@ -21,26 +24,33 @@ function computeBursary(aps: number | undefined): number {
   return 0;
 }
 
-const YEAR1_COST = 165_420;
-const INFLATION  = 0.048;
+const DEFAULT_YEAR1_COST = 165_420;
+const INFLATION = 0.048;
 
-export default function FundingPage({ householdIncome, userAps }: FundingPageProps) {
+export default function FundingPage({ householdIncome, userAps, programmes, navigate }: FundingPageProps) {
   const aboveNsfasThreshold = householdIncome !== undefined && householdIncome > 350_000;
+
+  // Derive top programme — highest fit score from the real list, or fallback label
+  const topProg = programmes && programmes.length > 0
+    ? programmes.reduce((best, p) => p.fit > best.fit ? p : best)
+    : null;
+  const year1Cost = topProg ? Math.round(topProg.fees * 1.8) : DEFAULT_YEAR1_COST;
+  const progLabel = topProg ? `${topProg.name} · ${topProg.uni}` : 'your shortlisted programme';
 
   const nsfas   = computeNsfas(householdIncome);
   const bursary = computeBursary(userAps);
   const scholar = 18_000;
-  const total   = YEAR1_COST;
+  const total   = year1Cost;
   const gap     = Math.max(0, total - nsfas - bursary - scholar);
   const pct     = (n: number) => `${((n / total) * 100).toFixed(1)}%`;
 
   const projection = [1, 2, 3].map(y => {
-    const cost = Math.round(YEAR1_COST * Math.pow(1 + INFLATION, y - 1));
+    const cost = Math.round(total * Math.pow(1 + INFLATION, y - 1));
     const cov  = Math.min(cost, nsfas + bursary + scholar);
     return { y: `Year ${y}`, cost, cov };
   });
 
-  const topScholar    = [...SCHOLARSHIPS].sort((a, b) => b.amount - a.amount)[0];
+  const topScholar     = [...SCHOLARSHIPS].sort((a, b) => b.amount - a.amount)[0];
   const serviceScholar = SCHOLARSHIPS.find(s => s.eligibility.toLowerCase().includes('service'));
 
   const bursaryLabel = bursary >= 95_000 ? 'Investec Bursary' : bursary >= 42_000 ? 'Merit Bursary' : 'Achievement Bursary';
@@ -57,7 +67,7 @@ export default function FundingPage({ householdIncome, userAps }: FundingPagePro
             <div className="eyebrow"><span className="dot" />Personalised plan</div>
             <h2 className="heading" style={{ marginTop: '0.375rem' }}>Funding strategy</h2>
             <p className="body-text" style={{ marginTop: '0.5rem', maxWidth: '48rem' }}>
-              Based on your top-shortlisted programme (BSc Computer Science · UCT · {fmtR(total)} year 1),
+              Based on {progLabel} ({fmtR(total)} estimated year 1 total cost),
               here is the optimal stack of NSFAS, bursaries and scholarships matched to your profile.
             </p>
           </div>
@@ -65,8 +75,8 @@ export default function FundingPage({ householdIncome, userAps }: FundingPagePro
             {aboveNsfasThreshold && (
               <span className="badge destructive">NSFAS: Above R 350k threshold</span>
             )}
-            <button className="btn btn-outline">Switch programme</button>
-            <button className="btn btn-primary">Generate applications</button>
+            <button className="btn btn-outline" onClick={() => navigate?.('programmes')}>Switch programme</button>
+            <button className="btn btn-primary" onClick={() => navigate?.('applications')}>View applications</button>
           </div>
         </div>
       </div>
@@ -160,7 +170,7 @@ export default function FundingPage({ householdIncome, userAps }: FundingPagePro
           </div>
           <div className="row">
             <span className="badge success">{SCHOLARSHIPS.filter(s => s.match >= 80).length} ≥ 80%</span>
-            <button className="btn btn-ghost btn-sm">Filters</button>
+            <button className="btn btn-outline btn-sm" onClick={() => navigate?.('scholarships')}>View all →</button>
           </div>
         </div>
         <div className="stack">
@@ -176,7 +186,12 @@ export default function FundingPage({ householdIncome, userAps }: FundingPagePro
               </div>
               <div className="row" style={{ gap: '0.625rem' }}>
                 <div className={`match-circle${s.match < 80 ? ' med' : ''}`}>{s.match}</div>
-                <button className={`btn ${s.match >= 80 ? 'btn-primary' : 'btn-outline'} btn-sm`}>Apply</button>
+                <button
+                  className={`btn ${s.match >= 80 ? 'btn-primary' : 'btn-outline'} btn-sm`}
+                  onClick={() => navigate?.('scholarships')}
+                >
+                  Apply
+                </button>
               </div>
             </div>
           ))}
