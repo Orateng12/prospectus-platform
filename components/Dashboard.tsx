@@ -43,6 +43,7 @@ interface DashboardProps {
   userAps?: number;
   userName?: string;
   userFirstName?: string;
+  userLastName?: string;
   userEmail?: string;
   userProvince?: string;
   householdIncome?: number;
@@ -60,6 +61,7 @@ export default function Dashboard({
   userAps: _userAps,
   userName = 'Student',
   userFirstName = 'there',
+  userLastName = '',
   userEmail = '',
   userProvince,
   householdIncome,
@@ -268,6 +270,7 @@ export default function Dashboard({
           <ProfilePage
             userName={userName}
             userFirstName={userFirstName}
+            userLastName={userLastName}
             userEmail={userEmail}
             userProvince={userProvince}
             subjects={subjects}
@@ -276,6 +279,7 @@ export default function Dashboard({
             psychProfile={displayPsych}
             emptyMode={emptyMode}
             onToggleEmptyMode={() => setEmptyMode(p => !p)}
+            onSubjectsSaved={handleSubjectsSaved}
           />
         );
       case 'application-detail':

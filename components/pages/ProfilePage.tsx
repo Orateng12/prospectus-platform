@@ -1,13 +1,22 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Subject, PsychProfileData, CapabilityData } from '@/lib/types';
 import { CAPS } from '@/lib/data';
 import { calcAPS, fmtR } from '@/lib/utils';
+import { updateProfile } from '@/app/actions/updateProfile';
+import { saveSubjectMarks } from '@/app/actions/saveSubjects';
+
+const SA_PROVINCES = [
+  'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
+  'Limpopo', 'Mpumalanga', 'North West', 'Northern Cape', 'Western Cape',
+];
 
 interface ProfilePageProps {
   userName?: string;
   userFirstName?: string;
+  userLastName?: string;
   userEmail?: string;
   userProvince?: string;
   subjects?: Subject[];
@@ -16,11 +25,13 @@ interface ProfilePageProps {
   psychProfile?: PsychProfileData | null;
   emptyMode?: boolean;
   onToggleEmptyMode?: () => void;
+  onSubjectsSaved?: (subjects: Subject[]) => void;
 }
 
 export default function ProfilePage({
   userName = 'Lerato Mokoena',
   userFirstName = 'Lerato',
+  userLastName = '',
   userEmail = 'lerato.mokoena@gmail.com',
   userProvince = 'Limpopo',
   subjects = [],
@@ -29,9 +40,33 @@ export default function ProfilePage({
   psychProfile,
   emptyMode = false,
   onToggleEmptyMode,
+  onSubjectsSaved,
 }: ProfilePageProps) {
+  const router = useRouter();
   const [editSection, setEditSection] = useState<string | null>(null);
-  const initial = userName.charAt(0).toUpperCase();
+
+  // ── Personal form state ────────────────────────────────────────────────────────
+  const [firstName, setFirstName] = useState(userFirstName);
+  const [lastName, setLastName] = useState(userLastName);
+  const [province, setProvince] = useState(userProvince ?? '');
+  const [personalSaving, setPersonalSaving] = useState(false);
+  const [personalError, setPersonalError] = useState<string | null>(null);
+
+  // ── Household form state ───────────────────────────────────────────────────────
+  const [incomeStr, setIncomeStr] = useState(String(householdIncome ?? ''));
+  const [householdSaving, setHouseholdSaving] = useState(false);
+  const [householdError, setHouseholdError] = useState<string | null>(null);
+
+  // ── Subject edit state ─────────────────────────────────────────────────────────
+  const [editSubjects, setEditSubjects] = useState<Subject[]>(() => subjects.map(s => ({ ...s })));
+  const [subjectSaving, setSubjectSaving] = useState(false);
+  const [subjectError, setSubjectError] = useState<string | null>(null);
+
+  const displaySubjects = subjects.length > 0 ? subjects : [
+    { id: 'eng', name: 'English HL', mark: 62, designated: true },
+    { id: 'math', name: 'Mathematics', mark: 78, designated: true },
+    { id: 'pscience', name: 'Physical Sciences', mark: 71, designated: true },
+  ];
   const aps = subjects.length > 0 ? calcAPS(subjects) : 42;
 
   const caps = capabilityData ? [
@@ -43,19 +78,108 @@ export default function ProfilePage({
     { l: 'Drive', v: capabilityData.entrepreneurial_drive },
   ] : CAPS.slice(0, 6);
 
-  function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+  const displayName = [firstName, lastName].filter(Boolean).join(' ') || userName;
+  const initial = displayName.charAt(0).toUpperCase();
+  const displayIncome = Number(incomeStr) || householdIncome || 0;
+
+  async function savePersonal() {
+    setPersonalSaving(true);
+    setPersonalError(null);
+    const result = await updateProfile({ firstName, lastName, province });
+    setPersonalSaving(false);
+    if ('error' in result) {
+      setPersonalError(result.error);
+    } else {
+      setEditSection(null);
+      router.refresh();
+    }
+  }
+
+  async function saveHousehold() {
+    const income = parseInt(incomeStr, 10);
+    if (isNaN(income) || income < 0) {
+      setHouseholdError('Please enter a valid income amount.');
+      return;
+    }
+    setHouseholdSaving(true);
+    setHouseholdError(null);
+    const result = await updateProfile({ householdIncome: income });
+    setHouseholdSaving(false);
+    if ('error' in result) {
+      setHouseholdError(result.error);
+    } else {
+      setEditSection(null);
+      router.refresh();
+    }
+  }
+
+  async function saveSubjects() {
+    setSubjectSaving(true);
+    setSubjectError(null);
+    const result = await saveSubjectMarks(editSubjects);
+    setSubjectSaving(false);
+    if ('error' in result) {
+      setSubjectError(result.error);
+    } else {
+      setEditSection(null);
+      onSubjectsSaved?.(editSubjects);
+    }
+  }
+
+  function enterEdit(id: string) {
+    if (id === 'academic') {
+      setEditSubjects((subjects.length > 0 ? subjects : displaySubjects).map(s => ({ ...s })));
+    }
+    setEditSection(prev => prev === id ? null : id);
+  }
+
+  function Section({
+    id,
+    title,
+    children,
+    onSave,
+    saving,
+    saveError,
+  }: {
+    id: string;
+    title: string;
+    children: React.ReactNode;
+    onSave?: () => void;
+    saving?: boolean;
+    saveError?: string | null;
+  }) {
+    const isEditing = editSection === id;
     return (
       <div className="card">
         <div className="row-between" style={{ marginBottom: '0.875rem' }}>
           <h3 className="subheading">{title}</h3>
           <button
             className="btn btn-ghost btn-sm"
-            onClick={() => setEditSection(prev => prev === id ? null : id)}
+            onClick={() => isEditing ? setEditSection(null) : enterEdit(id)}
+            disabled={saving}
           >
-            {editSection === id ? 'Done' : 'Edit'}
+            {isEditing ? 'Cancel' : 'Edit'}
           </button>
         </div>
         {children}
+        {isEditing && onSave && (
+          <div style={{ marginTop: '1rem' }}>
+            {saveError && (
+              <p style={{ color: 'hsl(var(--destructive))', fontSize: '0.8125rem', marginBottom: '0.5rem' }}>
+                {saveError}
+              </p>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={onSave}
+                disabled={saving}
+              >
+                {saving ? 'Saving…' : 'Save changes'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -97,10 +221,10 @@ export default function ProfilePage({
           {initial}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="heading" style={{ fontSize: '1.375rem' }}>{userName}</div>
+          <div className="heading" style={{ fontSize: '1.375rem' }}>{displayName}</div>
           <div className="caption" style={{ marginTop: '0.25rem' }}>{userEmail}</div>
           <div className="row" style={{ marginTop: '0.5rem', gap: '0.375rem' }}>
-            <span className="badge">{userProvince}</span>
+            <span className="badge">{province || userProvince}</span>
             <span className="badge success">APS {aps}</span>
             <span className="badge brand">PRO</span>
           </div>
@@ -110,58 +234,132 @@ export default function ProfilePage({
 
       <div className="grid-2 stack-3">
         {/* Personal */}
-        <Section id="personal" title="Personal">
+        <Section
+          id="personal"
+          title="Personal"
+          onSave={savePersonal}
+          saving={personalSaving}
+          saveError={personalError}
+        >
           <div className="stack-2">
-            {[
-              { l: 'Full name', v: userName },
-              { l: 'Email', v: userEmail },
-              { l: 'Province', v: userProvince ?? '—' },
-              { l: 'Matric year', v: '2026' },
-            ].map(row => (
-              <div key={row.l}>
-                <div className="caption" style={{ fontSize: '0.6875rem' }}>{row.l}</div>
-                {editSection === 'personal' ? (
-                  <input className="input" defaultValue={row.v ?? ''} style={{ width: '100%', marginTop: '0.25rem' }} />
-                ) : (
-                  <div style={{ fontWeight: 600, marginTop: '0.125rem' }}>{row.v ?? '—'}</div>
-                )}
-              </div>
-            ))}
+            <div>
+              <div className="caption" style={{ fontSize: '0.6875rem' }}>First name</div>
+              {editSection === 'personal' ? (
+                <input
+                  className="input"
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  style={{ width: '100%', marginTop: '0.25rem' }}
+                />
+              ) : (
+                <div style={{ fontWeight: 600, marginTop: '0.125rem' }}>{firstName || '—'}</div>
+              )}
+            </div>
+            <div>
+              <div className="caption" style={{ fontSize: '0.6875rem' }}>Last name</div>
+              {editSection === 'personal' ? (
+                <input
+                  className="input"
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  style={{ width: '100%', marginTop: '0.25rem' }}
+                />
+              ) : (
+                <div style={{ fontWeight: 600, marginTop: '0.125rem' }}>{lastName || '—'}</div>
+              )}
+            </div>
+            <div>
+              <div className="caption" style={{ fontSize: '0.6875rem' }}>Email</div>
+              <div style={{ fontWeight: 600, marginTop: '0.125rem' }}>{userEmail || '—'}</div>
+            </div>
+            <div>
+              <div className="caption" style={{ fontSize: '0.6875rem' }}>Province</div>
+              {editSection === 'personal' ? (
+                <select
+                  className="input"
+                  value={province}
+                  onChange={e => setProvince(e.target.value)}
+                  style={{ width: '100%', marginTop: '0.25rem' }}
+                >
+                  <option value="">Select province</option>
+                  {SA_PROVINCES.map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              ) : (
+                <div style={{ fontWeight: 600, marginTop: '0.125rem' }}>{province || '—'}</div>
+              )}
+            </div>
           </div>
         </Section>
 
         {/* Household */}
-        <Section id="household" title="Household">
+        <Section
+          id="household"
+          title="Household"
+          onSave={saveHousehold}
+          saving={householdSaving}
+          saveError={householdError}
+        >
           <div className="stack-2">
-            {[
-              { l: 'Annual household income', v: fmtR(householdIncome ?? 0) },
-              { l: 'NSFAS eligibility', v: (householdIncome ?? 0) <= 350000 ? 'Eligible (below R 350k)' : 'Above threshold' },
-              { l: 'Dependants', v: '3' },
-              { l: 'SASSA recipient', v: 'No' },
-            ].map(row => (
-              <div key={row.l}>
-                <div className="caption" style={{ fontSize: '0.6875rem' }}>{row.l}</div>
-                <div style={{ fontWeight: 600, marginTop: '0.125rem' }}>{row.v}</div>
+            <div>
+              <div className="caption" style={{ fontSize: '0.6875rem' }}>Annual household income</div>
+              {editSection === 'household' ? (
+                <input
+                  className="input"
+                  type="number"
+                  min={0}
+                  value={incomeStr}
+                  onChange={e => setIncomeStr(e.target.value)}
+                  style={{ width: '100%', marginTop: '0.25rem' }}
+                />
+              ) : (
+                <div style={{ fontWeight: 600, marginTop: '0.125rem' }}>{fmtR(displayIncome)}</div>
+              )}
+            </div>
+            <div>
+              <div className="caption" style={{ fontSize: '0.6875rem' }}>NSFAS eligibility</div>
+              <div style={{ fontWeight: 600, marginTop: '0.125rem' }}>
+                {displayIncome <= 350000 ? 'Eligible (below R 350k)' : 'Above threshold'}
               </div>
-            ))}
+            </div>
           </div>
         </Section>
 
         {/* Academic */}
-        <Section id="academic" title="Academic">
+        <Section
+          id="academic"
+          title="Academic"
+          onSave={saveSubjects}
+          saving={subjectSaving}
+          saveError={subjectError}
+        >
           <div className="stack">
             <div className="row-between" style={{ marginBottom: '0.5rem' }}>
               <span className="caption">APS Score</span>
-              <span style={{ fontWeight: 800, fontSize: '1.5rem', fontVariantNumeric: 'tabular-nums' }}>{aps}</span>
+              <span style={{ fontWeight: 800, fontSize: '1.5rem', fontVariantNumeric: 'tabular-nums' }}>
+                {editSection === 'academic' ? calcAPS(editSubjects) : aps}
+              </span>
             </div>
-            {(subjects.length > 0 ? subjects : [
-              { id: 'eng', name: 'English HL', mark: 62, designated: true },
-              { id: 'math', name: 'Mathematics', mark: 78, designated: true },
-              { id: 'pscience', name: 'Physical Sciences', mark: 71, designated: true },
-            ]).map(s => (
+            {(editSection === 'academic' ? editSubjects : displaySubjects).map(s => (
               <div key={s.id} className="row-between" style={{ fontSize: '0.8125rem', padding: '0.375rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
                 <span>{s.name}</span>
-                <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{s.mark}%</span>
+                {editSection === 'academic' ? (
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    className="input"
+                    value={editSubjects.find(e => e.id === s.id)?.mark ?? s.mark}
+                    onChange={ev => {
+                      const mark = Math.min(100, Math.max(0, parseInt(ev.target.value, 10) || 0));
+                      setEditSubjects(prev => prev.map(sub => sub.id === s.id ? { ...sub, mark } : sub));
+                    }}
+                    style={{ width: '4.5rem', textAlign: 'right', fontWeight: 700 }}
+                  />
+                ) : (
+                  <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{s.mark}%</span>
+                )}
               </div>
             ))}
           </div>

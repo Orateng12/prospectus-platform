@@ -6,6 +6,30 @@ All notable changes to the Prospectus platform.
 
 ## [Unreleased]
 
+### Added — Phase 10: Profile Ownership — students can now edit and persist their own data
+
+**New server action:**
+- `app/actions/updateProfile.ts` — upserts `user_profiles` for any subset of `{first_name, last_name, province, household_income}`; when income changes, fetches psych + capability profiles, recomputes `computeStrategicScore`, and inserts a new `strategic_score_records` row so the Intelligence dashboard reflects the updated financial picture immediately
+
+**ProfilePage now fully editable (`components/pages/ProfilePage.tsx`):**
+- Personal section (first name, last name, province) — controlled inputs; province uses a `<select>` with all 9 SA provinces; "Cancel" reverts without saving; "Save changes" calls `updateProfile` and refreshes server data via `router.refresh()`
+- Household section — editable income field; saves via `updateProfile`; NSFAS eligibility badge updates live from the edited income; hardcoded "Dependants: 3 / SASSA: No" rows removed (data not in DB)
+- Academic section — mark inputs per subject in edit mode; live APS recompute shown while editing; saves via `saveSubjectMarks` and propagates new subjects to Dashboard state via `onSubjectsSaved` callback
+- Capability section — read-only (set during onboarding; no edit path in Phase 10)
+- Error messages surfaced inline per section; cancel-without-save is safe
+
+**Data threading (`app/dashboard/page.tsx` + `components/Dashboard.tsx`):**
+- `user.email` now passed to Dashboard (was always in props but wired as `''`)
+- `userLastName` added to Dashboard props and threaded to ProfilePage so first/last name can be edited independently
+- `onSubjectsSaved` callback wired from Dashboard's existing `handleSubjectsSaved` to ProfilePage
+
+**`app/actions/saveSubjects.ts` extended:**
+- Now also writes `aps_score: calcAPS(subjects)` alongside `subject_marks` so the stored APS stays in sync after a profile edit
+- Explicit `Promise<{ success: true } | { error: string }>` return type added for clean inference
+
+**New tests — `tests/actions/updateProfile.test.ts` (9 cases, 147 total):**
+- Auth guard; upsert error propagation; name/province field mapping (`firstName → first_name` etc.); undefined fields excluded from payload; strategic score path not triggered without income; strategic score insert shape and user_id; non-blocking insert failure (still returns `{ success: true }`); skips recompute when psych/cap data absent
+
 ### Added — Test suite: 138 tests, 0% → full coverage of critical modules
 - **Framework** — Vitest + `@vitest/coverage-v8`; `npm test` / `npm run test:coverage` scripts added
 - `tests/lib/utils.test.ts` — `apsPoints` (all 7 band boundaries), `calcAPS` (LO filtering, best-6 selection, sample dataset), `fmtR`

@@ -211,6 +211,8 @@ export default async function Page() {
       userAps={userAps}
       userName={fullName}
       userFirstName={firstName}
+      userLastName={lastName}
+      userEmail={user.email ?? undefined}
       userProvince={profile?.province ?? undefined}
       householdIncome={profile?.household_income ?? undefined}
       psychProfile={psychProfile}
