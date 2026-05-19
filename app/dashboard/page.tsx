@@ -31,7 +31,8 @@ function normaliseDemand(d?: string): Career['demand'] {
 }
 
 function mapDbCareerToCareer(c: DbCareer, rank: number): Career {
-  const salary = c.salary_percentile_50 ?? c.salary_mid_max ?? c.salary_entry_min ?? 35_000;
+  const annualSalary = c.salary_percentile_50 ?? c.salary_mid_max ?? c.salary_entry_min ?? 420_000;
+  const salary = Math.round(annualSalary / 12);
   const growth = c.job_posting_trend
     ? (c.job_posting_trend === 'growing' ? '+18%' : c.job_posting_trend === 'declining' ? '-4%' : '+8%')
     : '+12%';
