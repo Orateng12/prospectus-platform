@@ -30,6 +30,10 @@ import ApplicationDetailPage from './pages/ApplicationDetailPage';
 import CareerDetailPage from './pages/CareerDetailPage';
 import ScholarshipDetailPage from './pages/ScholarshipDetailPage';
 import SubjectDetailPage from './pages/SubjectDetailPage';
+import DiscoverPage from './pages/DiscoverPage';
+import MapPage from './pages/MapPage';
+import SkillsPage from './pages/SkillsPage';
+import NSFASPage from './pages/NSFASPage';
 
 const BASE_APS = 42;
 
@@ -206,7 +210,7 @@ export default function Dashboard({
       case 'funding':
         return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} />;
       case 'nsfas':
-        return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} />;
+        return <NSFASPage householdIncome={householdIncome} />;
       case 'financial':
         return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} />;
       case 'careers':
@@ -224,16 +228,10 @@ export default function Dashboard({
         );
       case 'discover':
         return (
-          <CareersPage
-            careers={careers}
-            compareItems={compareItems}
-            onToggleCompare={toggleCompare}
-            userAps={displayAps}
+          <DiscoverPage
+            navigate={navigate}
             psychProfile={displayPsych}
             capabilityData={displayCap}
-            onOpenDetail={(c) => navigateToDetail('career-detail', c)}
-            navigate={navigate}
-            initialTab="discover"
           />
         );
       case 'cognitive':
@@ -248,17 +246,15 @@ export default function Dashboard({
         );
       case 'skills':
         return (
-          <CognitivePage
-            psychProfile={displayPsych}
+          <SkillsPage
             capabilityData={displayCap}
+            psychProfile={displayPsych}
             careers={careers}
             userAps={displayAps}
-            initialTab="skills"
-            onRetake={() => router.push('/onboarding?retake=true')}
           />
         );
       case 'map':
-        return <UniversitiesPage subjects={displaySubjects} navigate={navigate} compareItems={compareItems} onToggleCompare={toggleCompare} userProvince={userProvince} />;
+        return <MapPage />;
       case 'unis':
         return <UniversitiesPage subjects={displaySubjects} navigate={navigate} compareItems={compareItems} onToggleCompare={toggleCompare} userProvince={userProvince} />;
       case 'compare':

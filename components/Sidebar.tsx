@@ -34,6 +34,9 @@ function buildNavGroups(pendingAppCount: number, unappliedScholarshipCount: numb
       label: 'Discover',
       items: [
         { label: 'Career Explorer', route: 'careers' },
+        { label: 'Career Compare', route: 'compare' },
+        { label: 'Discover', route: 'discover', pill: { text: 'AI', variant: 'brand' as const } },
+        { label: 'Opportunity Map', route: 'map' },
       ],
     },
     {
@@ -47,6 +50,7 @@ function buildNavGroups(pendingAppCount: number, unappliedScholarshipCount: numb
             ? { pill: { text: `${unappliedScholarshipCount} new`, variant: 'success' as const } }
             : {}),
         },
+        { label: 'NSFAS Calculator', route: 'nsfas' },
       ],
     },
     {
@@ -59,14 +63,16 @@ function buildNavGroups(pendingAppCount: number, unappliedScholarshipCount: numb
             ? { pill: { text: String(pendingAppCount), variant: 'default' as const } }
             : {}),
         },
+        { label: 'Documents', route: 'documents' },
+        { label: 'Deadlines', route: 'deadlines' },
       ],
     },
     {
       label: 'Self',
       items: [
-        { label: 'Profile', route: 'profile' },
-        { label: 'Assessment', route: 'cognitive' },
-        { label: 'Intelligence', route: 'intelligence' },
+        { label: 'Cognitive Assessment', route: 'cognitive' },
+        { label: 'Skills Map', route: 'skills' },
+        { label: 'Intelligence', route: 'intelligence', pill: { text: 'PRO', variant: 'dark' as const } },
       ],
     },
   ];
