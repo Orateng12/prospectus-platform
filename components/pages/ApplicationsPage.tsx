@@ -10,6 +10,8 @@ interface ApplicationsPageProps {
   applications?: DbApplication[];
   onOpenDetail?: (app: Application) => void;
   programmes?: Programme[];
+  userAps?: number;
+  navigate?: (r: import('@/lib/types').Route) => void;
 }
 
 type Tab = 'all' | 'submitted' | 'pending' | 'accepted';
@@ -195,7 +197,7 @@ function AddApplicationModal({
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default function ApplicationsPage({ applications: dbApps, onOpenDetail, programmes = [] }: ApplicationsPageProps) {
+export default function ApplicationsPage({ applications: dbApps, onOpenDetail, programmes = [], userAps, navigate }: ApplicationsPageProps) {
   const [tab, setTab] = useState<Tab>('all');
   const [selected, setSelected] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -208,6 +210,42 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail, p
     review:   apps.filter(a => a.status === 'info').length,
     rejected: apps.filter(a => a.status === 'destructive').length,
   };
+
+  // Portfolio analysis — classify each application as safety/target/reach
+  const progApsMap = new Map(programmes.map(p => [p.name.toLowerCase(), p.aps]));
+  const rawDbApps = dbApps ?? [];
+  interface AppClassified { app: DbApplication; apsReq: number | null; tier: 'safety' | 'target' | 'reach' | 'unknown' }
+  const classified: AppClassified[] = rawDbApps.map(a => {
+    const apsReq = progApsMap.get(a.programme_name.toLowerCase()) ?? null;
+    const u = userAps ?? 0;
+    const tier = apsReq === null ? 'unknown'
+      : apsReq <= u - 4 ? 'safety'
+      : apsReq <= u + 2 ? 'target'
+      : 'reach';
+    return { app: a, apsReq, tier };
+  });
+  const tierCounts = {
+    safety:  classified.filter(c => c.tier === 'safety').length,
+    target:  classified.filter(c => c.tier === 'target').length,
+    reach:   classified.filter(c => c.tier === 'reach').length,
+    unknown: classified.filter(c => c.tier === 'unknown').length,
+  };
+
+  // Deadlines — upcoming within 60 days
+  const today = Date.now();
+  const upcomingDeadlines = rawDbApps
+    .filter(a => a.deadline && ['draft', 'submitted', 'pending'].includes(a.status.toLowerCase()))
+    .map(a => ({ name: a.programme_name, institution: a.institution_name, deadline: new Date(a.deadline!), daysLeft: Math.ceil((new Date(a.deadline!).getTime() - today) / 86_400_000) }))
+    .filter(a => a.daysLeft >= 0 && a.daysLeft <= 60)
+    .sort((a, b) => a.daysLeft - b.daysLeft)
+    .slice(0, 3);
+
+  const hasPortfolioData = userAps !== undefined && rawDbApps.length > 0 && tierCounts.unknown < rawDbApps.length;
+  const portfolioWarning = hasPortfolioData && tierCounts.safety === 0 && (tierCounts.reach > 0 || tierCounts.target > 0)
+    ? `No safety applications — all current programmes require APS close to or above your score. Consider adding a programme with APS ≤ ${(userAps ?? 0) - 4} as insurance.`
+    : hasPortfolioData && tierCounts.reach === 0 && tierCounts.target === 0 && tierCounts.safety > 0
+    ? 'All safety applications — good for acceptance rate but consider adding a target programme for upside.'
+    : null;
 
   const displayed = (() => {
     if (tab === 'accepted')  return apps.filter(a => a.status === 'success');
@@ -263,6 +301,71 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail, p
         <button className={`tab${tab === 'pending'   ? ' active' : ''}`} onClick={() => setTab('pending')}>Pending</button>
         <button className={`tab${tab === 'accepted'  ? ' active' : ''}`} onClick={() => setTab('accepted')}>Accepted</button>
       </div>
+
+      {/* Portfolio analysis */}
+      {(hasPortfolioData || upcomingDeadlines.length > 0) && (
+        <div className="grid-2" style={{ marginBottom: '1.25rem', alignItems: 'start' }}>
+          {hasPortfolioData && (
+            <div className="card">
+              <div className="eyebrow" style={{ marginBottom: '0.75rem' }}><span className="dot" />Portfolio balance</div>
+              <div className="row" style={{ gap: '0.5rem', marginBottom: '0.75rem' }}>
+                {[
+                  { label: 'Safety',  count: tierCounts.safety,  color: 'success',     tip: `APS ≤ ${(userAps ?? 0) - 4}` },
+                  { label: 'Target',  count: tierCounts.target,  color: 'warning',     tip: `APS ${(userAps ?? 0) - 3}–${(userAps ?? 0) + 2}` },
+                  { label: 'Reach',   count: tierCounts.reach,   color: 'destructive', tip: `APS > ${(userAps ?? 0) + 2}` },
+                ].map(t => (
+                  <div key={t.label} className="card compact" style={{ flex: 1, textAlign: 'center', padding: '0.625rem' }}>
+                    <div style={{ fontWeight: 900, fontSize: '1.5rem', letterSpacing: '-0.04em', color: `hsl(var(--${t.color}))` }}>{t.count}</div>
+                    <div style={{ fontWeight: 700, fontSize: '0.75rem', marginTop: '0.125rem' }}>{t.label}</div>
+                    <div className="caption" style={{ fontSize: '0.625rem', marginTop: '0.125rem' }}>{t.tip}</div>
+                  </div>
+                ))}
+              </div>
+              {portfolioWarning ? (
+                <div className="insight" style={{ borderColor: 'hsl(var(--warning) / 0.4)', background: 'hsl(var(--warning) / 0.06)' }}>
+                  <p className="body-text" style={{ fontSize: '0.8125rem', margin: 0 }}>⚠ {portfolioWarning}</p>
+                  {navigate && (
+                    <button className="btn btn-outline btn-sm" style={{ marginTop: '0.625rem' }} onClick={() => navigate('programmes')}>
+                      Browse programmes →
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <p className="caption" style={{ fontSize: '0.75rem' }}>
+                  {tierCounts.safety > 0 && tierCounts.target > 0
+                    ? 'Good mix — you have both safety and target programmes.'
+                    : 'Portfolio analysis based on your APS vs. programme requirements.'}
+                </p>
+              )}
+            </div>
+          )}
+
+          {upcomingDeadlines.length > 0 && (
+            <div className="card">
+              <div className="eyebrow" style={{ marginBottom: '0.75rem' }}><span className="dot" />Upcoming deadlines</div>
+              <div className="stack">
+                {upcomingDeadlines.map(d => (
+                  <div key={`${d.institution}-${d.name}`} style={{ padding: '0.5rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                    <div className="row-between">
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{d.name}</div>
+                        <div className="caption" style={{ marginTop: '0.125rem' }}>{d.institution}</div>
+                      </div>
+                      <span className={`badge ${d.daysLeft <= 7 ? 'destructive' : d.daysLeft <= 21 ? 'warning' : 'info'}`}>
+                        {d.daysLeft === 0 ? 'Today' : `${d.daysLeft}d`}
+                      </span>
+                    </div>
+                    <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.25rem' }}>
+                      {d.deadline.toLocaleDateString('en-ZA', { day: 'numeric', month: 'long' })}
+                      {d.daysLeft <= 7 && ' — urgent'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {apps.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>

@@ -295,6 +295,8 @@ export default function Dashboard({
             applications={emptyMode ? [] : (applications.length > 0 ? applications : undefined)}
             onOpenDetail={(a) => navigateToDetail('application-detail', a)}
             programmes={initialProgrammes}
+            userAps={displayAps}
+            navigate={navigate}
           />
         );
       case 'documents':

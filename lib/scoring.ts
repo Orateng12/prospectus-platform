@@ -333,9 +333,49 @@ export function scoreCareerMatch(
 }
 
 /**
- * Score and sort a list of careers by personalised match, descending.
- * The original object is spread into the result with an added `personalScore` field.
+ * Returns a transparent breakdown of the four components that make up the
+ * career match score. Each component is expressed as points contributed
+ * toward the 100-point total (e.g. riasec is out of 38, caps out of 30, etc.).
  */
+export interface CareerMatchBreakdown {
+  total: number;
+  riasecRaw: number;   // 0–100 before weighting
+  capsRaw: number;     // 0–100 before weighting
+  bigFiveRaw: number;  // 0–100 before weighting
+  apsRaw: number;      // 0–100 before weighting
+  riasecPts: number;   // contribution toward 100 (out of 38)
+  capsPts: number;     // contribution toward 100 (out of 30)
+  bigFivePts: number;  // contribution toward 100 (out of 15)
+  apsPts: number;      // contribution toward 100 (out of 17)
+  minAps: number;
+}
+
+export function scoreCareerMatchDetailed(
+  careerName: string,
+  psychProfile: PsychProfileData,
+  capabilityData: CapabilityData,
+  userAps: number,
+): CareerMatchBreakdown {
+  const archetype = getArchetype(careerName);
+  const riasecRaw  = scoreRiasec(psychProfile, archetype.riasec);
+  const capsRaw    = scoreCaps(capabilityData, archetype.caps);
+  const bigFiveRaw = scoreBigFive(psychProfile, archetype.bigFive);
+  const apsRaw     = archetype.minAps
+    ? userAps >= archetype.minAps ? 100 : Math.max(20, Math.round((userAps / archetype.minAps) * 60))
+    : 80;
+  const raw = Math.round(riasecRaw * 0.38 + capsRaw * 0.30 + bigFiveRaw * 0.15 + apsRaw * 0.17);
+  return {
+    total:       Math.min(97, Math.max(35, raw)),
+    riasecRaw,   capsRaw,   bigFiveRaw,   apsRaw,
+    riasecPts:   Math.round(riasecRaw  * 0.38),
+    capsPts:     Math.round(capsRaw    * 0.30),
+    bigFivePts:  Math.round(bigFiveRaw * 0.15),
+    apsPts:      Math.round(apsRaw     * 0.17),
+    minAps:      archetype.minAps ?? 0,
+  };
+}
+
+
 export function rankCareersByMatch<T extends { name: string }>(
   careers: T[],
   psychProfile: PsychProfileData,
