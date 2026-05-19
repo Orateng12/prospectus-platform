@@ -78,6 +78,7 @@ interface TopbarProps {
   apsDelta?: number;
   navigate?: (r: Route) => void;
   onMenuClick?: () => void;
+  unreadNotificationCount?: number;
 }
 
 export default function Topbar({
@@ -89,6 +90,7 @@ export default function Topbar({
   apsDelta = 0,
   navigate,
   onMenuClick,
+  unreadNotificationCount = 0,
 }: TopbarProps) {
   const [dateStr, setDateStr] = useState('');
   const [profileOpen, setProfileOpen] = useState(false);
@@ -194,7 +196,12 @@ export default function Topbar({
           </div>
 
           <button className="icon-btn" title="Notifications" aria-label="Notifications">
-            <span className="icon-dot" />
+            {unreadNotificationCount > 0 && (
+              <span
+                className="icon-dot"
+                aria-label={`${unreadNotificationCount} unread notification${unreadNotificationCount > 1 ? 's' : ''}`}
+              />
+            )}
             🔔
           </button>
           <button className="icon-btn" title="Messages" aria-label="Messages">

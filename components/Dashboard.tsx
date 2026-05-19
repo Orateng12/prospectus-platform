@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import type {
   Route, Subject, Programme, Career, CompareItem, Application, Scholarship,
-  PsychProfileData, CapabilityData, StrategicScoreData, DbApplication,
+  PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbDocument,
 } from '@/lib/types';
 import { SUBJECTS, CAREERS as STATIC_CAREERS } from '@/lib/data';
 import { calcAPS } from '@/lib/utils';
@@ -55,6 +55,8 @@ interface DashboardProps {
   careers?: Career[];
   savedProgrammeIds?: string[];
   appliedScholarshipNames?: string[];
+  documents?: DbDocument[];
+  unreadNotificationCount?: number;
 }
 
 export default function Dashboard({
@@ -75,6 +77,8 @@ export default function Dashboard({
   careers,
   savedProgrammeIds = [],
   appliedScholarshipNames = [],
+  documents = [],
+  unreadNotificationCount = 0,
 }: DashboardProps) {
   const [route, setRoute] = useState<Route>('home');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -268,7 +272,7 @@ export default function Dashboard({
           />
         );
       case 'documents':
-        return <DocumentsPage navigate={navigate} />;
+        return <DocumentsPage navigate={navigate} documents={emptyMode ? [] : documents} />;
       case 'deadlines':
         return <DeadlinesPage navigate={navigate} applications={emptyMode ? [] : applications} />;
       case 'profile':
@@ -362,6 +366,7 @@ export default function Dashboard({
           apsDelta={apsDelta}
           navigate={navigate}
           onMenuClick={() => setSidebarOpen(true)}
+          unreadNotificationCount={unreadNotificationCount}
         />
         <div key={route}>
           {renderPage()}

@@ -1,55 +1,112 @@
 'use client';
 
-import { useState } from 'react';
-import type { Route } from '@/lib/types';
+import { useRef, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import type { Route, DbDocument } from '@/lib/types';
+import { uploadDocument } from '@/app/actions/uploadDocument';
+import { deleteDocument } from '@/app/actions/deleteDocument';
 
-type DocStatus = 'uploaded' | 'missing' | 'expired';
-
-interface Document {
-  id: string;
+interface DocMeta {
+  type: string;
   name: string;
   category: string;
-  status: DocStatus;
-  uploaded?: string;
   required: string[];
 }
 
-const DOCS: Document[] = [
-  { id: 'id', name: 'South African ID', category: 'Identity', status: 'uploaded', uploaded: '12 Aug 2026', required: ['UCT', 'Wits', 'NSFAS'] },
-  { id: 'matric', name: 'Matric Certificate (NSC)', category: 'Academic', status: 'missing', required: ['UCT', 'Wits', 'Stellenbosch', 'NSFAS'] },
-  { id: 'results', name: 'Grade 11 Results', category: 'Academic', status: 'uploaded', uploaded: '10 Aug 2026', required: ['UCT', 'Wits'] },
-  { id: 'residence', name: 'Proof of Residence', category: 'Household', status: 'uploaded', uploaded: '12 Aug 2026', required: ['NSFAS'] },
-  { id: 'income', name: 'Parent/Guardian Payslips (3 months)', category: 'Financial', status: 'uploaded', uploaded: '13 Aug 2026', required: ['NSFAS', 'Allan Gray'] },
-  { id: 'bank', name: 'Bank Statements (6 months)', category: 'Financial', status: 'missing', required: ['Allan Gray', 'Investec'] },
-  { id: 'photo', name: 'Passport Photograph', category: 'Identity', status: 'uploaded', uploaded: '12 Aug 2026', required: ['UCT', 'Wits'] },
-  { id: 'aps', name: 'APS Calculation Sheet', category: 'Academic', status: 'missing', required: ['Wits', 'UKZN'] },
+const DOC_CATALOG: DocMeta[] = [
+  { type: 'id',        name: 'South African ID',                    category: 'Identity',  required: ['UCT', 'Wits', 'NSFAS'] },
+  { type: 'matric',    name: 'Matric Certificate (NSC)',             category: 'Academic',  required: ['UCT', 'Wits', 'Stellenbosch', 'NSFAS'] },
+  { type: 'results',   name: 'Grade 11 Results',                    category: 'Academic',  required: ['UCT', 'Wits'] },
+  { type: 'residence', name: 'Proof of Residence',                  category: 'Household', required: ['NSFAS'] },
+  { type: 'income',    name: 'Parent/Guardian Payslips (3 months)', category: 'Financial', required: ['NSFAS', 'Allan Gray'] },
+  { type: 'bank',      name: 'Bank Statements (6 months)',          category: 'Financial', required: ['Allan Gray', 'Investec'] },
+  { type: 'photo',     name: 'Passport Photograph',                 category: 'Identity',  required: ['UCT', 'Wits'] },
+  { type: 'aps',       name: 'APS Calculation Sheet',               category: 'Academic',  required: ['Wits', 'UKZN'] },
 ];
 
-const STATUS_BADGE: Record<DocStatus, string> = {
-  uploaded: 'success',
-  missing: 'destructive',
-  expired: 'warning',
-};
+const CATEGORIES = [...new Set(DOC_CATALOG.map(d => d.category))];
 
-const STATUS_LABEL: Record<DocStatus, string> = {
-  uploaded: 'Uploaded',
-  missing: 'Missing',
-  expired: 'Expired',
-};
+function fmtBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
 
-export default function DocumentsPage({ navigate }: { navigate?: (r: Route) => void }) {
-  const [docs, setDocs] = useState(DOCS);
+function fmtDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-ZA', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  });
+}
 
-  const categories = [...new Set(docs.map(d => d.category))];
-  const missing = docs.filter(d => d.status === 'missing').length;
-  const uploaded = docs.filter(d => d.status === 'uploaded').length;
+interface DocumentsPageProps {
+  navigate?: (r: Route) => void;
+  documents?: DbDocument[];
+}
 
-  function markUploaded(id: string) {
-    setDocs(prev => prev.map(d => d.id === id ? { ...d, status: 'uploaded', uploaded: 'Just now' } : d));
+export default function DocumentsPage({ navigate, documents = [] }: DocumentsPageProps) {
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingDocType, setPendingDocType] = useState<string | null>(null);
+  const [confirmDeleteType, setConfirmDeleteType] = useState<string | null>(null);
+  const [rowError, setRowError] = useState<Record<string, string>>({});
+  const [isPending, startTransition] = useTransition();
+
+  const uploadedMap: Record<string, DbDocument> = Object.fromEntries(
+    documents.map(d => [d.doc_type, d]),
+  );
+
+  const uploaded = DOC_CATALOG.filter(d => uploadedMap[d.type]).length;
+  const missing = DOC_CATALOG.length - uploaded;
+
+  function triggerUpload(docType: string) {
+    setPendingDocType(docType);
+    setRowError(prev => ({ ...prev, [docType]: '' }));
+    fileInputRef.current?.click();
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !pendingDocType) return;
+    e.target.value = '';
+
+    const docType = pendingDocType;
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('docType', docType);
+      const result = await uploadDocument(fd);
+      if ('error' in result) {
+        setRowError(prev => ({ ...prev, [docType]: result.error }));
+      } else {
+        router.refresh();
+      }
+      setPendingDocType(null);
+    });
+  }
+
+  function handleDelete(docType: string) {
+    setConfirmDeleteType(null);
+    startTransition(async () => {
+      const result = await deleteDocument(docType);
+      if ('error' in result) {
+        setRowError(prev => ({ ...prev, [docType]: result.error }));
+      } else {
+        router.refresh();
+      }
+    });
   }
 
   return (
     <div className="page-anim">
+      {/* Hidden file input — shared across all rows */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png,.heic,.webp"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
+
       <div className="page-head">
         <div className="breadcrumb">Execute · Documents</div>
         <div className="row-between">
@@ -57,7 +114,7 @@ export default function DocumentsPage({ navigate }: { navigate?: (r: Route) => v
             <div className="eyebrow"><span className="dot" />Document vault</div>
             <h2 className="heading" style={{ marginTop: '0.375rem' }}>Documents</h2>
             <p className="body-text" style={{ marginTop: '0.5rem', maxWidth: '44rem' }}>
-              Manage all supporting documents for your applications in one place. Upload once, apply everywhere.
+              Upload once, apply everywhere. PDF, JPEG, PNG and HEIC files up to 10 MB.
             </p>
           </div>
           <div className="row">
@@ -68,43 +125,114 @@ export default function DocumentsPage({ navigate }: { navigate?: (r: Route) => v
       </div>
 
       <div className="stack-3">
-        {categories.map(cat => {
-          const catDocs = docs.filter(d => d.category === cat);
+        {CATEGORIES.map(cat => {
+          const catDocs = DOC_CATALOG.filter(d => d.category === cat);
+          const catUploaded = catDocs.filter(d => uploadedMap[d.type]).length;
           return (
             <div key={cat} className="card">
               <div className="sec" style={{ marginBottom: '0.75rem' }}>
                 <h3>{cat}</h3>
-                <span className="caption">{catDocs.filter(d => d.status === 'uploaded').length}/{catDocs.length} uploaded</span>
+                <span className="caption">{catUploaded}/{catDocs.length} uploaded</span>
               </div>
               <div className="stack">
-                {catDocs.map(doc => (
-                  <div key={doc.id} style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr auto auto',
-                    gap: '0.875rem',
-                    alignItems: 'center',
-                    padding: '0.75rem 0',
-                    borderBottom: '1px solid hsl(var(--border))',
-                  }}
-                  className="doc-row">
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{doc.name}</div>
-                      <div className="caption" style={{ marginTop: 2 }}>
-                        {doc.status === 'uploaded'
-                          ? `Uploaded ${doc.uploaded}`
-                          : `Required by: ${doc.required.join(', ')}`}
+                {catDocs.map(doc => {
+                  const dbDoc = uploadedMap[doc.type];
+                  const isUploaded = !!dbDoc;
+                  const isUploadingThis = isPending && pendingDocType === doc.type;
+                  const isDeletingThis = isPending && confirmDeleteType === null && !pendingDocType;
+                  const err = rowError[doc.type];
+                  const isConfirmingDelete = confirmDeleteType === doc.type;
+
+                  return (
+                    <div
+                      key={doc.type}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr auto',
+                        gap: '0.875rem',
+                        alignItems: 'flex-start',
+                        padding: '0.75rem 0',
+                        borderBottom: '1px solid hsl(var(--border))',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{doc.name}</div>
+                        <div className="caption" style={{ marginTop: 2 }}>
+                          {isUploaded
+                            ? `${dbDoc.file_name}${dbDoc.file_size ? ` · ${fmtBytes(dbDoc.file_size)}` : ''} · ${fmtDate(dbDoc.uploaded_at)}`
+                            : `Required by: ${doc.required.join(', ')}`}
+                        </div>
+                        {err && (
+                          <div style={{ color: 'hsl(var(--destructive))', fontSize: '0.75rem', marginTop: 4 }}>
+                            {err}
+                          </div>
+                        )}
+                        {isConfirmingDelete && (
+                          <div className="row" style={{ gap: '0.5rem', marginTop: '0.5rem' }}>
+                            <span style={{ fontSize: '0.8125rem' }}>Delete this document?</span>
+                            <button
+                              className="btn btn-sm"
+                              style={{ background: 'hsl(var(--destructive))', color: '#fff', borderColor: 'hsl(var(--destructive))' }}
+                              onClick={() => handleDelete(doc.type)}
+                              disabled={isPending}
+                            >
+                              Delete
+                            </button>
+                            <button
+                              className="btn btn-ghost btn-sm"
+                              onClick={() => setConfirmDeleteType(null)}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="row" style={{ gap: '0.5rem', flexShrink: 0 }}>
+                        <span className={`badge ${isUploaded ? 'success' : 'destructive'}`}>
+                          {isUploaded ? 'Uploaded' : 'Missing'}
+                        </span>
+                        {isUploaded ? (
+                          <>
+                            {dbDoc.signed_url && (
+                              <a
+                                href={dbDoc.signed_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-ghost btn-sm"
+                              >
+                                View
+                              </a>
+                            )}
+                            <button
+                              className="btn btn-ghost btn-sm"
+                              onClick={() => triggerUpload(doc.type)}
+                              disabled={isPending}
+                            >
+                              Replace
+                            </button>
+                            <button
+                              className="btn btn-ghost btn-sm"
+                              style={{ color: 'hsl(var(--destructive))' }}
+                              onClick={() => setConfirmDeleteType(doc.type)}
+                              disabled={isPending}
+                            >
+                              ✕
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={() => triggerUpload(doc.type)}
+                            disabled={isPending}
+                          >
+                            {isUploadingThis ? 'Uploading…' : 'Upload'}
+                          </button>
+                        )}
                       </div>
                     </div>
-                    <span className={`badge ${STATUS_BADGE[doc.status]}`}>{STATUS_LABEL[doc.status]}</span>
-                    {doc.status === 'uploaded' ? (
-                      <button className="btn btn-ghost btn-sm">View</button>
-                    ) : (
-                      <button className="btn btn-outline btn-sm" onClick={() => markUploaded(doc.id)}>
-                        Upload
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
@@ -112,28 +240,26 @@ export default function DocumentsPage({ navigate }: { navigate?: (r: Route) => v
       </div>
 
       {missing > 0 && (
-        <div className="card" style={{ marginTop: '1.25rem', borderColor: 'hsl(var(--warning) / 0.4)', background: 'hsl(var(--warning) / 0.04)' }}>
+        <div
+          className="card"
+          style={{
+            marginTop: '1.25rem',
+            borderColor: 'hsl(var(--warning) / 0.4)',
+            background: 'hsl(var(--warning) / 0.04)',
+          }}
+        >
           <div className="row-between">
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{missing} document{missing > 1 ? 's' : ''} still missing</div>
-              <div className="caption" style={{ marginTop: 1 }}>Required for upcoming application deadlines</div>
+              <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>
+                {missing} document{missing > 1 ? 's' : ''} still missing
+              </div>
+              <div className="caption" style={{ marginTop: 1 }}>
+                Required for upcoming application deadlines
+              </div>
             </div>
-            <div className="row" style={{ gap: '0.5rem' }}>
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => navigate?.('deadlines')}
-              >
-                View deadlines →
-              </button>
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => {
-                  setDocs(prev => prev.map(d => d.status === 'missing' ? { ...d, status: 'uploaded' as const, uploaded: 'Just now' } : d));
-                }}
-              >
-                Mark all uploaded
-              </button>
-            </div>
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate?.('deadlines')}>
+              View deadlines →
+            </button>
           </div>
         </div>
       )}

@@ -4,6 +4,37 @@ All notable changes to the Prospectus platform.
 
 ---
 
+## Phase 12 — Real document vault, AI insight caching, notification bell (2026-05-19)
+
+### New features
+- **Document vault** — real Supabase Storage uploads (`documents` bucket, 10 MB limit, PDF/JPEG/PNG/HEIC/WebP). Each document type stored at `{userId}/{docType}.{ext}` with an upsert so re-uploading replaces the previous file. Signed URLs (1 h TTL) generated server-side on each page load so View links are instant.
+- **Delete with confirmation** — inline delete flow in DocumentsPage; storage object + DB row removed atomically.
+- **AI insight caching** — `getInsight` action checks `ai_insights` for a non-dismissed insight < 24 h old before calling Claude. On cache miss, generates via Claude and persists to DB so the next load is instant. Fallback text (no API key) is returned but not persisted. Insights are dismissible (✕ button → `dismissInsight` action sets `dismissed = true` in DB).
+- **Notification bell** — unread count from `notifications` table (server-side query) wired into Topbar. Red dot only renders when `unreadNotificationCount > 0`.
+
+### DB
+- `user_documents` table (`id, user_id, doc_type, file_name, storage_path, file_size, mime_type, uploaded_at`) — unique on `(user_id, doc_type)`; RLS restricts to owner.
+- `storage.buckets` — `documents` bucket created (private, 10 MB, allowed MIME types).
+- Storage RLS policies — upload / select / update / delete guarded by `foldername(name)[1] = auth.uid()`.
+
+### New server actions
+- `uploadDocument(FormData)` — validates MIME type + size, uploads to Storage (upsert), upserts `user_documents` row.
+- `deleteDocument(docType)` — fetches storage path from DB, removes from Storage, deletes DB row.
+- `getInsight(context, force?)` — DB-first with 24 h TTL cache; persists Claude responses to `ai_insights`.
+- `dismissInsight(id)` — sets `dismissed = true` scoped to authenticated user.
+
+### Types
+- `DbDocument` — shape for `user_documents` rows + `signed_url`.
+- `DbNotification` — shape for `notifications` rows.
+
+### Tests
+- `uploadDocument` — 9 cases covering auth, validation, storage errors, DB errors, success, and path construction.
+- `deleteDocument` — 7 cases covering auth, not-found, storage errors, DB errors, success, and correct path passed to `remove`.
+- `dismissInsight` — 4 cases covering auth, success, DB error, and correct `eq` filters.
+- `getInsight` — 5 cases covering auth, cache hit, cache miss + persist, force bypass, persistence failure resilience, and no-persist for fallback.
+
+---
+
 ## [Unreleased]
 
 ### Added — Phase 11: Application Lifecycle + Real Values Everywhere

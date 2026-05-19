@@ -5,7 +5,7 @@ import { computeStrategicScore } from '@/lib/scoring';
 import Dashboard from '@/components/Dashboard';
 import type {
   Subject, Programme, Career,
-  PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbCareer,
+  PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbCareer, DbDocument,
 } from '@/lib/types';
 
 function pathwayFromQualType(qt: string | null, nqf: number | null): Programme['pathway'] {
@@ -57,7 +57,7 @@ export default async function Page() {
   if (!auth.ok) redirect('/login');
   const { user, supabase } = auth;
 
-  const [profileResult, progResult, psychResult, capResult, scoreResult, appsResult, careersResult, savedResult, scholarshipAppsResult] = await Promise.all([
+  const [profileResult, progResult, psychResult, capResult, scoreResult, appsResult, careersResult, savedResult, scholarshipAppsResult, documentsResult, notificationsResult] = await Promise.all([
     supabase
       .from('user_profiles')
       .select('aps_score, subject_marks, first_name, last_name, province, household_income, matric_year')
@@ -105,6 +105,15 @@ export default async function Page() {
       .from('scholarship_applications')
       .select('scholarship_name')
       .eq('user_id', user.id),
+    supabase
+      .from('user_documents')
+      .select('doc_type, file_name, storage_path, file_size, mime_type, uploaded_at')
+      .eq('user_id', user.id),
+    supabase
+      .from('notifications')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('read', false),
   ]);
 
   const profile = profileResult.data;
@@ -207,6 +216,26 @@ export default async function Page() {
     (r: { scholarship_name: string }) => r.scholarship_name,
   );
 
+  // Documents with signed URLs (1 h expiry, generated server-side so they are ready on first render)
+  let documents: DbDocument[] = [];
+  if (documentsResult.data && documentsResult.data.length > 0) {
+    const paths = (documentsResult.data as { storage_path: string }[]).map(d => d.storage_path);
+    const { data: signedData } = await supabase.storage
+      .from('documents')
+      .createSignedUrls(paths, 3600);
+    const urlMap: Record<string, string> = {};
+    (signedData ?? []).forEach((s: { path: string | null; signedUrl: string | null }) => {
+      if (s.path && s.signedUrl) urlMap[s.path] = s.signedUrl;
+    });
+    documents = (documentsResult.data as Array<{
+      doc_type: string; file_name: string; storage_path: string;
+      file_size?: number; mime_type?: string; uploaded_at: string;
+    }>).map(d => ({ ...d, signed_url: urlMap[d.storage_path] }));
+  }
+
+  // Unread notification count
+  const unreadNotificationCount = (notificationsResult.data ?? []).length;
+
   // Matric year
   const matricYear: number | undefined = (profile as Record<string, unknown> | null)?.matric_year as number | undefined;
 
@@ -235,6 +264,8 @@ export default async function Page() {
       careers={careers}
       savedProgrammeIds={savedProgrammeIds}
       appliedScholarshipNames={appliedScholarshipNames}
+      documents={documents}
+      unreadNotificationCount={unreadNotificationCount}
     />
   );
 }

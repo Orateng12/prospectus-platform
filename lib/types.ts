@@ -214,6 +214,27 @@ export interface InsightContext {
   topCareers: Career[];
 }
 
+export interface DbDocument {
+  doc_type: string;
+  file_name: string;
+  storage_path: string;
+  file_size?: number;
+  mime_type?: string;
+  uploaded_at: string;
+  signed_url?: string;
+}
+
+export interface DbNotification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  link?: string;
+  read: boolean;
+  priority: string;
+  created_at: string;
+}
+
 export interface OnboardingData {
   firstName: string;
   lastName: string;
