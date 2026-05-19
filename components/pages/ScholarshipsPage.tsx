@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SCHOLARSHIPS } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
-import type { CompareItem, Scholarship } from '@/lib/types';
+import type { CompareItem, Scholarship, Subject, PsychProfileData, CapabilityData, Route } from '@/lib/types';
 import { toggleScholarshipApplication } from '@/app/actions/toggleScholarshipApplication';
+import AiInsightCard from '@/components/AiInsightCard';
 
 interface ScholarshipsPageProps {
   userAps?: number;
@@ -14,6 +15,10 @@ interface ScholarshipsPageProps {
   onToggleCompare?: (item: CompareItem) => void;
   onOpenDetail?: (scholarship: Scholarship) => void;
   appliedScholarshipNames?: string[];
+  subjects?: Subject[];
+  psychProfile?: PsychProfileData | null;
+  capabilityData?: CapabilityData | null;
+  navigate?: (r: Route) => void;
 }
 
 function computeMatch(s: Scholarship, userAps?: number, income?: number): number {
@@ -33,7 +38,7 @@ function computeMatch(s: Scholarship, userAps?: number, income?: number): number
 
 type Tab = 'all' | 'closing' | 'high' | 'mine';
 
-export default function ScholarshipsPage({ userAps, householdIncome, compareItems = [], onToggleCompare, onOpenDetail, appliedScholarshipNames = [] }: ScholarshipsPageProps) {
+export default function ScholarshipsPage({ userAps, householdIncome, compareItems = [], onToggleCompare, onOpenDetail, appliedScholarshipNames = [], subjects = [], psychProfile, capabilityData, navigate }: ScholarshipsPageProps) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('all');
   const [applying, setApplying] = useState<string | null>(null);
@@ -202,17 +207,20 @@ export default function ScholarshipsPage({ userAps, householdIncome, compareItem
                 View details →
               </button>
             </div>
-            <div className="card">
-              <div className="eyebrow"><span className="dot" />AI commentary</div>
-              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Stacking strategy</h3>
-              <p className="body-text" style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
-                Apply to {topPriority.name} first.{' '}
-                {runnerUp && stackPartner
-                  ? `If awarded, you can skip lower-value alternatives. If not, ${stackPartner.name} (${stackPartner.match}% match)${runnerUp.name !== stackPartner.name ? ` + ${runnerUp.name}` : ''} combined cover a strong percentage of year-1 costs.`
-                  : 'If awarded, decline lower-value bursaries with service contracts.'}
-                {serviceContracts.length > 0 && ` Watch the ${serviceContracts[0].name} — ${fmtR(serviceContracts[0].amount)} but requires a post-graduation service period.`}
-              </p>
-            </div>
+            <AiInsightCard
+              context={{
+                type: 'scholarships',
+                aps: userAps ?? 0,
+                subjects,
+                psychProfile: psychProfile ?? null,
+                capabilityData: capabilityData ?? null,
+                strategicScore: null,
+                topProgrammes: [],
+                topCareers: [],
+                householdIncome,
+              }}
+              navigate={navigate}
+            />
           </div>
         );
       })()}

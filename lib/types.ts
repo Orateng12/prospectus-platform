@@ -208,7 +208,7 @@ export type Route =
 // These routes now land on the correct tab of their merged parent page.
 
 export interface InsightContext {
-  type: 'home' | 'cognitive' | 'intelligence' | 'career';
+  type: 'home' | 'cognitive' | 'intelligence' | 'career' | 'funding' | 'scholarships' | 'simulator' | 'skills' | 'careers_page' | 'programmes_page';
   aps: number;
   subjects: Subject[];
   psychProfile: PsychProfileData | null;
@@ -216,6 +216,8 @@ export interface InsightContext {
   strategicScore: StrategicScoreData | null;
   topProgrammes: Programme[];
   topCareers: Career[];
+  householdIncome?: number;
+  applicationCount?: number;
 }
 
 export interface DbDocument {

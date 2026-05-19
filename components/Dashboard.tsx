@@ -193,6 +193,10 @@ export default function Dashboard({
             programmes={initialProgrammes}
             onNavigateProgramme={(progId) => navigate('programmes', progId)}
             onOpenDetail={(s) => navigateToDetail('subject-detail', s)}
+            psychProfile={displayPsych}
+            capabilityData={displayCap}
+            householdIncome={householdIncome}
+            navigate={navigate}
           />
         );
       case 'programmes':
@@ -209,11 +213,11 @@ export default function Dashboard({
           />
         );
       case 'funding':
-        return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} />;
+        return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} subjects={displaySubjects} psychProfile={displayPsych} capabilityData={displayCap} />;
       case 'nsfas':
         return <NSFASPage householdIncome={householdIncome} />;
       case 'financial':
-        return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} />;
+        return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} subjects={displaySubjects} psychProfile={displayPsych} capabilityData={displayCap} />;
       case 'careers':
         return (
           <CareersPage
@@ -252,6 +256,7 @@ export default function Dashboard({
             psychProfile={displayPsych}
             careers={careers}
             userAps={displayAps}
+            navigate={navigate}
           />
         );
       case 'map':
@@ -279,6 +284,10 @@ export default function Dashboard({
             onToggleCompare={toggleCompare}
             onOpenDetail={(s) => navigateToDetail('scholarship-detail', s)}
             appliedScholarshipNames={emptyMode ? [] : appliedScholarshipNames}
+            subjects={displaySubjects}
+            psychProfile={displayPsych}
+            capabilityData={displayCap}
+            navigate={navigate}
           />
         );
       case 'applications':
@@ -287,6 +296,8 @@ export default function Dashboard({
             applications={emptyMode ? [] : (applications.length > 0 ? applications : undefined)}
             onOpenDetail={(a) => navigateToDetail('application-detail', a)}
             programmes={initialProgrammes}
+            userAps={displayAps}
+            navigate={navigate}
           />
         );
       case 'documents':
@@ -319,6 +330,7 @@ export default function Dashboard({
             career={selectedCareer}
             programmes={initialProgrammes}
             capabilityData={displayCap}
+            psychProfile={displayPsych}
             navigate={navigate}
           />
         );

@@ -1,8 +1,9 @@
 'use client';
 
 import { useTransition, useState, useMemo } from 'react';
-import type { Subject, Programme, PsychProfileData, CapabilityData } from '@/lib/types';
+import type { Subject, Programme, PsychProfileData, CapabilityData, Route } from '@/lib/types';
 import { PROGRAMMES, CAREERS } from '@/lib/data';
+import AiInsightCard from '@/components/AiInsightCard';
 import { calcAPS, apsPoints, fmtR } from '@/lib/utils';
 import { saveSubjectMarks } from '@/app/actions/saveSubjects';
 import { scoreCareerMatch, computeStrategicScore } from '@/lib/scoring';
@@ -18,6 +19,7 @@ interface SimulatorPageProps {
   psychProfile?: PsychProfileData | null;
   capabilityData?: CapabilityData | null;
   householdIncome?: number;
+  navigate?: (r: Route) => void;
 }
 
 // For each designated subject, find the minimum mark increase to gain the next APS point
@@ -44,6 +46,7 @@ export default function SimulatorPage({
   psychProfile,
   capabilityData,
   householdIncome,
+  navigate,
 }: SimulatorPageProps) {
   const allProgs = programmes ?? PROGRAMMES;
   const aps = calcAPS(subjects);
@@ -603,6 +606,21 @@ export default function SimulatorPage({
             </p>
           </div>
         )}
+
+        <AiInsightCard
+          context={{
+            type: 'simulator',
+            aps,
+            subjects,
+            psychProfile: psychProfile ?? null,
+            capabilityData: capabilityData ?? null,
+            strategicScore: null,
+            topProgrammes: eligible.slice(0, 4),
+            topCareers: [],
+            householdIncome,
+          }}
+          navigate={navigate}
+        />
       </div>
     </div>
   );

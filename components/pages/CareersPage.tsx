@@ -3,8 +3,54 @@
 import { useState, useMemo } from 'react';
 import { CAREERS, PROGRAMMES } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
-import { scoreCareerMatch } from '@/lib/scoring';
+import { scoreCareerMatch, getCareerCapRequirements } from '@/lib/scoring';
 import type { Career, CompareItem, PsychProfileData, CapabilityData, Route } from '@/lib/types';
+import AiInsightCard from '@/components/AiInsightCard';
+
+const CAP_LABEL: Partial<Record<keyof CapabilityData, string>> = {
+  analytical_thinking:  'Analytical',
+  technical_aptitude:   'Technical',
+  communication_skills: 'Communication',
+  creative_thinking:    'Creative',
+  leadership_potential: 'Leadership',
+  entrepreneurial_drive:'Entrepreneurial',
+  academic_readiness:   'Academic',
+  perseverance:         'Perseverance',
+};
+
+function CapDriverChips({ careerName, capabilityData }: { careerName: string; capabilityData: CapabilityData | null | undefined }) {
+  if (!capabilityData) return null;
+  const reqs = getCareerCapRequirements(careerName);
+  const entries = (Object.keys(reqs) as Array<keyof CapabilityData>)
+    .filter(k => reqs[k] !== undefined)
+    .map(k => ({ key: k, label: CAP_LABEL[k] ?? k, required: reqs[k]!, yours: capabilityData[k] ?? 0 }))
+    .sort((a, b) => b.required - a.required)
+    .slice(0, 3);
+  if (entries.length === 0) return null;
+  return (
+    <div className="row" style={{ gap: '0.25rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+      {entries.map(e => {
+        const met = e.yours >= e.required;
+        return (
+          <span
+            key={e.key}
+            style={{
+              fontSize: '0.625rem',
+              fontWeight: 700,
+              padding: '0.125rem 0.375rem',
+              borderRadius: 4,
+              background: met ? 'hsl(var(--success) / 0.12)' : 'hsl(var(--warning) / 0.12)',
+              color: met ? 'hsl(var(--success))' : 'hsl(var(--warning))',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {e.label} {e.yours}/{e.required} {met ? '✓' : '↑'}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
 
 interface CareersPageProps {
   careers?: Career[];
@@ -219,24 +265,19 @@ export default function CareersPage({
               </div>
 
               {/* AI insight */}
-              <div className="card">
-                <div className="eyebrow"><span className="dot" />AI insight · for you</div>
-                {psychProfile ? (
-                  <>
-                    <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', lineHeight: 1.6, color: 'hsl(var(--fg))' }}>
-                      {buildInsightText(psychProfile, capabilityData)}
-                    </p>
-                    <div className="row" style={{ marginTop: '0.75rem' }}>
-                      <button className="btn btn-outline btn-sm" onClick={() => setActiveTab('fit')}>Best Fit →</button>
-                      <button className="btn btn-ghost btn-sm" onClick={() => navigate?.('intelligence')}>Why this?</button>
-                    </div>
-                  </>
-                ) : (
-                  <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', lineHeight: 1.6, color: 'hsl(var(--muted-fg))' }}>
-                    Complete your profile assessment to unlock personalised AI insights.
-                  </p>
-                )}
-              </div>
+              <AiInsightCard
+                context={{
+                  type: 'careers_page',
+                  aps: userAps ?? 0,
+                  subjects: [],
+                  psychProfile: psychProfile ?? null,
+                  capabilityData: capabilityData ?? null,
+                  strategicScore: null,
+                  topProgrammes: [],
+                  topCareers: displayed.slice(0, 4),
+                }}
+                navigate={navigate}
+              />
             </>
           ) : (
             <div className="stack-3">
@@ -332,6 +373,8 @@ export default function CareersPage({
                 </div>
 
                 <p className="body-text" style={{ fontSize: '0.8125rem', lineHeight: 1.55, margin: 0 }}>{c.why}</p>
+
+                <CapDriverChips careerName={c.name} capabilityData={capabilityData} />
 
                 <div className="row" style={{ gap: '0.25rem' }}>
                   {c.tags.map(t => (

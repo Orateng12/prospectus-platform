@@ -3,7 +3,7 @@
 import { useState, useMemo, useTransition } from 'react';
 import type { Route, Subject, Programme, PsychProfileData, CapabilityData } from '@/lib/types';
 import { PROGRAMMES } from '@/lib/data';
-import { calcAPS, fmtR } from '@/lib/utils';
+import { calcAPS, fmtR, apsPoints } from '@/lib/utils';
 import { scoreCareerMatch } from '@/lib/scoring';
 import { toggleSavedProgramme } from '@/app/actions/toggleSavedProgramme';
 import { saveApplication } from '@/app/actions/saveApplication';
@@ -103,12 +103,51 @@ const PATHWAY_LABELS: Record<string, string> = {
   tvet:       'TVET',
 };
 
+/* ─── APS gap helper ──────────────────────────────────────────── */
+function apsGapLine(programme: Programme, subjects: Subject[], userAps: number): { text: string; color: string } {
+  const gap = programme.aps - userAps;
+  if (gap <= 0) {
+    const surplus = -gap;
+    return {
+      text: surplus === 0 ? '✓ Exactly at minimum APS' : `✓ ${surplus} pt${surplus !== 1 ? 's' : ''} above minimum`,
+      color: 'hsl(var(--success))',
+    };
+  }
+  if (gap <= 4) {
+    // Find the cheapest subject lever — smallest mark increase that gains at least 1 APS point
+    const designated = subjects.filter(s => s.designated && s.id !== 'lo');
+    let best: { name: string; from: number; to: number } | null = null;
+    for (const s of designated) {
+      const thresholds = [30, 40, 50, 60, 70, 80];
+      for (const t of thresholds) {
+        if (s.mark < t && apsPoints(t) > apsPoints(s.mark)) {
+          const delta = t - s.mark;
+          if (!best || delta < (best.to - best.from)) best = { name: s.name, from: s.mark, to: t };
+          break;
+        }
+      }
+    }
+    if (best) {
+      return {
+        text: `${gap} pt${gap !== 1 ? 's' : ''} needed — raise ${best.name} ${best.from}%→${best.to}%`,
+        color: 'hsl(var(--warning))',
+      };
+    }
+    return { text: `${gap} pt${gap !== 1 ? 's' : ''} needed`, color: 'hsl(var(--warning))' };
+  }
+  if (gap <= 8) {
+    return { text: `${gap} pts needed — extended pathway may apply`, color: 'hsl(var(--warning))' };
+  }
+  return { text: `${gap} pts away — foundation year recommended`, color: 'hsl(var(--muted-fg))' };
+}
+
 /* ─── Detail view ─────────────────────────────────────────────── */
 function ProgDetail({
-  p, aps, navigate, onBack, isSaved, onToggleSave, onApply, applyState, psychProfile, capabilityData,
+  p, aps, subjects, navigate, onBack, isSaved, onToggleSave, onApply, applyState, psychProfile, capabilityData,
 }: {
   p: Programme;
   aps: number;
+  subjects: Subject[];
   navigate: (r: Route) => void;
   onBack: () => void;
   isSaved: boolean;
@@ -124,12 +163,28 @@ function ProgDetail({
     { y: 'Year 3', t: 'Specialisation', d: 'Capstone project + advanced electives in chosen track' },
   ];
 
-  const requirements = [
-    { name: 'Mathematics / Maths Literacy', req: p.aps >= 35 ? 60 : 50, mark: 78 },
-    { name: 'English Home / First Add. Lang.', req: 50, mark: 62 },
-    { name: 'Relevant NSC subject',           req: 50, mark: 71 },
-    { name: 'NBT / institutional test',       req: 55, mark: null as number | null },
-  ];
+  // Build subject requirements from the student's actual subjects
+  const name = p.name.toLowerCase();
+  const mathsMin = p.aps >= 38 ? 60 : p.aps >= 32 ? 50 : 40;
+  const isScienceOrTech = name.includes('engineer') || name.includes('science') || name.includes('physic') || name.includes('ict') || name.includes('comput') || name.includes('math') || name.includes('data');
+  const isHealth = name.includes('medic') || name.includes('nurs') || name.includes('pharma') || name.includes('health');
+  const isLaw = name.includes('law') || name.includes('llb');
+
+  const requirements = subjects
+    .filter(s => s.id !== 'lo')
+    .sort((a, b) => b.mark - a.mark)
+    .slice(0, 4)
+    .map(s => {
+      const sn = s.name.toLowerCase();
+      let req = 40;
+      if (sn.includes('math') && !sn.includes('literacy')) req = mathsMin;
+      else if (sn.includes('math') && sn.includes('literacy')) req = isScienceOrTech ? 0 : 40;
+      else if (sn.includes('english') || sn.includes('afrikaans') || sn.includes('language')) req = 50;
+      else if ((sn.includes('physical') || sn.includes('life science')) && (isScienceOrTech || isHealth)) req = 50;
+      else if (isLaw && (sn.includes('history') || sn.includes('english'))) req = 55;
+      else req = 40;
+      return { name: s.name, req, mark: s.mark as number | null };
+    });
 
   const cluster = getCareerCluster(p.name);
   const careerPaths = cluster.map(({ name, badgeClass }) => {
@@ -194,14 +249,28 @@ function ProgDetail({
           </h3>
           <p className="body-text" style={{ marginTop: '0.5rem' }}>
             {p.fit >= 80
-              ? <>Your Analytical and Numerical capability scores sit well above the median for
-                  graduates of this programme. APS of <strong>{aps}</strong> exceeds the{' '}
-                  <strong>{p.aps}</strong> requirement by {aps - p.aps} points.
-                  Labour market signal is <strong>{p.demand.toLowerCase()}</strong> demand.</>
-              : <>Your APS of <strong>{aps}</strong>{' '}
+              ? <>
+                  {capabilityData
+                    ? (() => {
+                        const sorted = (['analytical_thinking', 'technical_aptitude', 'creative_thinking', 'communication_skills'] as const)
+                          .sort((a, b) => (capabilityData[b] ?? 0) - (capabilityData[a] ?? 0));
+                        const labels: Record<string, string> = { analytical_thinking: 'Analytical', technical_aptitude: 'Technical', creative_thinking: 'Creative', communication_skills: 'Communication' };
+                        return `Your ${labels[sorted[0]]} (${capabilityData[sorted[0]]}) and ${labels[sorted[1]]} (${capabilityData[sorted[1]]}) capability scores sit above the typical profile for this programme. `;
+                      })()
+                    : 'Your capability profile aligns well with this programme. '}
+                  APS of <strong>{aps}</strong> exceeds the <strong>{p.aps}</strong> requirement by {aps - p.aps} point{aps - p.aps !== 1 ? 's' : ''}.
+                  Labour market signal: <strong>{p.demand.toLowerCase()}</strong> demand.
+                </>
+              : <>
+                  Your APS of <strong>{aps}</strong>{' '}
                   {aps >= p.aps ? 'meets the requirement of' : 'falls short of'}{' '}
-                  <strong>{p.aps}</strong>. Capability fit is mixed — verbal score may need lifting via
-                  the foundation pathway. Worth a conversation with the faculty.</>
+                  <strong>{p.aps}</strong>.
+                  {aps < p.aps && (() => {
+                    const gap = apsGapLine(p, subjects, aps);
+                    return <> {gap.text}.</>;
+                  })()}
+                  {' '}Worth a conversation with the faculty about the {p.pathway === 'extended' ? 'extended' : 'foundation'} pathway.
+                </>
             }
           </p>
 
@@ -444,6 +513,7 @@ export default function ProgrammePage({
       <ProgDetail
         p={selected}
         aps={userAps ?? aps}
+        subjects={subjects}
         navigate={navigate}
         onBack={() => setSelected(null)}
         isSaved={savedIds.has(selected.id)}
@@ -549,6 +619,14 @@ export default function ProgrammePage({
                   <div style={{ fontWeight: 700, fontSize: '1rem', letterSpacing: '-0.01em', lineHeight: 1.3 }}>{p.name}</div>
                   <div className="caption" style={{ marginTop: '0.25rem' }}>{p.uni}</div>
                   <div className="meter" style={{ marginTop: '0.5rem' }}><i style={{ width: `${p.fit}%` }} /></div>
+                  {(() => {
+                    const gap = apsGapLine(p, subjects, aps);
+                    return (
+                      <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: gap.color, marginTop: '0.375rem' }}>
+                        {gap.text}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="row-between" style={{ fontSize: '0.75rem', paddingTop: '0.375rem', borderTop: '1px solid hsl(var(--border))' }}>
