@@ -1567,7 +1567,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
 .statement-section {
   background: hsl(var(--fg));
   padding: clamp(4rem, 8vw, 7rem) 0;
-  position: relative; z-index: 0; overflow: hidden;
+  position: relative; z-index: 0;
 }
 .statement-section::before {
   content: '';
@@ -2468,7 +2468,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
 .founding-section {
   background: hsl(var(--fg));
   padding: clamp(4rem, 10vw, 7rem) 0;
-  position: relative; overflow: hidden;
+  position: relative;
 }
 .founding-section::before {
   content: '';
