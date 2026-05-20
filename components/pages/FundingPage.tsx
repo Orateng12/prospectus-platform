@@ -2,6 +2,23 @@ import { SCHOLARSHIPS } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
 import type { Programme, Route } from '@/lib/types';
 
+// Representative SA institution cost scenarios (tuition only; * 1.8 adds living costs)
+const COST_PATHS = [
+  { key: 'cput', uni: 'CPUT',  prog: 'IT / Applied Sciences',    fees: 38_000, tier: 'TVET/Univ. of Technology' },
+  { key: 'up',   uni: 'UP',    prog: 'Informatics / BSc CS',     fees: 54_000, tier: 'Tier 2' },
+  { key: 'wits', uni: 'Wits',  prog: 'BSc Computer Science',     fees: 73_000, tier: 'Tier 1' },
+  { key: 'uct',  uni: 'UCT',   prog: 'BSc Computer Science',     fees: 76_000, tier: 'Tier 1' },
+];
+
+const MONTHLY_BREAKDOWN = [
+  { label: 'Food & meals',          pct: 0.38 },
+  { label: 'Transport',             pct: 0.18 },
+  { label: 'Books & stationery',    pct: 0.12 },
+  { label: 'Data & communication',  pct: 0.09 },
+  { label: 'Personal care',         pct: 0.08 },
+  { label: 'Emergency / savings',   pct: 0.15 },
+];
+
 interface FundingPageProps {
   householdIncome?: number;
   userAps?: number;
@@ -49,6 +66,8 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
     const cov  = Math.min(cost, nsfas + bursary + scholar);
     return { y: `Year ${y}`, cost, cov };
   });
+
+  const monthly = nsfas > 0 ? Math.round(nsfas / 10) : 0;
 
   const topScholar     = [...SCHOLARSHIPS].sort((a, b) => b.amount - a.amount)[0];
   const serviceScholar = SCHOLARSHIPS.find(s => s.eligibility.toLowerCase().includes('service'));
@@ -158,6 +177,100 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
           </div>
         </div>
       </div>
+
+      {/* Multi-pathway cost comparison */}
+      <div className="card" style={{ marginTop: '1.25rem' }}>
+        <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+          <div>
+            <div className="eyebrow"><span className="dot" />Institution pathways</div>
+            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>How far your funding goes at each institution</h3>
+          </div>
+          <span className="caption" style={{ fontSize: '0.75rem', maxWidth: 200, textAlign: 'right' }}>
+            Same field of study · coverage shifts with fees
+          </span>
+        </div>
+        <div className="stack">
+          {COST_PATHS.map(path => {
+            const totalCost = Math.round(path.fees * 1.8);
+            const covered   = nsfas + bursary + scholar;
+            const covPct    = Math.min(100, Math.round(covered / totalCost * 100));
+            const pathGap   = Math.max(0, totalCost - covered);
+            const isTop     = topProg ? topProg.uni.toLowerCase().includes(path.uni.toLowerCase()) : false;
+            const color     = covPct >= 90 ? 'var(--success)' : covPct >= 70 ? 'var(--primary)' : 'var(--warning)';
+            return (
+              <div key={path.key} style={{
+                display: 'grid',
+                gridTemplateColumns: '160px 1fr 100px',
+                gap: '0.875rem',
+                alignItems: 'center',
+                padding: '0.75rem 0',
+                borderBottom: '1px solid hsl(var(--border))',
+                ...(isTop ? { borderLeft: '3px solid hsl(var(--primary))', paddingLeft: '0.625rem' } : {}),
+              }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{path.uni}{isTop && <span className="caption" style={{ marginLeft: 6, fontSize: '0.6875rem' }}>★ top fit</span>}</div>
+                  <div className="caption" style={{ fontSize: '0.75rem' }}>{path.prog}</div>
+                  <div className="caption" style={{ fontSize: '0.6875rem', marginTop: 1 }}>{fmtR(path.fees)}/yr · {path.tier}</div>
+                </div>
+                <div>
+                  <div className="row-between" style={{ fontSize: '0.75rem', marginBottom: '0.3rem' }}>
+                    <span className="caption">Year 1 total: {fmtR(totalCost)}</span>
+                    <span style={{ fontWeight: 700, color: `hsl(${color})` }}>
+                      {covPct}% · {pathGap > 0 ? `${fmtR(pathGap)} gap` : 'Fully covered'}
+                    </span>
+                  </div>
+                  <div className="meter" style={{ height: 8 }}>
+                    <i style={{ width: `${covPct}%`, background: `hsl(${color})` }} />
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span className={`badge ${covPct >= 90 ? 'success' : covPct >= 70 ? '' : 'warning'}`} style={{ fontSize: '0.6875rem' }}>
+                    {covPct >= 90 ? 'Full cover' : covPct >= 70 ? 'Partial' : 'Large gap'}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="caption" style={{ marginTop: '0.75rem', fontSize: '0.75rem' }}>
+          Coverage = NSFAS + merit bursary + scholarship. A lower-cost institution means more of your funding is leftover for emergencies, books and transport.
+        </div>
+      </div>
+
+      {/* Monthly student budget */}
+      {monthly > 0 && (
+        <div className="card" style={{ marginTop: '1.25rem' }}>
+          <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+            <div>
+              <div className="eyebrow"><span className="dot" />Monthly budget</div>
+              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
+                What {fmtR(monthly)}/month covers (NSFAS distributes over 10 months)
+              </h3>
+            </div>
+            <span className="badge success">{fmtR(nsfas)}/yr · confirmed eligible</span>
+          </div>
+          <div className="grid-3" style={{ gap: '0.625rem' }}>
+            {MONTHLY_BREAKDOWN.map(item => {
+              const amt = Math.round(monthly * item.pct);
+              return (
+                <div key={item.label} style={{
+                  padding: '0.75rem',
+                  borderRadius: 8,
+                  background: 'hsl(var(--muted) / 0.5)',
+                  border: '1px solid hsl(var(--border))',
+                }}>
+                  <div className="caption" style={{ fontSize: '0.75rem' }}>{item.label}</div>
+                  <div style={{ fontWeight: 800, fontSize: '1.125rem', marginTop: '0.25rem', fontVariantNumeric: 'tabular-nums' }}>{fmtR(amt)}</div>
+                  <div className="caption" style={{ fontSize: '0.6875rem', marginTop: 2 }}>{Math.round(item.pct * 100)}% of monthly</div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="caption" style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
+            Tip: Living at home (if within commuting distance) eliminates the accommodation component — your effective monthly spending money nearly doubles.
+          </div>
+        </div>
+      )}
 
       {/* Scholarships table */}
       <div className="card">

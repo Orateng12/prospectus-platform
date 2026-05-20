@@ -29,6 +29,29 @@ interface UniversitiesPageProps {
   userProvince?: string;
 }
 
+// APS-adjusted acceptance probability — Tier 1 is competitive, UoT/TVET is accessible
+function apsOddsFor(accept: number, tier: string, aps: number): number {
+  if (tier === 'Tier 1') {
+    if (aps >= 44) return Math.min(Math.round(accept * 1.4), 85);
+    if (aps >= 40) return Math.round(accept * 1.0);
+    if (aps >= 36) return Math.round(accept * 0.6);
+    return Math.round(accept * 0.3);
+  }
+  if (aps >= 36) return Math.min(Math.round(accept * 1.5), 95);
+  if (aps >= 28) return Math.round(accept * 1.1);
+  return Math.round(accept * 0.75);
+}
+
+// Representative graduate salary & employment data (SA DHET / PayScale proxies)
+const GRAD_OUTCOMES: Record<string, { startingSalary: number; top20pct: number; employment: number }> = {
+  UCT:   { startingSalary: 48_000, top20pct: 85_000, employment: 94 },
+  WITS:  { startingSalary: 42_000, top20pct: 72_000, employment: 91 },
+  SUN:   { startingSalary: 38_000, top20pct: 65_000, employment: 90 },
+  UP:    { startingSalary: 36_000, top20pct: 62_000, employment: 89 },
+  UKZN:  { startingSalary: 33_000, top20pct: 56_000, employment: 85 },
+  CPUT:  { startingSalary: 24_000, top20pct: 38_000, employment: 88 },
+};
+
 function uniToneClass(short: string): string {
   const s = short.toUpperCase();
   if (s === 'UCT') return 'uct';
@@ -241,6 +264,9 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
           <div className="grid-3">
             {displayed.map(u => {
               const inCompare = compareItems.some(c => c.id === u.short);
+              const odds = apsOddsFor(u.accept, u.acpt, aps);
+              const oddsColor = odds >= 50 ? 'success' : odds >= 25 ? '' : 'warning';
+              const gradData = GRAD_OUTCOMES[u.short.toUpperCase()];
               return (
                 <div className="card interactive" key={u.short} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div className="row-between">
@@ -264,8 +290,10 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
                       <div style={{ fontWeight: 800, fontSize: '1.0625rem', fontVariantNumeric: 'tabular-nums' }}>{u.progs}</div>
                     </div>
                     <div>
-                      <div className="caption" style={{ fontSize: '0.6875rem' }}>Accept rate</div>
-                      <div style={{ fontWeight: 800, fontSize: '1.0625rem', fontVariantNumeric: 'tabular-nums' }}>{u.accept}%</div>
+                      <div className="caption" style={{ fontSize: '0.6875rem' }}>Your est. odds</div>
+                      <div style={{ fontWeight: 800, fontSize: '1.0625rem', fontVariantNumeric: 'tabular-nums', color: `hsl(var(--${oddsColor}))` }}>
+                        ~{odds}%
+                      </div>
                     </div>
                     <div>
                       <div className="caption" style={{ fontSize: '0.6875rem' }}>Avg fees</div>
@@ -273,8 +301,18 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
                     </div>
                   </div>
 
+                  {gradData && (
+                    <div style={{ fontSize: '0.75rem', padding: '0.5rem', background: 'hsl(var(--muted) / 0.5)', borderRadius: 6 }}>
+                      <span className="caption">Grad salary: </span>
+                      <strong>{fmtR(gradData.startingSalary)}/mo</strong>
+                      <span className="caption"> median · </span>
+                      <strong style={{ color: 'hsl(var(--success))' }}>{gradData.employment}%</strong>
+                      <span className="caption"> employed within 6mo</span>
+                    </div>
+                  )}
+
                   <div className="row" style={{ gap: '0.375rem' }}>
-                    <span className="badge success">Eligible</span>
+                    <span className={`badge ${oddsColor || 'success'}`}>APS {aps}: ~{odds}% odds</span>
                     <span className={`badge ${u.acpt === 'Tier 1' ? 'brand' : 'info'}`}>{u.acpt}</span>
                   </div>
 
@@ -306,6 +344,54 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
               <strong>{PROGRAMMES.filter(p => p.aps <= aps).length} of {PROGRAMMES.length}</strong> shortlisted programmes across these institutions.
               Tier 1 institutions (UCT, Wits, SUN, UP, UKZN) require APS 36–48 depending on faculty.
             </p>
+          </div>
+
+          {/* Graduate outcomes comparison */}
+          <div className="card" style={{ marginTop: '1.25rem' }}>
+            <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+              <div>
+                <div className="eyebrow"><span className="dot" />Graduate outcomes</div>
+                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Salary &amp; employment by institution</h3>
+              </div>
+              <span className="caption" style={{ fontSize: '0.75rem' }}>Median starting salary · SA market</span>
+            </div>
+            <div className="stack">
+              {Object.entries(GRAD_OUTCOMES)
+                .sort((a, b) => b[1].startingSalary - a[1].startingSalary)
+                .map(([key, data]) => {
+                  const maxSalary = 48_000;
+                  const salaryPct = Math.round(data.startingSalary / maxSalary * 100);
+                  return (
+                    <div key={key} style={{
+                      display: 'grid',
+                      gridTemplateColumns: '64px 1fr 120px',
+                      gap: '0.875rem',
+                      alignItems: 'center',
+                      padding: '0.625rem 0',
+                      borderBottom: '1px solid hsl(var(--border))',
+                    }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{key}</div>
+                      <div>
+                        <div className="meter success" style={{ height: 8 }}>
+                          <i style={{ width: `${salaryPct}%` }} />
+                        </div>
+                        <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.25rem' }}>
+                          Top 20%: {fmtR(data.top20pct)}/mo · {data.employment}% employed within 6 months
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 800, fontSize: '1.0625rem', fontVariantNumeric: 'tabular-nums' }}>
+                          {fmtR(data.startingSalary)}
+                        </div>
+                        <div className="caption" style={{ fontSize: '0.6875rem' }}>/month median</div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+            <div className="caption" style={{ marginTop: '0.75rem', fontSize: '0.75rem' }}>
+              Salary differences compound over a career. A R 24k/mo vs R 48k/mo starting difference = R 2.88m over 10 years before promotions. Choose your institution for the long game, not just the application odds.
+            </div>
           </div>
         </>
       )}

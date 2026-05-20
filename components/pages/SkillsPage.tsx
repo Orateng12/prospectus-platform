@@ -22,9 +22,62 @@ const DESCRIPTIONS: Record<string, string> = {
   Practical:   'Real-world execution · hands-on',
 };
 
-const GROWTH_NOTES: Record<string, string> = {
-  Verbal:   'Lifting Verbal opens Law, journalism, PM tracks. Suggested: 4-week reading-comprehension program.',
-  Creative: 'Creative correlates with design + research roles. Suggested: portfolio project on side problem.',
+interface ProgressionPlan {
+  action: string;
+  commitment: string;
+  weeks: number;
+  unlocks: string[];
+}
+
+const PROGRESSION_PLANS: Record<string, ProgressionPlan> = {
+  Verbal: {
+    action:      'Debate club or Toastmasters (school chapter or community)',
+    commitment:  '2 hrs/week',
+    weeks:       8,
+    unlocks:     ['Product Manager', 'Journalist', 'Lawyer', 'Lecturer'],
+  },
+  Social: {
+    action:      'Volunteer to chair group meetings; lead a school society',
+    commitment:  '3 hrs/week',
+    weeks:       6,
+    unlocks:     ['Project Manager', 'Social Worker', 'HR Manager', 'Counsellor'],
+  },
+  Creative: {
+    action:      'Build one real project: design challenge, coding hackathon, or research brief',
+    commitment:  '4 hrs/week',
+    weeks:       8,
+    unlocks:     ['UX Designer', 'Architect', 'Entrepreneur', 'Research Scientist'],
+  },
+  Analytical: {
+    action:      'Maths olympiad practice (SAMF) + 3 logic puzzle sets per week',
+    commitment:  '3 hrs/week',
+    weeks:       6,
+    unlocks:     ['Actuary', 'Quantitative Analyst', 'Data Scientist', 'Statistician'],
+  },
+  Technical: {
+    action:      'Complete one Python or Java course (freeCodeCamp / Coursera free tier)',
+    commitment:  '5 hrs/week',
+    weeks:       6,
+    unlocks:     ['Software Engineer', 'Data Engineer', 'IT Analyst', 'DevOps Engineer'],
+  },
+  Spatial: {
+    action:      'Engineering drawing basics — free Autodesk Fusion 360 student licence',
+    commitment:  '2 hrs/week',
+    weeks:       8,
+    unlocks:     ['Architect', 'Civil Engineer', 'Mechanical Engineer', 'Town Planner'],
+  },
+  Numerical: {
+    action:      'Khan Academy Statistics + probability modules (2 modules/week)',
+    commitment:  '3 hrs/week',
+    weeks:       6,
+    unlocks:     ['Statistician', 'Financial Analyst', 'Actuary', 'Data Scientist'],
+  },
+  Practical: {
+    action:      'Shadow a professional for 1 day/month or volunteer at a sector NGO',
+    commitment:  '8 hrs/month',
+    weeks:       12,
+    unlocks:     ['Mechanical Engineer', 'Registered Nurse', 'Agricultural Specialist'],
+  },
 };
 
 // Map DB capability_graphs columns → CAPS labels (best-fit)
@@ -172,19 +225,39 @@ export default function SkillsPage({ capabilityData, psychProfile, careers = [],
 
           <div className="card">
             <div className="eyebrow"><span className="dot" />Growth areas</div>
-            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Where one push has high return</h3>
+            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Lowest 2 — highest ROI to move</h3>
             <div className="stack-2" style={{ marginTop: '0.875rem' }}>
-              {sorted.slice(-2).map(c => (
-                <div key={c.l}>
-                  <div className="row-between">
-                    <div style={{ fontWeight: 700 }}>{c.l}</div>
-                    <div style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: 'hsl(var(--warning))' }}>{c.v}</div>
+              {sorted.slice(-2).map(c => {
+                const plan = PROGRESSION_PLANS[c.l];
+                return (
+                  <div key={c.l} style={{ paddingBottom: '0.875rem', borderBottom: '1px solid hsl(var(--border))' }}>
+                    <div className="row-between" style={{ marginBottom: '0.375rem' }}>
+                      <div style={{ fontWeight: 700 }}>{c.l}</div>
+                      <div style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: 'hsl(var(--warning))' }}>{c.v}/100</div>
+                    </div>
+                    <div className="meter warning" style={{ marginBottom: '0.5rem' }}>
+                      <i style={{ width: `${c.v}%` }} />
+                    </div>
+                    {plan ? (
+                      <>
+                        <div style={{ fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.25rem' }}>{plan.action}</div>
+                        <div className="row" style={{ gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.375rem' }}>
+                          <span className="badge">{plan.commitment}</span>
+                          <span className="badge">{plan.weeks} weeks</span>
+                          <span className="badge success">+8–12 pts</span>
+                        </div>
+                        <div className="caption" style={{ fontSize: '0.75rem' }}>
+                          Unlocks: {plan.unlocks.slice(0, 3).join(' · ')}{plan.unlocks.length > 3 ? ` + ${plan.unlocks.length - 3} more` : ''}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="caption" style={{ fontSize: '0.75rem' }}>
+                        Targeted practice over 4–6 weeks should move this 8–12 points.
+                      </div>
+                    )}
                   </div>
-                  <div className="caption" style={{ marginTop: '0.25rem', fontSize: '0.75rem' }}>
-                    {GROWTH_NOTES[c.l] ?? 'Targeted practice over 4-6 weeks should move this 8-12 points.'}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
