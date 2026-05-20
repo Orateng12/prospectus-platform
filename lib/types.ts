@@ -201,7 +201,8 @@ export type Route =
   | 'application-detail'
   | 'scholarship-detail'
   | 'career-detail'
-  | 'subject-detail';
+  | 'subject-detail'
+  | 'notifications';
 
 // Routes still in the type for backward-compatibility with navigate() callsites.
 // Sidebar items removed: financial, skills, map, discover, nsfas, documents, deadlines, compare
@@ -233,10 +234,10 @@ export interface DbNotification {
   type: string;
   title: string;
   message: string;
-  link?: string;
-  read: boolean;
-  priority: string;
-  created_at: string;
+  link?: string | null;
+  read?: boolean | null;
+  priority?: string | null;
+  created_at?: string | null;
 }
 
 export interface OnboardingData {

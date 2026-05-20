@@ -29,6 +29,7 @@ const GREET_TEMPLATE: Record<Route, string | ((name: string) => string)> = {
   'scholarship-detail': 'Scholarship Detail',
   'career-detail':      'Career Path',
   'subject-detail':     'Subject Deep-dive',
+  'notifications':      'Notifications',
 };
 
 interface CmdkResult {
@@ -195,7 +196,12 @@ export default function Topbar({
             <span className="search-kbd">⌘K</span>
           </div>
 
-          <button className="icon-btn" title="Notifications" aria-label="Notifications">
+          <button
+            className="icon-btn"
+            title="Notifications"
+            aria-label="Notifications"
+            onClick={() => navigate?.('notifications')}
+          >
             {unreadNotificationCount > 0 && (
               <span
                 className="icon-dot"

@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type {
   Route, Subject, Programme, Career, CompareItem, Application, Scholarship,
-  PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbDocument,
+  PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbDocument, DbNotification,
 } from '@/lib/types';
 import { SUBJECTS, CAREERS as STATIC_CAREERS, SCHOLARSHIPS as STATIC_SCHOLARSHIPS } from '@/lib/data';
 import { calcAPS } from '@/lib/utils';
@@ -34,6 +34,7 @@ import DiscoverPage from './pages/DiscoverPage';
 import MapPage from './pages/MapPage';
 import SkillsPage from './pages/SkillsPage';
 import NSFASPage from './pages/NSFASPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 const BASE_APS = 42;
 
@@ -56,6 +57,7 @@ interface DashboardProps {
   savedProgrammeIds?: string[];
   appliedScholarshipNames?: string[];
   documents?: DbDocument[];
+  notifications?: DbNotification[];
   unreadNotificationCount?: number;
 }
 
@@ -78,6 +80,7 @@ export default function Dashboard({
   savedProgrammeIds = [],
   appliedScholarshipNames = [],
   documents = [],
+  notifications = [],
   unreadNotificationCount = 0,
 }: DashboardProps) {
   const router = useRouter();
@@ -238,6 +241,15 @@ export default function Dashboard({
             navigate={navigate}
             psychProfile={displayPsych}
             capabilityData={displayCap}
+            userAps={displayAps}
+            householdIncome={householdIncome}
+          />
+        );
+      case 'notifications':
+        return (
+          <NotificationsPage
+            notifications={emptyMode ? [] : notifications}
+            navigate={navigate}
           />
         );
       case 'cognitive':
