@@ -284,7 +284,7 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
 
                   <hr className="divider" style={{ margin: 0 }} />
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.625rem' }}>
+                  <div className="uni-stat-row">
                     <div>
                       <div className="caption" style={{ fontSize: '0.6875rem' }}>Programmes</div>
                       <div style={{ fontWeight: 800, fontSize: '1.0625rem', fontVariantNumeric: 'tabular-nums' }}>{u.progs}</div>
@@ -362,24 +362,22 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
                   const maxSalary = 48_000;
                   const salaryPct = Math.round(data.startingSalary / maxSalary * 100);
                   return (
-                    <div key={key} style={{
-                      display: 'grid',
-                      gridTemplateColumns: '64px 1fr 120px',
-                      gap: '0.875rem',
-                      alignItems: 'center',
-                      padding: '0.625rem 0',
-                      borderBottom: '1px solid hsl(var(--border))',
-                    }}>
+                    <div
+                      key={key}
+                      className="grad-outcome-row"
+                      style={{ padding: '0.625rem 0', borderBottom: '1px solid hsl(var(--border))' }}
+                    >
                       <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{key}</div>
                       <div>
                         <div className="meter success" style={{ height: 8 }}>
                           <i style={{ width: `${salaryPct}%` }} />
                         </div>
                         <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.25rem' }}>
-                          Top 20%: {fmtR(data.top20pct)}/mo · {data.employment}% employed within 6 months
+                          <span className="hide-xs">Top 20%: {fmtR(data.top20pct)}/mo · </span>
+                          {data.employment}% employed · median {fmtR(data.startingSalary)}/mo
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
+                      <div className="grad-outcome-right" style={{ textAlign: 'right' }}>
                         <div style={{ fontWeight: 800, fontSize: '1.0625rem', fontVariantNumeric: 'tabular-nums' }}>
                           {fmtR(data.startingSalary)}
                         </div>

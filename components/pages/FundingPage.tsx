@@ -198,21 +198,21 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
             const isTop     = topProg ? topProg.uni.toLowerCase().includes(path.uni.toLowerCase()) : false;
             const color     = covPct >= 90 ? 'var(--success)' : covPct >= 70 ? 'var(--primary)' : 'var(--warning)';
             return (
-              <div key={path.key} style={{
-                display: 'grid',
-                gridTemplateColumns: '160px 1fr 100px',
-                gap: '0.875rem',
-                alignItems: 'center',
-                padding: '0.75rem 0',
-                borderBottom: '1px solid hsl(var(--border))',
-                ...(isTop ? { borderLeft: '3px solid hsl(var(--primary))', paddingLeft: '0.625rem' } : {}),
-              }}>
+              <div
+                key={path.key}
+                className="fund-pathway-row"
+                style={{
+                  padding: '0.75rem 0',
+                  borderBottom: '1px solid hsl(var(--border))',
+                  ...(isTop ? { borderLeft: '3px solid hsl(var(--primary))', paddingLeft: '0.625rem' } : {}),
+                }}
+              >
                 <div>
                   <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{path.uni}{isTop && <span className="caption" style={{ marginLeft: 6, fontSize: '0.6875rem' }}>★ top fit</span>}</div>
                   <div className="caption" style={{ fontSize: '0.75rem' }}>{path.prog}</div>
                   <div className="caption" style={{ fontSize: '0.6875rem', marginTop: 1 }}>{fmtR(path.fees)}/yr · {path.tier}</div>
                 </div>
-                <div>
+                <div className="fund-pathway-bar">
                   <div className="row-between" style={{ fontSize: '0.75rem', marginBottom: '0.3rem' }}>
                     <span className="caption">Year 1 total: {fmtR(totalCost)}</span>
                     <span style={{ fontWeight: 700, color: `hsl(${color})` }}>
@@ -243,7 +243,7 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
           <div className="row-between" style={{ marginBottom: '0.875rem' }}>
             <div>
               <div className="eyebrow"><span className="dot" />Monthly budget</div>
-              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
+              <h3 className="subheading nsfas-monthly-head" style={{ marginTop: '0.25rem' }}>
                 What {fmtR(monthly)}/month covers (NSFAS distributes over 10 months)
               </h3>
             </div>

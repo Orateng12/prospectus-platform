@@ -424,12 +424,12 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="row-between">
                   <span style={{ fontWeight: 700, fontSize: '0.875rem' }}>{lever.label}</span>
-                  <div className="row" style={{ gap: '0.375rem', flexShrink: 0, marginLeft: '0.5rem' }}>
+                  <div className="row lever-badge-cluster" style={{ gap: '0.375rem', marginLeft: '0.5rem' }}>
                     {idx < 2 && (
                       <span className="badge success" style={{ height: '1.25rem', fontSize: '0.625rem' }}>Do first</span>
                     )}
                     <span className="badge" style={{ height: '1.25rem', fontSize: '0.625rem' }}>+{lever.estGain} pts</span>
-                    <span className="badge" style={{ height: '1.25rem', fontSize: '0.625rem', color: 'hsl(var(--muted-fg))' }}>
+                    <span className="badge lever-meta-badge" style={{ height: '1.25rem', fontSize: '0.625rem', color: 'hsl(var(--muted-fg))' }}>
                       {lever.currentScore}/100 now
                     </span>
                   </div>

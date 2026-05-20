@@ -159,7 +159,7 @@ export default function NSFASPage({ householdIncome = 220000 }: NSFASPageProps) 
       {eligible && monthly > 0 && (
         <div className="card" style={{ marginTop: '1.25rem' }}>
           <div className="eyebrow"><span className="dot" />Monthly cashflow</div>
-          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
+          <h3 className="subheading nsfas-monthly-head" style={{ marginTop: '0.25rem' }}>
             {fmtR(monthly)}/month during term (award paid over 10 academic months)
           </h3>
           <div className="grid-3" style={{ gap: '0.625rem', marginTop: '0.875rem' }}>
