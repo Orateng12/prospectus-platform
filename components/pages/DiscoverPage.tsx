@@ -122,7 +122,7 @@ export default function DiscoverPage({ navigate, psychProfile }: DiscoverPagePro
     }, 1100);
   }
 
-  const initial = (psychProfile as Record<string, unknown>)?.openness !== undefined ? 'L' : 'L';
+  const initial = psychProfile?.openness !== undefined ? 'L' : 'L';
 
   return (
     <div className="page-anim">
