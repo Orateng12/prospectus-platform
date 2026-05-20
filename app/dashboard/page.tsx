@@ -161,9 +161,11 @@ export default async function Page() {
 
   // Psychological profile
   // Only redirect brand-new accounts that have no profile row at all (auth trigger not yet run).
+  // PGRST116 = "0 rows returned by .single()" — the row genuinely doesn't exist.
+  // Any other error code (network, RLS, etc.) is treated as degraded mode, not a redirect.
   // Users who have a profile but haven't completed onboarding stay on the dashboard in
   // graceful-degraded (empty) mode rather than being bounced on every router.refresh().
-  const isNewAccount = !profile && !profileResult.error;
+  const isNewAccount = !profile && profileResult.error?.code === 'PGRST116';
   if (isNewAccount) redirect('/onboarding');
 
   const psychProfile: PsychProfileData | null = psychResult.data ?? null;
