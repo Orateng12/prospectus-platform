@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Subject, PsychProfileData, CapabilityData } from '@/lib/types';
 import { CAPS } from '@/lib/data';
-import { calcAPS, fmtR } from '@/lib/utils';
+import { calcAPS, fmtR, apsPoints } from '@/lib/utils';
 import { updateProfile } from '@/app/actions/updateProfile';
 import { saveSubjectMarks } from '@/app/actions/saveSubjects';
 
@@ -236,6 +236,22 @@ export default function ProfilePage({
         <button className="btn btn-outline">Change photo</button>
       </div>
 
+      {/* KPI row */}
+      <div className="grid-4 stack-3" style={{ marginBottom: '1.25rem' }}>
+        {[
+          { l: 'Profile complete', v: '84%',        h: '13 of 16 sections',   c: 'success' },
+          { l: 'Current APS',     v: String(aps),   h: 'top 12% nationally',  c: 'success' },
+          { l: 'Capability index',v: String(capabilityData ? Math.round([capabilityData.analytical_thinking, capabilityData.technical_aptitude, capabilityData.communication_skills, capabilityData.creative_thinking, capabilityData.leadership_potential, capabilityData.entrepreneurial_drive].reduce((a, b) => a + b, 0) / 6) : 78), h: '+6 vs. baseline', c: 'success' },
+          { l: 'AI confidence',   v: 'High',        h: '11 data sources',     c: '' },
+        ].map(({ l, v, h, c }) => (
+          <div className="card kpi" key={l}>
+            <div className="lbl">{l}</div>
+            <div className="val" style={c ? { color: `hsl(var(--${c}))` } : {}}>{v}</div>
+            <div className="hint">{h}</div>
+          </div>
+        ))}
+      </div>
+
       <div className="grid-2 stack-3">
         {/* Personal */}
         <Section
@@ -349,76 +365,142 @@ export default function ProfilePage({
         {/* Academic */}
         <Section
           id="academic"
-          title="Academic"
+          title="Academic record"
           onSave={saveSubjects}
           saving={subjectSaving}
           saveError={subjectError}
         >
-          <div className="stack">
-            <div className="row-between" style={{ marginBottom: '0.5rem' }}>
-              <span className="caption">APS Score</span>
-              <span style={{ fontWeight: 800, fontSize: '1.5rem', fontVariantNumeric: 'tabular-nums' }}>
-                {editSection === 'academic' ? calcAPS(editSubjects) : aps}
-              </span>
-            </div>
-            {(editSection === 'academic' ? editSubjects : displaySubjects).map(s => (
-              <div key={s.id} className="row-between" style={{ fontSize: '0.8125rem', padding: '0.375rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
-                <span>{s.name}</span>
-                {editSection === 'academic' ? (
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    className="input"
-                    value={editSubjects.find(e => e.id === s.id)?.mark ?? s.mark}
-                    onChange={ev => {
-                      const mark = Math.min(100, Math.max(0, parseInt(ev.target.value, 10) || 0));
-                      setEditSubjects(prev => prev.map(sub => sub.id === s.id ? { ...sub, mark } : sub));
-                    }}
-                    style={{ width: '4.5rem', textAlign: 'right', fontWeight: 700 }}
-                  />
-                ) : (
-                  <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{s.mark}%</span>
-                )}
-              </div>
+          <div className="row-between" style={{ marginBottom: '0.625rem' }}>
+            <span className="caption">APS Score</span>
+            <span style={{ fontWeight: 800, fontSize: '1.5rem', fontVariantNumeric: 'tabular-nums' }}>
+              {editSection === 'academic' ? calcAPS(editSubjects) : aps}
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 56px 48px 72px', gap: 0, border: '1px solid hsl(var(--border))', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
+            {['Subject', 'Mark', 'APS', 'Trend'].map(h => (
+              <div key={h} style={{ padding: '0.5rem 0.75rem', background: 'hsl(var(--muted))', fontWeight: 700, fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'hsl(var(--muted-fg))' }}>{h}</div>
             ))}
+            {(editSection === 'academic' ? editSubjects : displaySubjects).map(s => {
+              const pts = apsPoints(s.mark);
+              const trend = s.mark >= 70 ? 'success' : s.mark >= 60 ? 'warning' : 'destructive';
+              const trendLabel = s.mark >= 70 ? '▲ up' : s.mark >= 60 ? '→ flat' : '▼ down';
+              return [
+                <div key={`${s.id}-name`} style={{ padding: '0.5625rem 0.75rem', borderTop: '1px solid hsl(var(--border))', fontWeight: 600, fontSize: '0.8125rem' }}>
+                  {s.name}{!s.designated && <span className="caption"> · LO</span>}
+                </div>,
+                <div key={`${s.id}-mark`} style={{ padding: '0.5625rem 0.75rem', borderTop: '1px solid hsl(var(--border))', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
+                  {editSection === 'academic' ? (
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      className="input"
+                      value={editSubjects.find(e => e.id === s.id)?.mark ?? s.mark}
+                      onChange={ev => {
+                        const mark = Math.min(100, Math.max(0, parseInt(ev.target.value, 10) || 0));
+                        setEditSubjects(prev => prev.map(sub => sub.id === s.id ? { ...sub, mark } : sub));
+                      }}
+                      style={{ width: '3.25rem', textAlign: 'right', fontWeight: 700, padding: '0.25rem 0.375rem' }}
+                    />
+                  ) : (
+                    `${s.mark}%`
+                  )}
+                </div>,
+                <div key={`${s.id}-pts`} style={{ padding: '0.5625rem 0.75rem', borderTop: '1px solid hsl(var(--border))', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'hsl(var(--muted-fg))' }}>
+                  {s.designated ? pts : '—'}
+                </div>,
+                <div key={`${s.id}-trend`} style={{ padding: '0.5625rem 0.75rem', borderTop: '1px solid hsl(var(--border))' }}>
+                  <span className={`badge ${trend}`} style={{ fontSize: '0.5625rem' }}>{trendLabel}</span>
+                </div>,
+              ];
+            })}
           </div>
         </Section>
 
-        {/* Capability */}
-        <Section id="capability" title="Capability graph">
-          <div className="stack">
-            {caps.map(c => (
-              <div key={c.l} className="progress-row">
-                <span className="label">{c.l}</span>
-                <div className={`meter ${c.v >= 80 ? 'success' : c.v >= 65 ? 'primary' : 'accent'}`}>
-                  <i style={{ width: `${c.v}%` }} />
-                </div>
-                <span className="val">{c.v}</span>
-              </div>
-            ))}
-          </div>
-        </Section>
       </div>
+
+      {/* Interests & aspirations */}
+      {!emptyMode && (
+        <div className="grid-2 stack-3" style={{ marginTop: '1.25rem' }}>
+          <div className="card stack-3">
+            <div className="eyebrow"><span className="dot" />Interests &amp; aspirations</div>
+            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>What drives you</h3>
+            <div className="row" style={{ marginTop: '0.5rem', gap: '0.375rem', flexWrap: 'wrap' }}>
+              {['Technology', 'Problem-solving', 'Sciences', 'Reading', 'Community service', 'Coding club', 'Debate team', 'Maths olympiad'].map(t => (
+                <span key={t} className="badge">{t}</span>
+              ))}
+            </div>
+            <hr className="divider" />
+            <div className="stack-2">
+              {[
+                ['Career anchor', 'Build technology that solves problems for under-served communities'],
+                ['Preferred provinces', 'Western Cape, Gauteng'],
+                ['Willing to relocate', 'Yes — with full bursary'],
+                ['Study language', 'English'],
+              ].map(([l, v]) => (
+                <div key={l}>
+                  <div className="caption" style={{ fontSize: '0.6875rem' }}>{l}</div>
+                  <div style={{ fontWeight: 600, fontSize: '0.875rem', marginTop: '1px' }}>{v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="card stack-3">
+            <div className="eyebrow"><span className="dot" />Capability snapshot</div>
+            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Your strengths</h3>
+            <div className="stack" style={{ marginTop: '0.75rem' }}>
+              {caps.map(c => (
+                <div key={c.l} className="progress-row">
+                  <span className="label">{c.l}</span>
+                  <div className={`meter ${c.v >= 80 ? 'success' : c.v >= 65 ? 'primary' : 'accent'}`}>
+                    <i style={{ width: `${c.v}%` }} />
+                  </div>
+                  <span className="val">{c.v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Activity */}
       <div className="card" style={{ marginTop: '1.25rem' }}>
-        <div className="sec" style={{ marginBottom: '0.875rem' }}>
-          <h3>Activity</h3>
+        <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+          <div>
+            <div className="eyebrow"><span className="dot" />Activity</div>
+            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Recent on Prospectus</h3>
+          </div>
         </div>
-        <div className="grid-3">
-          {[
-            { l: 'Applications', v: emptyMode ? '0' : '4', sub: emptyMode ? 'No applications yet' : '1 accepted · 1 pending', c: 'success' },
-            { l: 'Scholarships saved', v: emptyMode ? '0' : '5', sub: emptyMode ? 'None saved yet' : '2 applied · R 445k matched', c: 'brand' },
-            { l: 'Programmes saved', v: emptyMode ? '0' : '6', sub: emptyMode ? 'None saved yet' : 'across 4 universities', c: 'info' },
-          ].map(s => (
-            <div key={s.l} className="card compact" style={{ textAlign: 'center' }}>
-              <div style={{ fontWeight: 900, fontSize: '2rem', letterSpacing: '-0.04em', fontVariantNumeric: 'tabular-nums' }}>{s.v}</div>
-              <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginTop: '0.25rem' }}>{s.l}</div>
-              <div className="caption" style={{ marginTop: '0.125rem', fontSize: '0.6875rem' }}>{s.sub}</div>
-            </div>
-          ))}
-        </div>
+        {emptyMode ? (
+          <div className="grid-3">
+            {[
+              { l: 'Applications', v: '0', sub: 'No applications yet' },
+              { l: 'Scholarships saved', v: '0', sub: 'None saved yet' },
+              { l: 'Programmes saved', v: '0', sub: 'None saved yet' },
+            ].map(s => (
+              <div key={s.l} className="card compact" style={{ textAlign: 'center' }}>
+                <div style={{ fontWeight: 900, fontSize: '2rem', letterSpacing: '-0.04em', fontVariantNumeric: 'tabular-nums' }}>{s.v}</div>
+                <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginTop: '0.25rem' }}>{s.l}</div>
+                <div className="caption" style={{ marginTop: '0.125rem', fontSize: '0.6875rem' }}>{s.sub}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="stack">
+            {[
+              ['Today, 10:42', 'Ran simulator scenario · "Drop History, add Geography"'],
+              ['Yesterday',    'Saved 3 programmes to shortlist'],
+              ['12 May',       'Completed cognitive assessment — Module 4 of 8'],
+              ['08 May',       'Uploaded payslip to vault'],
+              ['03 May',       'Submitted UCT BSc CS application'],
+            ].map(([d, t]) => (
+              <div key={d} className="row-between" style={{ padding: '0.625rem 0', borderBottom: '1px solid hsl(var(--border))', fontSize: '0.875rem' }}>
+                <span>{t}</span>
+                <span className="caption" style={{ whiteSpace: 'nowrap', marginLeft: '1rem' }}>{d}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Preview mode toggle */}
