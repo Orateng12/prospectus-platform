@@ -2305,6 +2305,96 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
   .radar-container svg { width: 100% !important; height: auto !important; }
 }
 
+/* ─── Phase 7: targeted mobile fixes (deep-feature round) ───────────────── */
+
+/* B1 — IntelligencePage lever ROI: hide "N/100 now" score badge on small screens
+        to free horizontal room for the label + "Do first" / "+N pts" badges */
+@media (max-width: 480px) {
+  .lever-meta-badge { display: none !important; }
+}
+/* B2 — Lever header badge cluster: allow wrapping at very tight widths */
+@media (max-width: 360px) {
+  .lever-badge-cluster { flex-wrap: wrap !important; justify-content: flex-end; }
+}
+
+/* B3 — FundingPage institution pathways: layout class (replaces inline grid styles)
+        Desktop: institution-info | bar+coverage | badge
+        Mobile ≤600px: institution-info | badge  /  bar spans full width */
+.fund-pathway-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 100px;
+  gap: 0.875rem;
+  align-items: center;
+}
+@media (max-width: 600px) {
+  .fund-pathway-row {
+    grid-template-columns: 1fr auto;
+    row-gap: 0.5rem;
+    column-gap: 0.625rem;
+  }
+  .fund-pathway-bar { grid-column: 1 / -1; }
+}
+@media (max-width: 360px) {
+  .fund-pathway-row { grid-template-columns: 1fr; }
+  .fund-pathway-bar { grid-column: 1; }
+}
+
+/* B4 — UniversitiesPage graduate outcomes table: layout class (replaces inline grid)
+        Desktop: institution | bar+caption | salary-number
+        Mobile ≤480px: institution | bar+caption (salary col hidden — it's in the bar caption too) */
+.grad-outcome-row {
+  display: grid;
+  grid-template-columns: 64px 1fr 120px;
+  gap: 0.875rem;
+  align-items: center;
+}
+@media (max-width: 480px) {
+  .grad-outcome-row { grid-template-columns: 48px 1fr; }
+  .grad-outcome-right { display: none !important; }
+}
+
+/* B5 — UniversitiesPage university cards: stat row (Programmes / Odds / Fees)
+        The inline repeat(3,1fr) grid holds three short labels — fine on most screens.
+        Below 360px collapse to 2-col so labels don't clip. */
+.uni-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.625rem;
+}
+@media (max-width: 360px) {
+  .uni-stat-row { grid-template-columns: repeat(2, 1fr); }
+  .uni-stat-row > :last-child { grid-column: 1 / -1; }
+}
+
+/* B6 — ApplicationsPage portfolio balance: stack Safety/Target/Reach to single col
+        below 360px since grid-3 goes 2-col at 640px which can still feel cramped
+        at very narrow phones. grid-3 already handles 1-col below 640px — no change needed. */
+
+/* B7 — NSFASPage monthly cashflow: at ≤360px the 6-cell grid-3 (already 1-col) is fine.
+        However the monthly figure headline (fmtR(monthly)/month...) can be long. */
+@media (max-width: 400px) {
+  .nsfas-monthly-head { font-size: 0.9375rem !important; }
+}
+
+/* ─── Phase 8: cross-page intelligence layer ─────────────────────────────── */
+
+/* Career path rows in ProgrammePage — clickable ghost button */
+.btn-ghost-row {
+  background: none;
+  border: none;
+  text-align: left;
+  border-radius: 6px;
+  transition: background 120ms;
+}
+.btn-ghost-row:hover { background: hsl(var(--muted) / 0.5); }
+
+/* Simulator post-save cascade card animation */
+@keyframes cascadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.cascade-card { animation: cascadeIn 220ms var(--ease-out-strong, ease-out); }
+
 /* ─── Onboarding shell ───────────────────────────────────── */
 .onboarding-shell {
   min-height: 100vh;

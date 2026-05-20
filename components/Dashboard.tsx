@@ -206,6 +206,11 @@ export default function Dashboard({
             psychProfile={displayPsych}
             capabilityData={displayCap}
             userAps={displayAps}
+            householdIncome={householdIncome}
+            onOpenCareer={(name) => {
+              const c = (careers ?? []).find(x => x.name === name);
+              if (c) navigateToDetail('career-detail', c);
+            }}
           />
         );
       case 'funding':
@@ -287,6 +292,8 @@ export default function Dashboard({
             applications={emptyMode ? [] : (applications.length > 0 ? applications : undefined)}
             onOpenDetail={(a) => navigateToDetail('application-detail', a)}
             programmes={initialProgrammes}
+            userAps={displayAps}
+            householdIncome={householdIncome}
           />
         );
       case 'documents':
@@ -320,6 +327,8 @@ export default function Dashboard({
             programmes={initialProgrammes}
             capabilityData={displayCap}
             navigate={navigate}
+            savedProgrammeIds={displaySavedIds}
+            userAps={displayAps}
           />
         );
       case 'scholarship-detail':

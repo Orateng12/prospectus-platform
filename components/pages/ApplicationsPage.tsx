@@ -10,6 +10,44 @@ interface ApplicationsPageProps {
   applications?: DbApplication[];
   onOpenDetail?: (app: Application) => void;
   programmes?: Programme[];
+  userAps?: number;
+  householdIncome?: number;
+}
+
+type Portfolio = 'safety' | 'target' | 'reach' | 'unknown';
+
+function classifyApp(app: Application, programmes: Programme[], userAps: number): Portfolio {
+  const progName = app.uni.includes('·') ? app.uni.split('·').slice(1).join('·').trim() : app.uni;
+  const matched = programmes.find(p =>
+    p.name.toLowerCase() === progName.toLowerCase() ||
+    app.uni.toLowerCase().includes(p.name.toLowerCase()),
+  );
+  if (!matched) return 'unknown';
+  const gap = userAps - matched.aps;
+  if (gap >= 5) return 'safety';
+  if (gap >= -3) return 'target';
+  return 'reach';
+}
+
+function computeReadiness(app: Application, programmes: Programme[], userAps: number, income?: number): number {
+  const portfolio = classifyApp(app, programmes, userAps);
+  const apsScore = portfolio === 'safety' ? 90 : portfolio === 'target' ? 65 : portfolio === 'reach' ? 35 : 50;
+  const fundingScore = income === undefined ? 60 : income <= 350_000 ? 85 : income <= 600_000 ? 55 : 30;
+  return Math.round(apsScore * 0.6 + fundingScore * 0.4);
+}
+
+function fallbackProgrammes(apps: Application[], programmes: Programme[], userAps: number): Programme[] {
+  const rejectedNames = apps
+    .filter(a => a.status === 'destructive')
+    .map(a => a.uni.includes('·') ? a.uni.split('·').slice(1).join('·').trim().toLowerCase() : a.uni.toLowerCase());
+
+  if (rejectedNames.length === 0 || userAps === 0) return [];
+
+  return programmes
+    .filter(p => p.aps <= userAps + 2 && p.aps >= userAps - 8)
+    .filter(p => !rejectedNames.some(n => p.name.toLowerCase().includes(n) || n.includes(p.name.toLowerCase())))
+    .sort((a, b) => b.fit - a.fit)
+    .slice(0, 3);
 }
 
 type Tab = 'all' | 'submitted' | 'pending' | 'accepted';
@@ -195,7 +233,7 @@ function AddApplicationModal({
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default function ApplicationsPage({ applications: dbApps, onOpenDetail, programmes = [] }: ApplicationsPageProps) {
+export default function ApplicationsPage({ applications: dbApps, onOpenDetail, programmes = [], userAps = 0, householdIncome }: ApplicationsPageProps) {
   const [tab, setTab] = useState<Tab>('all');
   const [selected, setSelected] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -292,42 +330,65 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail, p
       ) : (
         <div className="app-grid grid-2 stack-3" style={{ gridTemplateColumns: selectedApp ? '1fr 1fr' : '1fr', alignItems: 'start' }}>
           <div className="stack">
-            {displayed.map(a => (
-              <div
-                key={a.id ?? a.uni}
-                className="card"
-                style={{
-                  cursor: 'pointer',
-                  borderColor: selected === a.id ? 'hsl(var(--primary) / 0.5)' : undefined,
-                }}
-                onClick={() => {
-                  if (onOpenDetail) {
-                    onOpenDetail(a);
-                  } else {
-                    setSelected(prev => prev === a.id ? null : a.id ?? null);
-                  }
-                }}
-              >
-                <div className="row-between">
-                  <div style={{ fontWeight: 700, fontSize: '0.9375rem', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.uni}</div>
-                  <span className={`badge ${a.status}`} style={{ flexShrink: 0, marginLeft: '0.5rem' }}>{a.label}</span>
-                </div>
-                <div className="caption" style={{ marginTop: '0.25rem' }}>{a.meta}</div>
-                <div className="row" style={{ marginTop: '0.625rem', gap: '0.5rem', alignItems: 'center' }}>
-                  <div className="pipe-stages">
-                    {a.stages.map((s, i) => (
-                      <span key={i} className={`stage ${s}`} />
-                    ))}
+            {displayed.map(a => {
+              const readiness = userAps > 0 && programmes.length > 0
+                ? computeReadiness(a, programmes, userAps, householdIncome)
+                : null;
+              return (
+                <div
+                  key={a.id ?? a.uni}
+                  className="card"
+                  style={{
+                    cursor: 'pointer',
+                    borderColor: selected === a.id ? 'hsl(var(--primary) / 0.5)' : undefined,
+                  }}
+                  onClick={() => {
+                    if (onOpenDetail) {
+                      onOpenDetail(a);
+                    } else {
+                      setSelected(prev => prev === a.id ? null : a.id ?? null);
+                    }
+                  }}
+                >
+                  <div className="row-between">
+                    <div style={{ fontWeight: 700, fontSize: '0.9375rem', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.uni}</div>
+                    <div className="row" style={{ gap: '0.375rem', flexShrink: 0, marginLeft: '0.5rem', alignItems: 'center' }}>
+                      {readiness !== null && (
+                        <span style={{
+                          fontWeight: 900, fontVariantNumeric: 'tabular-nums', fontSize: '1rem',
+                          color: readiness >= 75 ? 'hsl(var(--success))' : readiness >= 50 ? 'hsl(var(--fg))' : 'hsl(var(--warning))',
+                        }}>
+                          {readiness}<span className="caption" style={{ fontWeight: 600, fontSize: '0.5625rem' }}>/100</span>
+                        </span>
+                      )}
+                      <span className={`badge ${a.status}`}>{a.label}</span>
+                    </div>
                   </div>
-                  {a.submitted && (
-                    <span className="caption" style={{ fontSize: '0.6875rem' }}>Submitted {a.submitted}</span>
+                  <div className="caption" style={{ marginTop: '0.25rem' }}>{a.meta}</div>
+                  {readiness !== null && (
+                    <div className="row" style={{ gap: '0.5rem', marginTop: '0.375rem', alignItems: 'center' }}>
+                      <span className="caption" style={{ fontSize: '0.6875rem', flexShrink: 0 }}>Readiness</span>
+                      <div className="meter" style={{ flex: 1, height: 5 }}>
+                        <i style={{ width: `${readiness}%`, background: `hsl(var(--${readiness >= 75 ? 'success' : readiness >= 50 ? 'primary' : 'warning'}))` }} />
+                      </div>
+                    </div>
                   )}
-                  {a.fee && (
-                    <span className="badge" style={{ marginLeft: 'auto', height: '1.25rem', fontSize: '0.6875rem' }}>{a.fee}</span>
-                  )}
+                  <div className="row" style={{ marginTop: '0.5rem', gap: '0.5rem', alignItems: 'center' }}>
+                    <div className="pipe-stages">
+                      {a.stages.map((s, i) => (
+                        <span key={i} className={`stage ${s}`} />
+                      ))}
+                    </div>
+                    {a.submitted && (
+                      <span className="caption" style={{ fontSize: '0.6875rem' }}>Submitted {a.submitted}</span>
+                    )}
+                    {a.fee && (
+                      <span className="badge" style={{ marginLeft: 'auto', height: '1.25rem', fontSize: '0.6875rem' }}>{a.fee}</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {displayed.length === 0 && apps.length > 0 && (
               <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'hsl(var(--muted-fg))' }}>

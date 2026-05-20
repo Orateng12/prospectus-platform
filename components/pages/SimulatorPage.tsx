@@ -124,20 +124,39 @@ export default function SimulatorPage({
 
   const [isPending, startTransition] = useTransition();
   const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [savedCascade, setSavedCascade] = useState<{
+    opened: Programme[];
+    closed: Programme[];
+    crossings: Array<{ name: string; baseScore: number; currentScore: number }>;
+    strategicDelta: number;
+    apsGain: number;
+  } | null>(null);
 
   function handleChange(id: string, raw: string) {
     const mark = Math.max(0, Math.min(100, parseInt(raw) || 0));
     onSubjectChange(id, mark);
     setSaveMsg(null);
+    setSavedCascade(null);
   }
 
   function handleSave() {
+    // Capture cascade snapshot before save so it persists after baseline resets
+    const cascadeSnapshot = (delta !== 0 || opened.length > 0 || closed.length > 0 || thresholdCrossings.length > 0)
+      ? {
+          opened: opened.slice(0, 5),
+          closed: closed.slice(0, 5),
+          crossings: thresholdCrossings,
+          strategicDelta: strategicDelta ?? 0,
+          apsGain: delta,
+        }
+      : null;
     startTransition(async () => {
       const result = await saveSubjectMarks(subjects);
       if (result && 'error' in result) {
         setSaveMsg({ ok: false, text: result.error ?? 'Save failed' });
       } else {
         setSaveMsg({ ok: true, text: 'Marks saved' });
+        if (cascadeSnapshot) setSavedCascade(cascadeSnapshot);
         onSaved?.(subjects);
         setTimeout(() => setSaveMsg(null), 3000);
       }
@@ -176,6 +195,106 @@ export default function SimulatorPage({
           </div>
         </div>
       </div>
+
+      {savedCascade && (
+        <div className="card" style={{
+          marginBottom: '1.25rem',
+          borderColor: savedCascade.apsGain >= 0 ? 'hsl(var(--success) / 0.4)' : 'hsl(var(--destructive) / 0.4)',
+          background: savedCascade.apsGain >= 0 ? 'hsl(var(--success) / 0.03)' : 'hsl(var(--destructive) / 0.03)',
+        }}>
+          <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+            <div>
+              <div className="eyebrow"><span className="dot" />What your saved marks changed</div>
+              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
+                APS {baselineAps} → {baselineAps + savedCascade.apsGain}
+                {savedCascade.apsGain !== 0 && (
+                  <span className={`badge ${savedCascade.apsGain > 0 ? 'success' : 'destructive'}`} style={{ marginLeft: '0.5rem' }}>
+                    {savedCascade.apsGain > 0 ? '+' : ''}{savedCascade.apsGain}
+                  </span>
+                )}
+                {savedCascade.strategicDelta !== 0 && (
+                  <span className={`badge ${savedCascade.strategicDelta > 0 ? 'success' : 'destructive'}`} style={{ marginLeft: '0.375rem' }}>
+                    Strategic {savedCascade.strategicDelta > 0 ? '+' : ''}{savedCascade.strategicDelta} pts
+                  </span>
+                )}
+              </h3>
+            </div>
+            <button className="btn btn-ghost btn-sm" onClick={() => setSavedCascade(null)} aria-label="Dismiss">✕</button>
+          </div>
+
+          <div className="grid-2" style={{ gap: '0.875rem', alignItems: 'start' }}>
+            <div>
+              {savedCascade.opened.length > 0 ? (
+                <>
+                  <div className="caption" style={{ fontWeight: 600, marginBottom: '0.375rem' }}>
+                    {savedCascade.opened.length} programme{savedCascade.opened.length !== 1 ? 's' : ''} now open
+                  </div>
+                  <div className="stack">
+                    {savedCascade.opened.map(p => (
+                      <div key={p.id} className="row-between" style={{ fontSize: '0.8125rem', padding: '0.25rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{p.name}</div>
+                          <div className="caption" style={{ fontSize: '0.6875rem' }}>{p.uni}</div>
+                        </div>
+                        <span className="badge success" style={{ height: '1rem', fontSize: '0.5625rem' }}>APS {p.aps}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {onNavigateProgramme && (
+                    <button
+                      className="btn btn-outline btn-sm"
+                      style={{ marginTop: '0.625rem', width: '100%' }}
+                      onClick={() => onNavigateProgramme('')}
+                    >
+                      View in Explorer →
+                    </button>
+                  )}
+                </>
+              ) : savedCascade.closed.length > 0 ? (
+                <>
+                  <div className="caption" style={{ fontWeight: 600, marginBottom: '0.375rem', color: 'hsl(var(--destructive))' }}>
+                    {savedCascade.closed.length} programme{savedCascade.closed.length !== 1 ? 's' : ''} now out of reach
+                  </div>
+                  <div className="stack">
+                    {savedCascade.closed.map(p => (
+                      <div key={p.id} className="row-between" style={{ fontSize: '0.8125rem', padding: '0.25rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                        <div style={{ fontWeight: 600 }}>{p.name}</div>
+                        <span className="badge destructive" style={{ height: '1rem', fontSize: '0.5625rem' }}>APS {p.aps}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="caption">No programme eligibility changed.</div>
+              )}
+            </div>
+
+            <div className="stack">
+              {savedCascade.crossings.length > 0 && (
+                <div>
+                  <div className="caption" style={{ fontWeight: 600, marginBottom: '0.375rem' }}>Career score changes</div>
+                  {savedCascade.crossings.map(c => {
+                    const d = c.currentScore - c.baseScore;
+                    return (
+                      <div key={c.name} className="row-between" style={{ fontSize: '0.8125rem', padding: '0.1875rem 0' }}>
+                        <span>{c.name}</span>
+                        <div className="row" style={{ gap: '0.25rem', alignItems: 'baseline' }}>
+                          <span className="caption">{c.baseScore}</span>
+                          <span className="caption">→</span>
+                          <span style={{ fontWeight: 800, color: d > 0 ? 'hsl(var(--success))' : 'hsl(var(--destructive))' }}>{c.currentScore}</span>
+                          <span className={`badge ${d > 0 ? 'success' : 'destructive'}`} style={{ height: '1rem', fontSize: '0.5rem', padding: '0 0.1875rem' }}>
+                            {d > 0 ? '+' : ''}{d}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="sim-grid">
         {/* Left: APS display + subjects */}

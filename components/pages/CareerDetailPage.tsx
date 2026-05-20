@@ -10,7 +10,30 @@ interface CareerDetailPageProps {
   programmes?: Programme[];
   capabilityData?: CapabilityData | null;
   navigate: (r: Route, prog?: string) => void;
+  savedProgrammeIds?: string[];
+  userAps?: number;
 }
+
+const CAREER_TO_KEYWORDS: Record<string, string[]> = {
+  'Software Engineer':       ['computer science', 'software', 'ict', 'information technology'],
+  'Data Scientist':          ['data science', 'data analytics', 'statistics', 'computer science'],
+  'Data Analyst':            ['data science', 'statistics', 'information technology'],
+  'Actuary':                 ['actuarial'],
+  'Quantitative Analyst':    ['actuarial', 'mathematics', 'statistics', 'finance'],
+  'ML Engineer':             ['computer science', 'data science', 'artificial intelligence'],
+  'Civil Engineer':          ['civil engineering', 'engineering'],
+  'Mechanical Engineer':     ['mechanical engineering', 'engineering'],
+  'Doctor (MBChB)':          ['mbchb', 'medicine', 'health science'],
+  'Doctor':                  ['medicine', 'mbchb', 'health science'],
+  'Nurse':                   ['nursing', 'health science'],
+  'Lawyer':                  ['law', 'llb'],
+  'Accountant':              ['accounting', 'bcom', 'finance'],
+  'Financial Advisor':       ['finance', 'bcom', 'economics'],
+  'Teacher':                 ['education', 'teaching', 'pgce'],
+  'Entrepreneur':            ['bcom', 'management', 'business'],
+  'Product Manager (Tech)':  ['computer science', 'software', 'information technology'],
+  'Product Manager':         ['bcom', 'engineering', 'computer science'],
+};
 
 const TAG_TO_CAPS: Record<string, Array<keyof CapabilityData>> = {
   'STEM':            ['analytical_thinking', 'technical_aptitude'],
@@ -60,7 +83,7 @@ function sparklinePoints(_baseSalary: number): string {
     .join(' ');
 }
 
-export default function CareerDetailPage({ career, programmes: propProgrammes, capabilityData, navigate }: CareerDetailPageProps) {
+export default function CareerDetailPage({ career, programmes: propProgrammes, capabilityData, navigate, savedProgrammeIds = [], userAps = 0 }: CareerDetailPageProps) {
   if (!career) {
     return (
       <div className="page-anim">
@@ -73,10 +96,14 @@ export default function CareerDetailPage({ career, programmes: propProgrammes, c
   }
 
   const allProgs = propProgrammes && propProgrammes.length > 0 ? propProgrammes : PROGRAMMES;
-  const relatedProgs = allProgs
-    .filter(p => p.demand === career.demand && p.fit >= 70)
+  const savedSet = new Set(savedProgrammeIds);
+  const keywords = CAREER_TO_KEYWORDS[career.name] ?? [];
+  const keywordProgs = keywords.length > 0
+    ? allProgs.filter(p => keywords.some(k => p.name.toLowerCase().includes(k)))
+    : allProgs.filter(p => p.demand === career.demand && p.fit >= 70);
+  const relatedProgs = (keywordProgs.length > 0 ? keywordProgs : allProgs)
     .sort((a, b) => b.fit - a.fit)
-    .slice(0, 3);
+    .slice(0, 5);
   const fallbackProgs = relatedProgs.length > 0 ? relatedProgs : allProgs.sort((a, b) => b.fit - a.fit).slice(0, 3);
 
   // Capability requirements from the scoring engine — real required scores per cap
@@ -153,29 +180,46 @@ export default function CareerDetailPage({ career, programmes: propProgrammes, c
         <div className="stack-3">
           {/* Leading programmes */}
           <div className="card">
-            <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Leading programmes</div>
+            <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+              <div className="eyebrow"><span className="dot" />Degree pathways to this career</div>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate('programmes')}>
+                All →
+              </button>
+            </div>
             <div className="stack">
-              {fallbackProgs.map(p => (
-                <div
-                  key={p.id}
-                  style={{ padding: '0.75rem 0', borderBottom: '1px solid hsl(var(--border))', cursor: 'pointer' }}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => navigate('programmes', p.id)}
-                  onKeyDown={e => e.key === 'Enter' && navigate('programmes', p.id)}
-                >
-                  <div className="row-between" style={{ marginBottom: '0.25rem' }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.name}</div>
-                    <span className={`badge ${p.pathway}`}>{p.pathway}</span>
+              {fallbackProgs.map(p => {
+                const apsGap = Math.max(0, p.aps - userAps);
+                const isSaved = savedSet.has(p.id);
+                return (
+                  <div
+                    key={p.id}
+                    style={{ padding: '0.75rem 0', borderBottom: '1px solid hsl(var(--border))', cursor: 'pointer' }}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate('programmes', p.id)}
+                    onKeyDown={e => e.key === 'Enter' && navigate('programmes', p.id)}
+                  >
+                    <div className="row-between" style={{ marginBottom: '0.25rem' }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.name}</div>
+                      <div className="row" style={{ gap: '0.375rem' }}>
+                        {isSaved && (
+                          <span className="badge brand" style={{ height: '1rem', fontSize: '0.5625rem', padding: '0 0.25rem' }}>★ Saved</span>
+                        )}
+                        <span className={`badge ${p.pathway}`}>{p.pathway}</span>
+                      </div>
+                    </div>
+                    <div className="caption" style={{ marginTop: 2 }}>{p.uni}</div>
+                    <div className="row" style={{ gap: '0.875rem', marginTop: '0.5rem', fontSize: '0.75rem' }}>
+                      <span>
+                        APS <strong style={{ color: apsGap === 0 ? 'hsl(var(--success))' : apsGap <= 3 ? 'hsl(var(--warning))' : 'hsl(var(--destructive))' }}>{p.aps}</strong>
+                        {apsGap > 0 && <span className="caption"> (+{apsGap})</span>}
+                      </span>
+                      <span>{fmtR(p.fees)}/yr</span>
+                      <span style={{ marginLeft: 'auto', fontWeight: 800 }}>{p.fit}% fit</span>
+                    </div>
                   </div>
-                  <div className="caption" style={{ marginTop: 2 }}>{p.uni}</div>
-                  <div className="row" style={{ gap: '0.875rem', marginTop: '0.5rem', fontSize: '0.75rem' }}>
-                    <span>APS <strong>{p.aps}</strong></span>
-                    <span>{fmtR(p.fees)}/yr</span>
-                    <span style={{ marginLeft: 'auto', fontWeight: 800 }}>{p.fit}% fit</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

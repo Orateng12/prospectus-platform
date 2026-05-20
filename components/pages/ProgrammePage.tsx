@@ -17,6 +17,8 @@ interface ProgrammePageProps {
   psychProfile?: PsychProfileData | null;
   capabilityData?: CapabilityData | null;
   userAps?: number;
+  householdIncome?: number;
+  onOpenCareer?: (name: string) => void;
 }
 
 type BadgeVariant = 'success' | 'warning' | 'accent';
@@ -117,6 +119,7 @@ const PATHWAY_LABELS: Record<string, string> = {
 /* ─── Detail view ─────────────────────────────────────────────── */
 function ProgDetail({
   p, aps, navigate, onBack, isSaved, onToggleSave, onApply, applyState, psychProfile, capabilityData,
+  householdIncome, onOpenCareer,
 }: {
   p: Programme;
   aps: number;
@@ -128,6 +131,8 @@ function ProgDetail({
   applyState: 'idle' | 'pending' | 'done' | 'exists';
   psychProfile?: PsychProfileData | null;
   capabilityData?: CapabilityData | null;
+  householdIncome?: number;
+  onOpenCareer?: (name: string) => void;
 }) {
   const structure = [
     { y: 'Year 1', t: 'Foundations',    d: 'Core theory, introduction to the discipline, one minor' },
@@ -297,34 +302,52 @@ function ProgDetail({
             })()}
           </div>
 
-          <div className="card compact" style={{ marginTop: '1rem' }}>
-            <div className="eyebrow"><span className="dot" />Funding likelihood</div>
-            <div className="row" style={{ alignItems: 'baseline', marginTop: '0.375rem', gap: '0.375rem' }}>
-              <span style={{ fontWeight: 900, fontSize: '2rem', letterSpacing: '-0.04em' }}>High</span>
-              <span className="caption">87%</span>
-            </div>
-            <div className="caption" style={{ marginTop: '0.375rem' }}>
-              NSFAS-eligible · 4 bursaries match · Allan Gray Orbis 92%
-            </div>
-            <button
-              className="btn btn-outline btn-sm"
-              onClick={() => navigate('funding')}
-              style={{ width: '100%', marginTop: '0.625rem' }}
-            >
-              Open funding strategy →
-            </button>
-          </div>
+          {(() => {
+            const nsfasEligible = householdIncome === undefined || householdIncome <= 350_000;
+            const fundingLabel = nsfasEligible ? 'High' : householdIncome! <= 600_000 ? 'Medium' : 'Low';
+            const fundingPct   = nsfasEligible ? 88 : householdIncome! <= 600_000 ? 52 : 22;
+            const fundingCls   = nsfasEligible ? 'success' : householdIncome! <= 600_000 ? 'warning' : 'destructive';
+            return (
+              <div className="card compact" style={{ marginTop: '1rem' }}>
+                <div className="eyebrow"><span className="dot" />Funding likelihood</div>
+                <div className="row" style={{ alignItems: 'baseline', marginTop: '0.375rem', gap: '0.375rem' }}>
+                  <span style={{ fontWeight: 900, fontSize: '2rem', letterSpacing: '-0.04em' }}>{fundingLabel}</span>
+                  <span className={`badge ${fundingCls}`}>{fundingPct}%</span>
+                </div>
+                <div className="caption" style={{ marginTop: '0.375rem' }}>
+                  {nsfasEligible ? 'NSFAS-eligible · ' : ''}{fundingPct >= 80 ? '4 bursaries match' : '2 bursaries may match'}
+                </div>
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={() => navigate('funding')}
+                  style={{ width: '100%', marginTop: '0.625rem' }}
+                >
+                  Open funding strategy →
+                </button>
+              </div>
+            );
+          })()}
 
           <div className="card compact" style={{ marginTop: '1rem' }}>
             <div className="eyebrow"><span className="dot" />Career path</div>
             <div className="stack" style={{ marginTop: '0.625rem' }}>
               {careerPaths.map(({ name, cls, label }) => (
-                <div key={name} className="row-between" style={{ fontSize: '0.8125rem' }}>
+                <button
+                  key={name}
+                  className="row-between btn-ghost-row"
+                  onClick={() => onOpenCareer?.(name)}
+                  style={{ width: '100%', cursor: onOpenCareer ? 'pointer' : 'default', fontSize: '0.8125rem', padding: '0.25rem 0' }}
+                >
                   <span>{name}</span>
                   <span className={`badge ${cls}`}>{label}</span>
-                </div>
+                </button>
               ))}
             </div>
+            {!psychProfile && (
+              <div className="caption" style={{ marginTop: '0.5rem', fontSize: '0.6875rem' }}>
+                Complete assessment for live match %
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -383,7 +406,7 @@ function ProgDetail({
 /* ─── Programme List ──────────────────────────────────────────── */
 export default function ProgrammePage({
   selectedProg, subjects, navigate, programmes, savedProgrammeIds = [],
-  psychProfile, capabilityData, userAps,
+  psychProfile, capabilityData, userAps, householdIncome, onOpenCareer,
 }: ProgrammePageProps) {
   const allProgs = programmes ?? PROGRAMMES;
   const aps = calcAPS(subjects);
@@ -463,6 +486,8 @@ export default function ProgrammePage({
         applyState={applyStates[selected.id] ?? 'idle'}
         psychProfile={psychProfile}
         capabilityData={capabilityData}
+        householdIncome={householdIncome}
+        onOpenCareer={onOpenCareer}
       />
     );
   }

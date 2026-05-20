@@ -98,9 +98,33 @@ function buildFocusItems(
     });
   }
 
-  // 5. Saved programmes reminder
+  // 5. Funding gap for saved programmes (above NSFAS threshold)
   const savedCount = savedProgrammeIds.length;
-  if (savedCount > 0 && items.length < 3) {
+  const aboveNsfas = householdIncome !== undefined && householdIncome > 350_000;
+  if (savedCount > 0 && aboveNsfas && householdIncome! <= 600_000 && items.length < 3) {
+    const savedProgs = programmes.filter(p => savedProgrammeIds.includes(p.id));
+    const bursary = computeBursary(userAps);
+    const topGap = savedProgs
+      .map(p => ({ p, gap: Math.max(0, Math.round(p.fees * 1.8) - bursary - 18_000) }))
+      .sort((a, b) => b.gap - a.gap)[0];
+    if (topGap && topGap.gap > 20_000) {
+      items.push({
+        icon: '💳',
+        text: `${fmtR(topGap.gap)} funding gap on ${topGap.p.name.split(' ').slice(0, 3).join(' ')}`,
+        detail: `Above NSFAS threshold — merit bursaries and targeted scholarships needed to close this gap.`,
+        urgency: 'med',
+        route: 'scholarships',
+      });
+    } else if (savedCount > 0 && items.length < 3) {
+      items.push({
+        icon: '★',
+        text: `${savedCount} saved programme${savedCount !== 1 ? 's' : ''} — verify deadlines`,
+        detail: 'Application windows close at different times. Check each saved programme now.',
+        urgency: 'low',
+        route: 'programmes',
+      });
+    }
+  } else if (savedCount > 0 && items.length < 3) {
     items.push({
       icon: '★',
       text: `${savedCount} saved programme${savedCount !== 1 ? 's' : ''} — verify deadlines`,
