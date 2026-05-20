@@ -29,6 +29,17 @@ interface UniversitiesPageProps {
   userProvince?: string;
 }
 
+function uniToneClass(short: string): string {
+  const s = short.toUpperCase();
+  if (s === 'UCT') return 'uct';
+  if (s === 'WITS') return 'wits';
+  if (s === 'SUN') return 'sun';
+  if (s === 'UP') return 'up';
+  if (s === 'UKZN') return 'ukzn';
+  if (s === 'CPUT') return 'cput';
+  return 'default-uni';
+}
+
 export default function UniversitiesPage({ subjects, navigate, compareItems, onToggleCompare, userProvince }: UniversitiesPageProps) {
   const [tab, setTab] = useState<Tab>('all');
   const [view, setView] = useState<ViewMode>('list');
@@ -234,12 +245,7 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
                 <div className="card interactive" key={u.short} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div className="row-between">
                     <div className="row" style={{ gap: '0.625rem' }}>
-                      <div style={{
-                        width: 42, height: 42, borderRadius: 10,
-                        background: 'hsl(var(--fg))', color: 'white',
-                        display: 'grid', placeItems: 'center',
-                        fontWeight: 800, fontSize: '0.8125rem', flexShrink: 0,
-                      }}>
+                      <div className={`img-tile sm ${uniToneClass(u.short)}`} aria-hidden="true" style={{ flexShrink: 0, fontWeight: 800, fontSize: '0.8125rem' }}>
                         {u.short}
                       </div>
                       <div>

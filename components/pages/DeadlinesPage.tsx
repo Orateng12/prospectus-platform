@@ -157,6 +157,21 @@ export default function DeadlinesPage({
         </div>
       </div>
 
+      {/* KPI bar */}
+      <div className="grid-3" style={{ marginBottom: '1.25rem' }}>
+        {[
+          { l: 'This week',     v: String(urgent.length),           h: urgent.length > 0 ? 'needs immediate action' : 'nothing critical',      c: urgent.length > 0 ? 'destructive' : '' },
+          { l: 'This month',    v: String(urgent.length + soon.length), h: `${urgent.length} urgent · ${soon.length} soon`,                    c: urgent.length + soon.length > 0 ? 'warning' : '' },
+          { l: 'Total tracked', v: String(ALL_DEADLINES.length),    h: 'across applications, funding &amp; docs',                             c: '' },
+        ].map(({ l, v, h, c }) => (
+          <div className="card kpi" key={l}>
+            <div className="lbl">{l}</div>
+            <div className="val" style={c ? { color: `hsl(var(--${c}))` } : {}}>{v}</div>
+            <div className="hint" dangerouslySetInnerHTML={{ __html: h }} />
+          </div>
+        ))}
+      </div>
+
       {showAddForm && (
         <div className="card" style={{ marginBottom: '1rem' }}>
           <div className="eyebrow" style={{ marginBottom: '0.75rem' }}><span className="dot" />Add custom deadline</div>

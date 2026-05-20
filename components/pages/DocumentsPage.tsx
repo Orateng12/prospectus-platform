@@ -146,6 +146,22 @@ export default function DocumentsPage({ navigate, documents = [] }: DocumentsPag
         </div>
       </div>
 
+      {/* KPI bar */}
+      <div className="grid-4" style={{ marginBottom: '1.25rem' }}>
+        {[
+          { l: 'Total documents',    v: String(DOC_CATALOG.length), h: `${CATEGORIES.length} categories`,                 c: '' },
+          { l: 'Uploaded',           v: String(uploaded),           h: `of ${DOC_CATALOG.length} required`,               c: uploaded > 0 ? 'success' : '' },
+          { l: 'Auto-fill ready',    v: String(uploaded),           h: 'can be attached to applications',                 c: 'success' },
+          { l: 'Missing',            v: String(missing),            h: missing > 0 ? 'required for deadlines' : 'all clear', c: missing > 0 ? 'destructive' : 'success' },
+        ].map(({ l, v, h, c }) => (
+          <div className="card kpi" key={l}>
+            <div className="lbl">{l}</div>
+            <div className="val" style={c ? { color: `hsl(var(--${c}))` } : {}}>{v}</div>
+            <div className="hint">{h}</div>
+          </div>
+        ))}
+      </div>
+
       <div className="stack-3">
         {CATEGORIES.map(cat => {
           const catDocs = DOC_CATALOG.filter(d => d.category === cat);

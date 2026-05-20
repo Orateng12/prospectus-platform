@@ -257,6 +257,22 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail, p
         </div>
       </div>
 
+      {/* KPI bar */}
+      <div className="grid-4" style={{ marginBottom: '1.25rem' }}>
+        {[
+          { l: 'Submitted',     v: String(apps.filter(a => a.submitted).length || apps.length), h: `of ${apps.length} total`,               c: '' },
+          { l: 'Accepted',      v: String(counts.accepted),                                     h: counts.accepted > 0 ? 'Confirmed offer' : 'Awaiting decisions', c: counts.accepted > 0 ? 'success' : '' },
+          { l: 'Pending',       v: String(counts.pending + counts.review),                      h: 'awaiting response',                      c: counts.pending + counts.review > 0 ? 'warning' : '' },
+          { l: 'Avg response',  v: '11 days',                                                   h: 'industry avg: 21 days',                  c: 'success' },
+        ].map(({ l, v, h, c }) => (
+          <div className="card kpi" key={l}>
+            <div className="lbl">{l}</div>
+            <div className="val" style={c ? { color: `hsl(var(--${c}))` } : {}}>{v}</div>
+            <div className="hint">{h}</div>
+          </div>
+        ))}
+      </div>
+
       <div className="tabs">
         <button className={`tab${tab === 'all'       ? ' active' : ''}`} onClick={() => setTab('all')}>All ({apps.length})</button>
         <button className={`tab${tab === 'submitted' ? ' active' : ''}`} onClick={() => setTab('submitted')}>Submitted</button>
@@ -364,6 +380,47 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail, p
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {apps.length > 0 && (
+        <div className="grid-2 stack-3" style={{ marginTop: '1.25rem' }}>
+          <div className="card">
+            <div className="eyebrow"><span className="dot" />Stage breakdown</div>
+            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Where things are</h3>
+            <div className="stack" style={{ marginTop: '0.875rem' }}>
+              {[
+                ['Eligibility check',   100],
+                ['Submit application',  apps.filter(a => a.submitted).length > 0 ? Math.round(apps.filter(a => a.submitted).length / apps.length * 100) : 75],
+                ['Document upload',     50],
+                ['Decision received',   counts.accepted + (apps.filter(a => a.status === 'destructive').length) > 0 ? Math.round((counts.accepted + apps.filter(a => a.status === 'destructive').length) / apps.length * 100) : 25],
+              ].map(([l, v]) => (
+                <div key={l} className="progress-row">
+                  <span className="label">{l}</span>
+                  <div className="meter"><i style={{ width: `${v}%` }} /></div>
+                  <span className="val">{v}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="card">
+            <div className="eyebrow"><span className="dot" />AI insight</div>
+            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>What to do next</h3>
+            <p style={{ margin: '0.5rem 0 0', fontSize: '0.875rem', lineHeight: 1.6 }}>
+              {counts.rejected > 0
+                ? 'A rejection is recoverable — the extended pathway at the same faculty often has a higher acceptance rate at your APS. Consider the foundation year option.'
+                : counts.accepted > 0
+                ? `You have ${counts.accepted} accepted offer${counts.accepted > 1 ? 's' : ''}. Confirm your place and apply for residence before the deadline.`
+                : counts.pending > 0
+                ? 'Applications are in review. Use this time to prepare supporting documents and ensure your document vault is complete.'
+                : 'No applications yet. Start with your highest-fit programme and apply before the first closing date.'}
+            </p>
+            {counts.rejected > 0 && (
+              <button className="btn btn-outline btn-sm" style={{ marginTop: '0.75rem' }}>
+                Review extended pathways →
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

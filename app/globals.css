@@ -697,6 +697,34 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
 .tab:hover { color: hsl(var(--fg)); }
 .tab.active { color: hsl(var(--fg)); border-bottom-color: hsl(var(--fg)); }
 
+/* ─── Image tiles ────────────────────────────────────────── */
+.img-tile {
+  width: 100%; aspect-ratio: 16/9; border-radius: var(--r-lg);
+  position: relative; overflow: hidden; display: grid; place-items: center;
+  color: white; font-weight: 900; letter-spacing: -0.02em;
+}
+.img-tile.sm { aspect-ratio: 1/1; width: 48px; height: 48px; border-radius: 10px; font-size: 1rem; }
+.img-tile .glyph { font-size: clamp(1.5rem, 4vw, 2.5rem); z-index: 1; text-shadow: 0 2px 12px rgba(0,0,0,0.25); }
+.img-tile::after { content:''; position: absolute; inset: 0; background: linear-gradient(135deg, transparent 30%, rgba(0,0,0,0.18) 100%); }
+/* Career tiles */
+.img-tile.swe     { background: linear-gradient(135deg, hsl(212 72% 37%), hsl(218 88% 13%)); }
+.img-tile.data    { background: linear-gradient(135deg, hsl(262 70% 50%), hsl(212 72% 37%)); }
+.img-tile.actuary { background: linear-gradient(135deg, hsl(35 85% 50%), hsl(22 80% 35%)); }
+.img-tile.quant   { background: linear-gradient(135deg, hsl(152 55% 40%), hsl(215 35% 18%)); }
+.img-tile.ml      { background: linear-gradient(135deg, hsl(295 60% 45%), hsl(212 72% 37%)); }
+.img-tile.pm      { background: linear-gradient(135deg, hsl(205 65% 48%), hsl(215 35% 18%)); }
+.img-tile.civil   { background: linear-gradient(135deg, hsl(22 80% 50%), hsl(35 85% 30%)); }
+.img-tile.med     { background: linear-gradient(135deg, hsl(0 72% 45%), hsl(0 80% 26%)); }
+.img-tile.default-career { background: linear-gradient(135deg, hsl(var(--primary)), hsl(215 35% 18%)); }
+/* University tiles */
+.img-tile.uct  { background: linear-gradient(135deg, hsl(0 72% 45%), hsl(15 70% 30%)); }
+.img-tile.wits { background: linear-gradient(135deg, hsl(212 72% 37%), hsl(218 88% 20%)); }
+.img-tile.sun  { background: linear-gradient(135deg, hsl(35 85% 50%), hsl(28 75% 30%)); }
+.img-tile.up   { background: linear-gradient(135deg, hsl(60 70% 40%), hsl(35 85% 30%)); }
+.img-tile.ukzn { background: linear-gradient(135deg, hsl(152 55% 40%), hsl(215 35% 18%)); }
+.img-tile.cput { background: linear-gradient(135deg, hsl(262 70% 50%), hsl(295 60% 30%)); }
+.img-tile.default-uni { background: linear-gradient(135deg, hsl(var(--primary)), hsl(215 35% 18%)); }
+
 /* ─── Careers ────────────────────────────────────────────── */
 .career-card {
   border: 1px solid hsl(var(--border)); border-radius: var(--r-xl);
@@ -716,6 +744,35 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
   border-radius: 999px; font-weight: 600;
   background: hsl(var(--muted)); color: hsl(var(--muted-fg));
 }
+
+/* ─── Discover chat ──────────────────────────────────────── */
+.chat-shell { display: flex; flex-direction: column; gap: 1rem; max-height: 68vh; min-height: 480px; }
+.chat-transcript { flex: 1; overflow-y: auto; padding: 0.5rem; display: flex; flex-direction: column; gap: 1rem; }
+.chat-msg { display: flex; gap: 0.75rem; max-width: 90%; animation: msg-in 320ms cubic-bezier(.2,.8,.2,1); }
+.chat-msg.user { align-self: flex-end; flex-direction: row-reverse; }
+.chat-msg .chat-av { width: 32px; height: 32px; border-radius: 999px; display: grid; place-items: center; font-weight: 800; font-size: 0.75rem; flex-shrink: 0; }
+.chat-msg.ai .chat-av { background: hsl(var(--fg)); color: white; }
+.chat-msg.user .chat-av { background: hsl(var(--primary)); color: white; }
+.chat-bubble { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: var(--r-xl); padding: 0.875rem 1rem; font-size: 0.875rem; line-height: 1.55; }
+.chat-msg.user .chat-bubble { background: hsl(var(--fg)); color: white; border-color: transparent; }
+.chat-bubble p { margin: 0; }
+.chat-bubble p + p { margin-top: 0.5rem; }
+.chat-bubble strong { color: hsl(var(--fg)); }
+.chat-msg.user .chat-bubble strong { color: white; }
+.chat-cites { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.75rem; padding-top: 0.625rem; border-top: 1px solid hsl(var(--border)); }
+.chat-cite { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.6875rem; font-weight: 600; padding: 0.1875rem 0.5rem; border-radius: 999px; background: hsl(var(--muted)); border: 1px solid hsl(var(--border)); cursor: pointer; transition: background var(--d-fast), color var(--d-fast); }
+.chat-cite:hover { background: hsl(var(--fg)); color: white; }
+.chat-meta { display: flex; gap: 0.5rem; font-size: 0.625rem; color: hsl(var(--muted-fg)); margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed hsl(var(--border)); }
+.chat-typing { display: inline-flex; gap: 3px; }
+.chat-typing span { width: 6px; height: 6px; border-radius: 999px; background: hsl(var(--muted-fg)); animation: typing-dot 1.2s infinite; }
+.chat-typing span:nth-child(2) { animation-delay: 0.15s; }
+.chat-typing span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes typing-dot { 0%, 60%, 100% { opacity: 0.3; } 30% { opacity: 1; } }
+@keyframes msg-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.chat-composer { display: flex; gap: 0.5rem; align-items: flex-end; }
+.chat-input { flex: 1; min-height: 56px; max-height: 200px; padding: 1rem; font-size: 0.9375rem; border-radius: var(--r-lg); border: 1px solid hsl(var(--border)); background: hsl(var(--card)); resize: none; font-family: inherit; color: hsl(var(--fg)); }
+.chat-input:focus { outline: 2px solid hsl(var(--primary)); outline-offset: 1px; border-color: transparent; }
+.chat-input::placeholder { color: hsl(var(--muted-fg)); }
 
 /* ─── Cognitive ──────────────────────────────────────────── */
 .pent-bar {

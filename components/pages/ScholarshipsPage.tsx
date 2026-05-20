@@ -83,6 +83,32 @@ export default function ScholarshipsPage({ userAps, householdIncome, compareItem
         </div>
       </div>
 
+      {/* KPI bar */}
+      <div className="grid-4" style={{ marginBottom: '1.25rem' }}>
+        {(() => {
+          const totalValue = withLiveMatch.reduce((s, x) => s + x.amount, 0);
+          const avgMatch   = Math.round(withLiveMatch.reduce((s, x) => s + x.match, 0) / (withLiveMatch.length || 1));
+          const today      = new Date();
+          const closing14  = withLiveMatch.filter(s => {
+            const d = new Date(`${s.deadline} ${today.getFullYear()}`);
+            const days = Math.ceil((d.getTime() - today.getTime()) / 86_400_000);
+            return days >= 0 && days <= 14;
+          }).length;
+          return [
+            { l: 'Total value matched',  v: fmtR(totalValue),              h: `across ${withLiveMatch.length} scholarships`,    c: 'success' },
+            { l: 'Applied to',           v: String(localApplied.size),      h: `of ${highMatch} high-fit (≥ 80%)`,               c: '' },
+            { l: 'Avg match',            v: `${avgMatch}%`,                 h: 'vs. your profile',                               c: 'success' },
+            { l: 'Closing in 14 days',   v: String(closing14 || 0),         h: closing14 > 0 ? 'act now' : 'none imminent',      c: closing14 > 0 ? 'destructive' : '' },
+          ].map(({ l, v, h, c }) => (
+            <div className="card kpi" key={l}>
+              <div className="lbl">{l}</div>
+              <div className="val" style={c ? { color: `hsl(var(--${c}))` } : {}}>{v}</div>
+              <div className="hint">{h}</div>
+            </div>
+          ));
+        })()}
+      </div>
+
       <div className="tabs">
         <button className={`tab${tab === 'all' ? ' active' : ''}`} onClick={() => setTab('all')}>All matches ({SCHOLARSHIPS.length})</button>
         <button className={`tab${tab === 'closing' ? ' active' : ''}`} onClick={() => setTab('closing')}>Closing soon</button>
