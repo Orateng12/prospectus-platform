@@ -10,6 +10,36 @@ interface ApplicationsPageProps {
   applications?: DbApplication[];
   onOpenDetail?: (app: Application) => void;
   programmes?: Programme[];
+  userAps?: number;
+}
+
+type Portfolio = 'safety' | 'target' | 'reach' | 'unknown';
+
+function classifyApp(app: Application, programmes: Programme[], userAps: number): Portfolio {
+  const progName = app.uni.includes('·') ? app.uni.split('·').slice(1).join('·').trim() : app.uni;
+  const matched = programmes.find(p =>
+    p.name.toLowerCase() === progName.toLowerCase() ||
+    app.uni.toLowerCase().includes(p.name.toLowerCase()),
+  );
+  if (!matched) return 'unknown';
+  const gap = userAps - matched.aps;
+  if (gap >= 5) return 'safety';
+  if (gap >= -3) return 'target';
+  return 'reach';
+}
+
+function fallbackProgrammes(apps: Application[], programmes: Programme[], userAps: number): Programme[] {
+  const rejectedNames = apps
+    .filter(a => a.status === 'destructive')
+    .map(a => a.uni.includes('·') ? a.uni.split('·').slice(1).join('·').trim().toLowerCase() : a.uni.toLowerCase());
+
+  if (rejectedNames.length === 0 || userAps === 0) return [];
+
+  return programmes
+    .filter(p => p.aps <= userAps + 2 && p.aps >= userAps - 8)
+    .filter(p => !rejectedNames.some(n => p.name.toLowerCase().includes(n) || n.includes(p.name.toLowerCase())))
+    .sort((a, b) => b.fit - a.fit)
+    .slice(0, 3);
 }
 
 type Tab = 'all' | 'submitted' | 'pending' | 'accepted';
@@ -195,7 +225,7 @@ function AddApplicationModal({
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default function ApplicationsPage({ applications: dbApps, onOpenDetail, programmes = [] }: ApplicationsPageProps) {
+export default function ApplicationsPage({ applications: dbApps, onOpenDetail, programmes = [], userAps = 0 }: ApplicationsPageProps) {
   const [tab, setTab] = useState<Tab>('all');
   const [selected, setSelected] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -221,6 +251,17 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail, p
   const statusLabel: Record<string, string> = {
     success: 'Accepted', warning: 'Pending', info: 'In review', destructive: 'Rejected',
   };
+
+  const portfolio = userAps > 0 && programmes.length > 0
+    ? {
+        safety:  apps.filter(a => classifyApp(a, programmes, userAps) === 'safety').length,
+        target:  apps.filter(a => classifyApp(a, programmes, userAps) === 'target').length,
+        reach:   apps.filter(a => classifyApp(a, programmes, userAps) === 'reach').length,
+        unknown: apps.filter(a => classifyApp(a, programmes, userAps) === 'unknown').length,
+      }
+    : null;
+
+  const fallbacks = fallbackProgrammes(apps, programmes, userAps);
 
   return (
     <div className="page-anim">
@@ -384,42 +425,140 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail, p
       )}
 
       {apps.length > 0 && (
-        <div className="grid-2 stack-3" style={{ marginTop: '1.25rem' }}>
-          <div className="card">
-            <div className="eyebrow"><span className="dot" />Stage breakdown</div>
-            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Where things are</h3>
-            <div className="stack" style={{ marginTop: '0.875rem' }}>
-              {[
-                ['Eligibility check',   100],
-                ['Submit application',  apps.filter(a => a.submitted).length > 0 ? Math.round(apps.filter(a => a.submitted).length / apps.length * 100) : 75],
-                ['Document upload',     50],
-                ['Decision received',   counts.accepted + (apps.filter(a => a.status === 'destructive').length) > 0 ? Math.round((counts.accepted + apps.filter(a => a.status === 'destructive').length) / apps.length * 100) : 25],
-              ].map(([l, v]) => (
-                <div key={l} className="progress-row">
-                  <span className="label">{l}</span>
-                  <div className="meter"><i style={{ width: `${v}%` }} /></div>
-                  <span className="val">{v}%</span>
+        <div className="stack" style={{ marginTop: '1.25rem', gap: '1rem' }}>
+
+          {/* Portfolio balance */}
+          {portfolio && (
+            <div className="card">
+              <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+                <div>
+                  <div className="eyebrow"><span className="dot" />Portfolio balance</div>
+                  <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Safety · Target · Reach distribution</h3>
                 </div>
-              ))}
+                <span className="caption" style={{ fontSize: '0.75rem' }}>APS {userAps}</span>
+              </div>
+              <div className="grid-3" style={{ gap: '0.625rem', marginBottom: '0.875rem' }}>
+                {[
+                  {
+                    label: 'Safety',
+                    count: portfolio.safety,
+                    desc: 'Your APS ≥ programme APS + 5',
+                    target: 2,
+                    color: 'success',
+                  },
+                  {
+                    label: 'Target',
+                    count: portfolio.target,
+                    desc: 'Your APS within ±3 of requirement',
+                    target: 2,
+                    color: 'primary',
+                  },
+                  {
+                    label: 'Reach',
+                    count: portfolio.reach,
+                    desc: 'Programme APS > your APS + 3',
+                    target: 1,
+                    color: 'warning',
+                  },
+                ].map(({ label, count, desc, target, color }) => {
+                  const ok = count >= target;
+                  return (
+                    <div key={label} style={{
+                      padding: '0.75rem',
+                      borderRadius: 'var(--r-md)',
+                      background: ok ? `hsl(var(--${color}) / 0.06)` : 'hsl(var(--destructive) / 0.04)',
+                      border: `1px solid hsl(var(--${ok ? color : 'destructive'}) / 0.25)`,
+                    }}>
+                      <div className="row-between">
+                        <span style={{ fontWeight: 700, fontSize: '0.8125rem' }}>{label}</span>
+                        <span style={{
+                          fontWeight: 900, fontSize: '1.5rem', lineHeight: 1,
+                          color: `hsl(var(--${ok ? color : 'destructive'}))`,
+                          fontVariantNumeric: 'tabular-nums',
+                        }}>{count}</span>
+                      </div>
+                      <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.25rem' }}>{desc}</div>
+                      {!ok && (
+                        <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.375rem', color: `hsl(var(--destructive))` }}>
+                          Add {target - count} more {label.toLowerCase()} app{target - count > 1 ? 's' : ''}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {portfolio.unknown > 0 && (
+                <div className="caption" style={{ fontSize: '0.75rem' }}>
+                  {portfolio.unknown} application{portfolio.unknown > 1 ? 's' : ''} could not be matched to a programme — APS classification unavailable for these.
+                </div>
+              )}
+              {portfolio.safety < 2 && (
+                <div style={{
+                  marginTop: '0.625rem', padding: '0.625rem 0.75rem',
+                  borderRadius: 'var(--r-md)', background: 'hsl(var(--warning) / 0.08)',
+                  border: '1px solid hsl(var(--warning) / 0.3)', fontSize: '0.8125rem', lineHeight: 1.5,
+                }}>
+                  <span style={{ fontWeight: 700 }}>Portfolio risk: </span>
+                  You need at least 2 safety applications (programmes where your APS is 5+ above the minimum). This protects you from rejection cascades if competitive programmes are oversubscribed this cycle.
+                </div>
+              )}
             </div>
-          </div>
-          <div className="card">
-            <div className="eyebrow"><span className="dot" />AI insight</div>
-            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>What to do next</h3>
-            <p style={{ margin: '0.5rem 0 0', fontSize: '0.875rem', lineHeight: 1.6 }}>
-              {counts.rejected > 0
-                ? 'A rejection is recoverable — the extended pathway at the same faculty often has a higher acceptance rate at your APS. Consider the foundation year option.'
-                : counts.accepted > 0
-                ? `You have ${counts.accepted} accepted offer${counts.accepted > 1 ? 's' : ''}. Confirm your place and apply for residence before the deadline.`
-                : counts.pending > 0
-                ? 'Applications are in review. Use this time to prepare supporting documents and ensure your document vault is complete.'
-                : 'No applications yet. Start with your highest-fit programme and apply before the first closing date.'}
-            </p>
-            {counts.rejected > 0 && (
-              <button className="btn btn-outline btn-sm" style={{ marginTop: '0.75rem' }}>
-                Review extended pathways →
-              </button>
-            )}
+          )}
+
+          <div className="grid-2 stack-3">
+            <div className="card">
+              <div className="eyebrow"><span className="dot" />Stage breakdown</div>
+              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Where things are</h3>
+              <div className="stack" style={{ marginTop: '0.875rem' }}>
+                {[
+                  ['Eligibility check',   100],
+                  ['Submit application',  apps.filter(a => a.submitted).length > 0 ? Math.round(apps.filter(a => a.submitted).length / apps.length * 100) : 75],
+                  ['Document upload',     50],
+                  ['Decision received',   counts.accepted + (apps.filter(a => a.status === 'destructive').length) > 0 ? Math.round((counts.accepted + apps.filter(a => a.status === 'destructive').length) / apps.length * 100) : 25],
+                ].map(([l, v]) => (
+                  <div key={l} className="progress-row">
+                    <span className="label">{l}</span>
+                    <div className="meter"><i style={{ width: `${v}%` }} /></div>
+                    <span className="val">{v}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="card">
+              <div className="eyebrow"><span className="dot" />Next steps</div>
+              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>What to do now</h3>
+              <p style={{ margin: '0.5rem 0 0', fontSize: '0.875rem', lineHeight: 1.6 }}>
+                {counts.rejected > 0
+                  ? 'A rejection is recoverable. The extended/foundation pathway at the same faculty often accepts students 2–4 APS points below the direct entry cut-off.'
+                  : counts.accepted > 0
+                  ? `You have ${counts.accepted} accepted offer${counts.accepted > 1 ? 's' : ''}. Confirm your place and apply for residence before the deadline.`
+                  : counts.pending > 0
+                  ? 'Applications are in review. Use this time to prepare supporting documents and ensure your document vault is complete.'
+                  : 'No applications yet. Start with your highest-fit programme and apply before the first closing date.'}
+              </p>
+              {fallbacks.length > 0 && (
+                <div style={{ marginTop: '0.875rem' }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.5rem' }}>
+                    Alternative programmes at your APS:
+                  </div>
+                  <div className="stack">
+                    {fallbacks.map(p => (
+                      <div key={p.id} style={{
+                        padding: '0.5rem 0.625rem',
+                        borderRadius: 6,
+                        background: 'hsl(var(--muted) / 0.5)',
+                        border: '1px solid hsl(var(--border))',
+                      }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{p.name}</div>
+                        <div className="caption" style={{ fontSize: '0.6875rem' }}>
+                          {p.uni} · APS {p.aps} · {p.demand} demand
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

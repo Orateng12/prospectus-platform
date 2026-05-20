@@ -32,6 +32,92 @@ const DB_TO_CAP: Array<[keyof CapabilityData, string]> = [
 
 interface SubScoreNarrative { why: string; action: string; fixable: boolean }
 
+interface LeverROI {
+  key: string;
+  label: string;
+  currentScore: number;
+  estGain: number;
+  effort: string;
+  effortHours: number;
+  action: string;
+}
+
+function buildLeverROI(
+  subScores: Array<{ key: string; v: number }>,
+  psychProfile: PsychProfileData | null,
+  userAps: number,
+): LeverROI[] {
+  const sm = Object.fromEntries(subScores.map(s => [s.key, s.v]));
+  const noAssessment = !psychProfile;
+
+  const levers: LeverROI[] = [
+    {
+      key: 'career',
+      label: 'Career alignment',
+      currentScore: sm.career ?? 68,
+      estGain: noAssessment ? 5 : 2,
+      effort: noAssessment ? '15 min assessment' : '1–2 weeks research',
+      effortHours: noAssessment ? 0.25 : 14,
+      action: noAssessment
+        ? 'Complete the cognitive assessment — instantly personalises your career probability table with RIASEC + Big Five data'
+        : 'Filter Career Explorer by "High demand" — those roles have 3× more SA job postings. Sort by "Fit" to see which match your profile.',
+    },
+    {
+      key: 'personality',
+      label: 'Personality fit',
+      currentScore: sm.personality ?? 79,
+      estGain: noAssessment ? 3 : 1,
+      effort: noAssessment ? '15 min (same as career above)' : 'Structural — develops over years',
+      effortHours: noAssessment ? 0.25 : 300,
+      action: noAssessment
+        ? 'The same 15-min cognitive assessment unlocks Big Five scoring — both career and personality sub-scores improve simultaneously'
+        : 'Personality is relatively stable short-term. Focus the career and skills levers for faster composite-score gains.',
+    },
+    {
+      key: 'financial',
+      label: 'Financial feasibility',
+      currentScore: sm.financial ?? 71,
+      estGain: userAps < 42 ? 6 : 3,
+      effort: userAps < 42 ? '6 hrs — two scholarship applications' : '2 hrs — merit bursary confirmation',
+      effortHours: userAps < 42 ? 6 : 2,
+      action: userAps < 42
+        ? 'Apply for 2 APS-tiered bursaries (Sasol, NRF — no income test). Each takes ~3 hrs. Stacking NSFAS + merit bursary can cover 130% of annual costs.'
+        : 'You are already in the top merit bursary tier. Confirm stacking rules with your target institution and apply by the August deadline.',
+    },
+    {
+      key: 'skills',
+      label: 'Skill readiness',
+      currentScore: sm.skills ?? 72,
+      estGain: 4,
+      effort: '8 weeks · 2 hrs/week',
+      effortHours: 16,
+      action: 'Open Skills Map → pick your lowest-scoring dimension → follow the specific roadmap (debate club, coding course, practical project). Most students gain +12 pts in 6–8 weeks.',
+    },
+    {
+      key: 'academic',
+      label: 'Academic readiness',
+      currentScore: sm.academic ?? 86,
+      estGain: (sm.academic ?? 86) < 80 ? 5 : 2,
+      effort: (sm.academic ?? 86) < 80 ? '20 hrs tutoring + study' : 'Near ceiling — NBT only',
+      effortHours: (sm.academic ?? 86) < 80 ? 20 : 120,
+      action: (sm.academic ?? 86) < 80
+        ? 'Raise your lowest subject by one band (e.g. 55% → 60%). Adds 1 APS point and opens programmes currently 1 point out of reach. Open the Simulator to model it.'
+        : 'Book the NBT (National Benchmark Test). A strong NBT score compensates for lower APS at some institutions and strengthens individual applications.',
+    },
+    {
+      key: 'global',
+      label: 'Global mobility',
+      currentScore: sm.global ?? 68,
+      estGain: 3,
+      effort: '1 academic year — Year 1 performance',
+      effortHours: 800,
+      action: 'Graduate in the top 20% of your Year 1 cohort. That single outcome is the fastest path to international scholarship eligibility (Commonwealth, Vanier, Endeavour).',
+    },
+  ];
+
+  return levers.sort((a, b) => (b.estGain / b.effortHours) - (a.estGain / a.effortHours));
+}
+
 function buildSubScoreNarratives(
   aps: number,
   subjects: Subject[],
@@ -218,6 +304,8 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
 
   const hasData = !!strategicScore;
 
+  const leverROI = buildLeverROI(subScores, psychProfile ?? null, userAps);
+
   return (
     <div className="page-anim">
       <div className="page-head">
@@ -304,6 +392,58 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
               );
             })}
           </div>
+        </div>
+      </div>
+
+      {/* Lever ROI */}
+      <div className="card" style={{ marginTop: '1.25rem' }}>
+        <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+          <div>
+            <div className="eyebrow"><span className="dot" />Score optimiser</div>
+            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>What to move first — ranked by effort-to-impact</h3>
+          </div>
+          <span className="badge success">ROI ranked</span>
+        </div>
+        <div className="stack-2">
+          {leverROI.map((lever, idx) => (
+            <div key={lever.key} style={{
+              display: 'flex', gap: '0.75rem', alignItems: 'flex-start',
+              padding: '0.625rem 0.75rem',
+              borderRadius: 'var(--r-md)',
+              background: idx < 2 ? 'hsl(var(--success) / 0.05)' : 'transparent',
+              border: idx < 2 ? '1px solid hsl(var(--success) / 0.2)' : '1px solid hsl(var(--border) / 0.4)',
+            }}>
+              <div style={{
+                width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+                background: idx < 2 ? 'hsl(var(--success))' : 'hsl(var(--muted))',
+                color: idx < 2 ? 'white' : 'hsl(var(--muted-fg))',
+                display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: '0.75rem',
+              }}>
+                {idx + 1}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="row-between">
+                  <span style={{ fontWeight: 700, fontSize: '0.875rem' }}>{lever.label}</span>
+                  <div className="row" style={{ gap: '0.375rem', flexShrink: 0, marginLeft: '0.5rem' }}>
+                    {idx < 2 && (
+                      <span className="badge success" style={{ height: '1.25rem', fontSize: '0.625rem' }}>Do first</span>
+                    )}
+                    <span className="badge" style={{ height: '1.25rem', fontSize: '0.625rem' }}>+{lever.estGain} pts</span>
+                    <span className="badge" style={{ height: '1.25rem', fontSize: '0.625rem', color: 'hsl(var(--muted-fg))' }}>
+                      {lever.currentScore}/100 now
+                    </span>
+                  </div>
+                </div>
+                <div className="caption" style={{ marginTop: '0.125rem', fontSize: '0.75rem' }}>{lever.effort}</div>
+                <p style={{ fontSize: '0.8125rem', lineHeight: 1.5, margin: '0.375rem 0 0', color: 'hsl(var(--muted-fg))' }}>
+                  {lever.action}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="caption" style={{ marginTop: '0.75rem', fontSize: '0.75rem', borderTop: '1px solid hsl(var(--border))', paddingTop: '0.625rem' }}>
+          Ranked by composite score gain ÷ hours of effort. Completing the cognitive assessment first unlocks personalised scoring across all dimensions simultaneously.
         </div>
       </div>
 
