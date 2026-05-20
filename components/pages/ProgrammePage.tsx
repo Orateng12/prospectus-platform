@@ -96,6 +96,17 @@ function getCareerCluster(programmeName: string): ClusterCareer[] {
   ];
 }
 
+function uniToneClass(uni: string): string {
+  const u = uni.toLowerCase();
+  if (u.includes('cape town') || u === 'uct') return 'uct';
+  if (u.includes('witwatersrand') || u.includes('wits')) return 'wits';
+  if (u.includes('stellenbosch') || u === 'sun') return 'sun';
+  if (u.includes('pretoria') || u === 'up') return 'up';
+  if (u.includes('ukzn') || u.includes('kwazulu')) return 'ukzn';
+  if (u.includes('cape peninsula') || u.includes('cput')) return 'cput';
+  return 'default-uni';
+}
+
 const PATHWAY_LABELS: Record<string, string> = {
   direct:     'Direct entry',
   extended:   'Extended',
@@ -530,6 +541,9 @@ export default function ProgrammePage({
             const isSaved = savedIds.has(p.id);
             return (
               <div className="career-card" key={p.id} onClick={() => setSelected(p)}>
+                <div className={`img-tile ${uniToneClass(p.uni)}`} aria-hidden="true">
+                  <span className="glyph">{p.name.split(' ').slice(0, 2).map(w => w[0]).join('')}</span>
+                </div>
                 <div className="row-between">
                   <div className="row" style={{ gap: '0.5rem' }}>
                     <div className="career-rank">{String(i + 1).padStart(2, '0')}</div>

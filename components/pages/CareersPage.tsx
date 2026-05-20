@@ -75,6 +75,21 @@ const CATEGORIES = [
   { label: 'Education', icon: '📚', desc: 'Teaching, higher education',           route: 'programmes' as Route },
 ];
 
+function careerTileClass(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes('software') || n.includes('engineer') && n.includes('soft')) return 'swe';
+  if (n.includes('data scientist')) return 'data';
+  if (n.includes('actuar')) return 'actuary';
+  if (n.includes('quant')) return 'quant';
+  if (n.includes('machine learning') || n.includes('ml ') || n.includes(' ml')) return 'ml';
+  if (n.includes('product manager')) return 'pm';
+  if (n.includes('civil') || n.includes('structural') || n.includes('mechanical')) return 'civil';
+  if (n.includes('doctor') || n.includes('medicine') || n.includes('mbchb')) return 'med';
+  if (n.includes('data')) return 'data';
+  if (n.includes('engineer')) return 'swe';
+  return 'default-career';
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 
 export default function CareersPage({
@@ -290,6 +305,9 @@ export default function CareersPage({
           <div className="grid-3">
             {displayed.map(c => (
               <div className="career-card" key={c.name}>
+                <div className={`img-tile ${careerTileClass(c.name)}`} aria-hidden="true">
+                  <span className="glyph">{c.name.split(' ').slice(0,2).map(w=>w[0]).join('')}</span>
+                </div>
                 <div className="row-between">
                   <div className="row" style={{ gap: '0.5rem' }}>
                     <div className="career-rank">{String(c.rank).padStart(2, '0')}</div>
