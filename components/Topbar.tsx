@@ -29,6 +29,8 @@ const GREET_TEMPLATE: Record<Route, string | ((name: string) => string)> = {
   'scholarship-detail': 'Scholarship Detail',
   'career-detail':      'Career Path',
   'subject-detail':     'Subject Deep-dive',
+  'notifications':      'Notifications',
+  'search':             'Search results',
 };
 
 interface CmdkResult {
@@ -77,6 +79,7 @@ interface TopbarProps {
   aps?: number;
   apsDelta?: number;
   navigate?: (r: Route) => void;
+  onSearch?: (query: string) => void;
   onMenuClick?: () => void;
   unreadNotificationCount?: number;
 }
@@ -89,6 +92,7 @@ export default function Topbar({
   aps = 42,
   apsDelta = 0,
   navigate,
+  onSearch,
   onMenuClick,
   unreadNotificationCount = 0,
 }: TopbarProps) {
@@ -195,7 +199,7 @@ export default function Topbar({
             <span className="search-kbd">⌘K</span>
           </div>
 
-          <button className="icon-btn" title="Notifications" aria-label="Notifications">
+          <button className="icon-btn" title="Notifications" aria-label="Notifications" onClick={() => navigate?.('notifications')}>
             {unreadNotificationCount > 0 && (
               <span
                 className="icon-dot"
@@ -272,6 +276,12 @@ export default function Topbar({
             placeholder="Type to search across Prospectus…"
             value={cmdkQuery}
             onChange={e => setCmdkQuery(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && cmdkQuery.trim() && onSearch) {
+                setCmdkOpen(false);
+                onSearch(cmdkQuery.trim());
+              }
+            }}
           />
           <span className="cmdk-kbd">esc</span>
         </div>

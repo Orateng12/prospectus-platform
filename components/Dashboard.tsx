@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type {
   Route, Subject, Programme, Career, CompareItem, Application, Scholarship,
-  PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbDocument,
+  PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbDocument, DbNotification,
 } from '@/lib/types';
 import { SUBJECTS, CAREERS as STATIC_CAREERS, SCHOLARSHIPS as STATIC_SCHOLARSHIPS } from '@/lib/data';
 import { calcAPS } from '@/lib/utils';
@@ -34,6 +34,8 @@ import DiscoverPage from './pages/DiscoverPage';
 import MapPage from './pages/MapPage';
 import SkillsPage from './pages/SkillsPage';
 import NSFASPage from './pages/NSFASPage';
+import NotificationsPage from './pages/NotificationsPage';
+import SearchResultsPage from './pages/SearchResultsPage';
 
 const BASE_APS = 42;
 
@@ -57,6 +59,7 @@ interface DashboardProps {
   appliedScholarshipNames?: string[];
   documents?: DbDocument[];
   unreadNotificationCount?: number;
+  notifications?: DbNotification[];
 }
 
 export default function Dashboard({
@@ -79,6 +82,7 @@ export default function Dashboard({
   appliedScholarshipNames = [],
   documents = [],
   unreadNotificationCount = 0,
+  notifications = [],
 }: DashboardProps) {
   const router = useRouter();
   const [route, setRoute] = useState<Route>('home');
@@ -93,6 +97,7 @@ export default function Dashboard({
   const [selectedCareer, setSelectedCareer] = useState<Career | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [emptyMode, setEmptyMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const aps = calcAPS(subjects);
   const apsDelta = aps - BASE_APS;
@@ -344,6 +349,10 @@ export default function Dashboard({
             navigate={navigate}
           />
         );
+      case 'notifications':
+        return <NotificationsPage navigate={navigate} notifications={emptyMode ? [] : notifications} />;
+      case 'search':
+        return <SearchResultsPage query={searchQuery} navigate={navigate} />;
       default:
         return (
           <HomePage
@@ -386,6 +395,7 @@ export default function Dashboard({
           aps={aps}
           apsDelta={apsDelta}
           navigate={navigate}
+          onSearch={(q) => { setSearchQuery(q); navigate('search'); }}
           onMenuClick={() => setSidebarOpen(true)}
           unreadNotificationCount={unreadNotificationCount}
         />

@@ -5,7 +5,7 @@ import { computeStrategicScore } from '@/lib/scoring';
 import Dashboard from '@/components/Dashboard';
 import type {
   Subject, Programme, Career,
-  PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbCareer, DbDocument,
+  PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbCareer, DbDocument, DbNotification,
 } from '@/lib/types';
 
 function pathwayFromQualType(qt: string | null, nqf: number | null): Programme['pathway'] {
@@ -112,9 +112,10 @@ export default async function Page() {
       .eq('user_id', user.id),
     supabase
       .from('notifications')
-      .select('id')
+      .select('id, type, title, message, link, read, priority, created_at')
       .eq('user_id', user.id)
-      .eq('read', false),
+      .order('created_at', { ascending: false })
+      .limit(50),
   ]);
 
   const profile = profileResult.data;
@@ -234,8 +235,9 @@ export default async function Page() {
     }>).map(d => ({ ...d, signed_url: urlMap[d.storage_path] }));
   }
 
-  // Unread notification count
-  const unreadNotificationCount = (notificationsResult.data ?? []).length;
+  // Notifications
+  const notifications: DbNotification[] = (notificationsResult.data ?? []) as DbNotification[];
+  const unreadNotificationCount = notifications.filter(n => !n.read).length;
 
   // Matric year
   const matricYear: number | undefined = (profile as Record<string, unknown> | null)?.matric_year as number | undefined;
@@ -267,6 +269,7 @@ export default async function Page() {
       appliedScholarshipNames={appliedScholarshipNames}
       documents={documents}
       unreadNotificationCount={unreadNotificationCount}
+      notifications={notifications}
     />
   );
 }
