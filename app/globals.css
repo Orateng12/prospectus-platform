@@ -815,7 +815,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
   display: flex; flex-direction: column; justify-content: space-between;
   min-height: 50vh;
 }
-@media (max-width: 899px) { .auth-panel-left { display: none; } }
+@media (max-width: 900px) { .auth-panel-left { display: none; } }
 @media (min-width: 900px) { .auth-panel-left { min-height: 100vh; } }
 
 .auth-panel-right {
@@ -854,7 +854,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
 
 /* ─── Utility: hide / show at breakpoints ────────────────── */
 @media (max-width: 599px) { .hide-xs { display: none !important; } }
-@media (max-width: 767px) { .hide-sm { display: none !important; } }
+@media (max-width: 768px) { .hide-sm { display: none !important; } }
 
 /* ─── Landing page ───────────────────────────────────────── */
 .landing { display: flex; flex-direction: column; min-height: 100vh; background: hsl(var(--bg)); }
@@ -881,7 +881,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
   border-left: 1px solid hsl(var(--border));
 }
 /* Hide informational links on small screens — auth actions only */
-@media (max-width: 639px) {
+@media (max-width: 640px) {
   .landing-nav-links .btn-nav-ghost:nth-child(-n+2) { display: none; }
 }
 .landing-logo {
@@ -1268,7 +1268,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
 }
 .stat-ed:first-child { padding-left: 0; }
 .stat-ed:last-child { border-right: none; padding-right: 0; }
-@media (max-width: 639px) {
+@media (max-width: 640px) {
   .stat-ed { padding: 1.75rem 0; }
   .stat-ed:nth-child(odd) { padding-right: 1.5rem; }
   .stat-ed:nth-child(even) { border-right: none; padding-left: 1.5rem; border-left: 1px solid hsl(var(--border)); }
@@ -2403,7 +2403,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
   }
 }
 /* Mobile: top bar instead of sidebar */
-@media (max-width: 899px) {
+@media (max-width: 900px) {
   .onboarding-sidebar {
     flex-direction: row; align-items: center; justify-content: space-between;
     padding: 1rem clamp(1rem, 4vw, 2rem);
@@ -2421,7 +2421,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
 .onboarding-sidebar-steps {
   display: flex; flex-direction: column; gap: 0;
 }
-@media (max-width: 899px) {
+@media (max-width: 900px) {
   .onboarding-sidebar-steps {
     flex-direction: row; gap: 0.5rem;
   }
@@ -2431,7 +2431,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
   display: flex; align-items: flex-start; gap: 1rem;
   padding: 0.875rem 0; position: relative;
 }
-@media (max-width: 899px) {
+@media (max-width: 900px) {
   .onboarding-step-item { padding: 0; }
 }
 .onboarding-step-item + .onboarding-step-item::before {
@@ -2440,7 +2440,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
   width: 2px; height: 0.875rem;
   background: hsl(var(--chalk) / 0.12);
 }
-@media (max-width: 899px) {
+@media (max-width: 900px) {
   .onboarding-step-item + .onboarding-step-item::before { display: none; }
 }
 
@@ -2469,12 +2469,12 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
 }
 .onboarding-step-label.active { color: hsl(var(--chalk)); }
 .onboarding-step-label.done { color: hsl(var(--chalk) / 0.6); }
-@media (max-width: 899px) { .onboarding-step-label { display: none; } }
+@media (max-width: 900px) { .onboarding-step-label { display: none; } }
 
 .onboarding-sidebar-hint {
   font-size: 0.8125rem; color: hsl(var(--chalk) / 0.3); line-height: 1.5;
 }
-@media (max-width: 899px) { .onboarding-sidebar-hint { display: none; } }
+@media (max-width: 900px) { .onboarding-sidebar-hint { display: none; } }
 
 .onboarding-content {
   background: hsl(var(--paper));
@@ -2977,3 +2977,12 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
 /* Sparkline SVG */
 .spark { width: 100%; height: 28px; display: block; }
 .eligibility-banner-body { font-size: 0.875rem; color: hsl(var(--ink-light)); line-height: 1.55; }
+
+/* ─── Text colour utilities (replaces inline style={{ color: 'hsl(var(...))' }}) ─ */
+.text-muted   { color: hsl(var(--muted-fg)); }
+.text-success { color: hsl(var(--success)); }
+.text-warn    { color: hsl(var(--warning)); }
+.text-danger  { color: hsl(var(--destructive)); }
+.text-accent  { color: hsl(var(--accent)); }
+.text-primary { color: hsl(var(--primary)); }
+.text-fg      { color: hsl(var(--fg)); }

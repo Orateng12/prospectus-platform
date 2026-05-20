@@ -23,14 +23,28 @@ export const SUBJECTS: Subject[] = [
 ];
 
 export const PROGRAMMES: Programme[] = [
-  { id: 'uct-cs',   name: 'BSc Computer Science',      uni: 'University of Cape Town',            aps: 38, fees: 76420, dur: 3, fit: 94, pathway: 'direct',     salary: 38500, demand: 'High' },
-  { id: 'wits-act', name: 'BSc Actuarial Science',     uni: 'University of the Witwatersrand',    aps: 42, fees: 82100, dur: 3, fit: 88, pathway: 'direct',     salary: 45200, demand: 'High' },
-  { id: 'sun-eng',  name: 'BSc Engineering (Mech.)',   uni: 'Stellenbosch University',            aps: 36, fees: 71800, dur: 4, fit: 81, pathway: 'extended',   salary: 36800, demand: 'High' },
-  { id: 'cput-ict', name: 'NDip ICT (App Dev)',        uni: 'Cape Peninsula UoT',                 aps: 28, fees: 38200, dur: 3, fit: 76, pathway: 'tvet',       salary: 24500, demand: 'High' },
-  { id: 'up-data',  name: 'BSc Data Science',          uni: 'University of Pretoria',             aps: 40, fees: 74100, dur: 3, fit: 85, pathway: 'direct',     salary: 41200, demand: 'High' },
-  { id: 'ukzn-med', name: 'MBChB (Medicine)',          uni: 'UKZN',                               aps: 48, fees: 91500, dur: 6, fit: 41, pathway: 'direct',     salary: 52000, demand: 'High' },
-  { id: 'sun-fin',  name: 'BCom Finance',              uni: 'Stellenbosch University',            aps: 44, fees: 68400, dur: 3, fit: 67, pathway: 'direct',     salary: 32400, demand: 'Med'  },
-  { id: 'wits-eng', name: 'BSc Eng (Foundation Yr)',   uni: 'University of the Witwatersrand',    aps: 32, fees: 71200, dur: 5, fit: 72, pathway: 'foundation', salary: 36800, demand: 'High' },
+  { id: 'uct-cs',    name: 'BSc Computer Science',         uni: 'University of Cape Town',          aps: 38, fees: 76420, dur: 3, fit: 94, pathway: 'direct',     salary: 38500, demand: 'High' },
+  { id: 'wits-act',  name: 'BSc Actuarial Science',        uni: 'University of the Witwatersrand',  aps: 42, fees: 82100, dur: 3, fit: 88, pathway: 'direct',     salary: 45200, demand: 'High' },
+  { id: 'sun-eng',   name: 'BSc Engineering (Mech.)',      uni: 'Stellenbosch University',          aps: 36, fees: 71800, dur: 4, fit: 81, pathway: 'extended',   salary: 36800, demand: 'High' },
+  { id: 'cput-ict',  name: 'NDip ICT (App Dev)',           uni: 'Cape Peninsula UoT',               aps: 28, fees: 38200, dur: 3, fit: 76, pathway: 'tvet',       salary: 24500, demand: 'High' },
+  { id: 'up-data',   name: 'BSc Data Science',             uni: 'University of Pretoria',           aps: 40, fees: 74100, dur: 3, fit: 85, pathway: 'direct',     salary: 41200, demand: 'High' },
+  { id: 'ukzn-med',  name: 'MBChB (Medicine)',             uni: 'University of KwaZulu-Natal',      aps: 48, fees: 91500, dur: 6, fit: 41, pathway: 'direct',     salary: 52000, demand: 'High' },
+  { id: 'sun-fin',   name: 'BCom Finance',                 uni: 'Stellenbosch University',          aps: 44, fees: 68400, dur: 3, fit: 67, pathway: 'direct',     salary: 32400, demand: 'Med'  },
+  { id: 'wits-eng',  name: 'BSc Eng (Foundation Yr)',      uni: 'University of the Witwatersrand',  aps: 32, fees: 71200, dur: 5, fit: 72, pathway: 'foundation', salary: 36800, demand: 'High' },
+  { id: 'wits-law',  name: 'LLB Law',                      uni: 'University of the Witwatersrand',  aps: 40, fees: 79800, dur: 4, fit: 70, pathway: 'direct',     salary: 38000, demand: 'Med'  },
+  { id: 'unisa-bed', name: 'BEd (Foundation Phase)',       uni: 'UNISA',                            aps: 26, fees: 18400, dur: 4, fit: 82, pathway: 'direct',     salary: 22000, demand: 'High' },
+  { id: 'up-acc',    name: 'BCom Accounting',              uni: 'University of Pretoria',           aps: 38, fees: 71200, dur: 3, fit: 74, pathway: 'direct',     salary: 31500, demand: 'High' },
+  { id: 'uct-math',  name: 'BSc Mathematics',              uni: 'University of Cape Town',          aps: 36, fees: 74200, dur: 3, fit: 80, pathway: 'direct',     salary: 36000, demand: 'Med'  },
+  { id: 'uwc-psych', name: 'BA Psychology',                uni: 'University of the Western Cape',   aps: 30, fees: 52400, dur: 3, fit: 66, pathway: 'direct',     salary: 24000, demand: 'Med'  },
+  { id: 'up-civil',  name: 'BEng Civil Engineering',       uni: 'University of Pretoria',           aps: 34, fees: 72400, dur: 4, fit: 78, pathway: 'direct',     salary: 34200, demand: 'High' },
+  { id: 'uct-med',   name: 'MBChB (Medicine)',             uni: 'University of Cape Town',          aps: 50, fees: 96200, dur: 6, fit: 32, pathway: 'direct',     salary: 52000, demand: 'High' },
+  { id: 'cput-it',   name: 'BSc Information Technology',   uni: 'Cape Peninsula UoT',               aps: 28, fees: 39400, dur: 3, fit: 77, pathway: 'direct',     salary: 28000, demand: 'High' },
+  { id: 'wits-econ', name: 'BCom Economics',               uni: 'University of the Witwatersrand',  aps: 38, fees: 80200, dur: 3, fit: 71, pathway: 'direct',     salary: 33000, demand: 'Med'  },
+  { id: 'ukzn-nurs', name: 'BNurs Nursing Science',        uni: 'University of KwaZulu-Natal',      aps: 26, fees: 54400, dur: 4, fit: 65, pathway: 'direct',     salary: 22000, demand: 'High' },
+  { id: 'uct-arch',  name: 'BSc Architecture',             uni: 'University of Cape Town',          aps: 36, fees: 82400, dur: 3, fit: 68, pathway: 'direct',     salary: 28000, demand: 'Med'  },
+  { id: 'tut-elec',  name: 'BTech Electrical Engineering', uni: 'Tshwane University of Technology', aps: 30, fees: 36400, dur: 4, fit: 73, pathway: 'tvet',       salary: 32000, demand: 'High' },
+  { id: 'uj-sw',     name: 'BA Social Work',               uni: 'University of Johannesburg',       aps: 28, fees: 66800, dur: 4, fit: 60, pathway: 'direct',     salary: 18000, demand: 'High' },
+  { id: 'sun-cs',    name: 'BSc Computer Science',         uni: 'Stellenbosch University',          aps: 38, fees: 69800, dur: 3, fit: 88, pathway: 'direct',     salary: 38500, demand: 'High' },
 ];
 
 export const APPS: Application[] = [
@@ -41,10 +55,10 @@ export const APPS: Application[] = [
 ];
 
 export const DEADLINES: Deadline[] = [
-  { d: 29, m: 'Apr', t: 'NSFAS supporting docs',        sub: '2 days · required',          tag: 'destructive', tagL: 'Urgent' },
-  { d: 5,  m: 'May', t: 'UCT residence application',    sub: '8 days',                     tag: 'warning',     tagL: 'Soon'   },
-  { d: 11, m: 'May', t: 'Allan Gray Orbis essay',       sub: '14 days · 1,000 words',      tag: '',            tagL: 'Open'   },
-  { d: 22, m: 'May', t: 'Wits portfolio submission',    sub: '25 days',                    tag: '',            tagL: 'Open'   },
+  { d: 31, m: 'Aug', t: 'NSFAS supporting docs',        sub: '12 days · required',         tag: 'destructive', tagL: 'Urgent' },
+  { d: 30, m: 'Sep', t: 'UCT residence application',    sub: '30 days',                    tag: 'warning',     tagL: 'Soon'   },
+  { d: 15, m: 'Oct', t: 'Allan Gray Orbis essay',       sub: '46 days · 1,000 words',      tag: '',            tagL: 'Open'   },
+  { d: 31, m: 'Oct', t: 'Wits portfolio submission',    sub: '62 days',                    tag: '',            tagL: 'Open'   },
 ];
 
 export const SCHOLARSHIPS: Scholarship[] = [
@@ -67,14 +81,22 @@ export const CAPS: Capability[] = [
 ];
 
 export const CAREERS: Career[] = [
-  { rank: 1, name: 'Software Engineer',        match: 88, salary: 38500, growth: '+22%', demand: 'High', tags: ['STEM','Remote-friendly','Tech'],   why: 'Strong analytical (86) + numerical (88), top fit for your maths trajectory.' },
-  { rank: 2, name: 'Data Scientist',           match: 85, salary: 41200, growth: '+18%', demand: 'High', tags: ['STEM','Hybrid','Analytics'],       why: 'Capability mix maps perfectly; growth sector in SA finance + telco.' },
-  { rank: 3, name: 'Actuary',                  match: 82, salary: 45200, growth: '+9%',  demand: 'Med',  tags: ['Finance','Office','Accredited'],   why: 'High pay, your maths and stats fit, but long accreditation path.' },
-  { rank: 4, name: 'Quantitative Analyst',     match: 78, salary: 48000, growth: '+12%', demand: 'Med',  tags: ['Finance','Hybrid'],                why: 'Premier salary band; competitive entry, niche to JSE-listed banks.' },
-  { rank: 5, name: 'ML Engineer',              match: 76, salary: 42800, growth: '+25%', demand: 'High', tags: ['STEM','Remote'],                   why: 'Fastest-growing role; needs stronger CS foundation than maths.' },
-  { rank: 6, name: 'Product Manager (Tech)',   match: 71, salary: 38000, growth: '+14%', demand: 'High', tags: ['Tech','Hybrid'],                   why: 'Verbal score (54) is a gap here; coachable through electives.' },
-  { rank: 7, name: 'Civil Engineer',           match: 58, salary: 32400, growth: '+5%',  demand: 'Med',  tags: ['STEM','On-site'],                  why: 'Spatial fit OK; lower demand growth than software.' },
-  { rank: 8, name: 'Doctor (MBChB)',           match: 41, salary: 52000, growth: '+7%',  demand: 'High', tags: ['STEM','Public'],                   why: 'High pay but APS, biology and verbal scores all need lifting.' },
+  { rank: 1,  name: 'Software Engineer',        match: 88, salary: 38500, growth: '+22%', demand: 'High', tags: ['STEM','Remote','Tech'],          why: 'Strong analytical + numerical capability — top fit for your maths trajectory.' },
+  { rank: 2,  name: 'Data Scientist',           match: 85, salary: 41200, growth: '+18%', demand: 'High', tags: ['STEM','Hybrid','Analytics'],     why: 'Capability mix maps perfectly; growth sector in SA finance + telco.' },
+  { rank: 3,  name: 'Actuary',                  match: 82, salary: 45200, growth: '+9%',  demand: 'Med',  tags: ['Finance','Office','Accredited'], why: 'High pay, your maths and stats fit, but long accreditation path.' },
+  { rank: 4,  name: 'Quantitative Analyst',     match: 78, salary: 48000, growth: '+12%', demand: 'Med',  tags: ['Finance','Hybrid'],              why: 'Premier salary band; competitive entry, niche to JSE-listed banks.' },
+  { rank: 5,  name: 'ML Engineer',              match: 76, salary: 42800, growth: '+25%', demand: 'High', tags: ['STEM','Remote'],                 why: 'Fastest-growing role; needs stronger CS foundation than maths.' },
+  { rank: 6,  name: 'Data Analyst',             match: 74, salary: 32000, growth: '+16%', demand: 'High', tags: ['Analytics','Hybrid','STEM'],     why: 'Broad demand across SA industries — accessible entry with BSc or BIS.' },
+  { rank: 7,  name: 'Product Manager (Tech)',   match: 71, salary: 38000, growth: '+14%', demand: 'High', tags: ['Tech','Hybrid'],                 why: 'Communication skills are the gap; coachable through electives and projects.' },
+  { rank: 8,  name: 'Entrepreneur',             match: 68, salary: 45000, growth: '+20%', demand: 'High', tags: ['Business','Flexible'],           why: 'High enterprising RIASEC + risk tolerance maps well; income is variable.' },
+  { rank: 9,  name: 'Lawyer',                   match: 64, salary: 38000, growth: '+6%',  demand: 'Med',  tags: ['Law','Office','Accredited'],     why: 'Good analytical fit; verbal and communication scores need strengthening.' },
+  { rank: 10, name: 'Financial Advisor',        match: 62, salary: 34000, growth: '+8%',  demand: 'High', tags: ['Finance','Client-facing'],       why: 'Enterprising profile fits; people skills are more important than maths here.' },
+  { rank: 11, name: 'Mechanical Engineer',      match: 60, salary: 33500, growth: '+5%',  demand: 'Med',  tags: ['STEM','On-site','Manufacturing'],why: 'Solid technical fit; stable demand in SA manufacturing and infrastructure.' },
+  { rank: 12, name: 'Civil Engineer',           match: 58, salary: 32400, growth: '+5%',  demand: 'Med',  tags: ['STEM','On-site'],                why: 'Spatial fit OK; demand is steady but lower growth than software.' },
+  { rank: 13, name: 'Accountant',               match: 55, salary: 30000, growth: '+4%',  demand: 'High', tags: ['Finance','Office','Accredited'], why: 'SAICA accreditation path is long; high demand and job security.' },
+  { rank: 14, name: 'Teacher',                  match: 48, salary: 22000, growth: '+3%',  demand: 'High', tags: ['Education','Public'],            why: 'Critical national shortage; social impact is high but salary is modest.' },
+  { rank: 15, name: 'Nurse',                    match: 44, salary: 24000, growth: '+8%',  demand: 'High', tags: ['Health','Public','People'],      why: 'Agreeableness fits; HPCSA registration required. High public sector demand.' },
+  { rank: 16, name: 'Doctor (MBChB)',           match: 41, salary: 52000, growth: '+7%',  demand: 'High', tags: ['STEM','Public','Accredited'],    why: 'High pay but APS 48+, biology, and verbal scores all need lifting.' },
 ];
 
 export const BIG5: BigFiveTrait[] = [
