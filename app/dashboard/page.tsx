@@ -160,9 +160,11 @@ export default async function Page() {
   }
 
   // Psychological profile
-  // Redirect new users to onboarding if they haven't built their profile yet
-  const needsOnboarding = !psychResult.data && !capResult.data && !profile?.province;
-  if (needsOnboarding) redirect('/onboarding');
+  // Only redirect brand-new accounts that have no profile row at all (auth trigger not yet run).
+  // Users who have a profile but haven't completed onboarding stay on the dashboard in
+  // graceful-degraded (empty) mode rather than being bounced on every router.refresh().
+  const isNewAccount = !profile && !profileResult.error;
+  if (isNewAccount) redirect('/onboarding');
 
   const psychProfile: PsychProfileData | null = psychResult.data ?? null;
 
