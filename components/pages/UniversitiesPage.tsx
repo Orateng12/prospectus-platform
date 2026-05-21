@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { UNIS, PROGRAMMES, PROVINCES } from '@/lib/data';
-import { calcAPS, fmtR, uniToneClass } from '@/lib/utils';
+import { calcAPS, fmtR, uniToneClass, uniLogoPath } from '@/lib/utils';
 import type { Subject, Route, CompareItem } from '@/lib/types';
 
 type Tab = 'all' | 'eligible' | 'tier1' | 'comprehensive' | 'uot' | 'tvet' | 'private' | 'distance';
@@ -313,8 +313,19 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
                 <div className="card interactive" key={u.short} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div className="row-between">
                     <div className="row" style={{ gap: '0.625rem' }}>
-                      <div className={`img-tile sm ${uniToneClass(u.short)}`} aria-hidden="true" style={{ flexShrink: 0, fontWeight: 800, fontSize: '0.8125rem' }}>
-                        {u.short}
+                      <div className={`img-tile sm ${uniToneClass(u.short)}`} style={{ flexShrink: 0, position: 'relative' }}>
+                        <img
+                          src={uniLogoPath(u.name)}
+                          alt={u.short}
+                          width={38} height={38}
+                          style={{ objectFit: 'contain', zIndex: 2 }}
+                          onError={e => {
+                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                            const fb = e.currentTarget.nextElementSibling as HTMLElement | null;
+                            if (fb) fb.style.display = 'block';
+                          }}
+                        />
+                        <span style={{ display: 'none', fontWeight: 800, fontSize: '0.75rem', position: 'absolute', zIndex: 2 }}>{u.short}</span>
                       </div>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '0.9375rem', letterSpacing: '-0.01em' }}>{u.name}</div>

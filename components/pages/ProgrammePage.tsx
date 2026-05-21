@@ -3,7 +3,7 @@
 import { useState, useMemo, useTransition } from 'react';
 import type { Route, Subject, Programme, PsychProfileData, CapabilityData } from '@/lib/types';
 import { PROGRAMMES } from '@/lib/data';
-import { calcAPS, fmtR, uniToneClass } from '@/lib/utils';
+import { calcAPS, fmtR, uniToneClass, uniLogoPath } from '@/lib/utils';
 import { scoreCareerMatch } from '@/lib/scoring';
 import { toggleSavedProgramme } from '@/app/actions/toggleSavedProgramme';
 import AddApplicationModal from '@/components/AddApplicationModal';
@@ -720,7 +720,13 @@ export default function ProgrammePage({
             return (
               <div className="career-card" key={p.id} onClick={() => setSelected(p)}>
                 <div className={`img-tile ${uniToneClass(p.uni)}`} aria-hidden="true">
-                  <span className="glyph">{p.name.split(' ').slice(0, 2).map(w => w[0]).join('')}</span>
+                  <img
+                    src={uniLogoPath(p.uni)}
+                    alt=""
+                    width={60} height={60}
+                    style={{ objectFit: 'contain', opacity: 0.9 }}
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  />
                 </div>
                 <div className="row-between">
                   <div className="row" style={{ gap: '0.5rem' }}>

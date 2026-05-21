@@ -105,6 +105,18 @@ function careerTileClass(name: string): string {
   return 'default-career';
 }
 
+const CAREER_ICON: Record<string, string> = {
+  swe:            '⌨',
+  data:           '∑',
+  actuary:        'π',
+  quant:          '⬡',
+  ml:             '◉',
+  pm:             '◈',
+  civil:          '△',
+  med:            '⚕',
+  'default-career':'✦',
+};
+
 // ────────────────────────────────────────────────────────────────────────────
 
 export default function CareersPage({
@@ -376,7 +388,7 @@ export default function CareersPage({
             {displayed.slice(0, visibleCount).map(c => (
               <div className="career-card" key={c.name}>
                 <div className={`img-tile ${careerTileClass(c.name)}`} aria-hidden="true">
-                  <span className="glyph">{c.name.split(' ').slice(0,2).map(w=>w[0]).join('')}</span>
+                  <span className="glyph">{CAREER_ICON[careerTileClass(c.name)] ?? '✦'}</span>
                 </div>
                 <div className="row-between">
                   <div className="row" style={{ gap: '0.5rem' }}>
