@@ -23,9 +23,47 @@ const DESCRIPTIONS: Record<string, string> = {
   Practical:   'Real-world execution · hands-on',
 };
 
-const GROWTH_NOTES: Record<string, string> = {
-  Verbal:   'Lifting Verbal opens Law, journalism, PM tracks. Suggested: 4-week reading-comprehension program.',
-  Creative: 'Creative correlates with design + research roles. Suggested: portfolio project on side problem.',
+const DEVELOPMENT_ACTIONS: Record<string, Array<{ action: string; timeframe: string; resource: string }>> = {
+  Analytical: [
+    { action: 'Solve 3 logic puzzles daily', timeframe: '4 weeks', resource: 'Brilliant.org (free tier)' },
+    { action: 'Study Statistics fundamentals', timeframe: '6 weeks', resource: 'Khan Academy Statistics' },
+    { action: 'Practice data interpretation with past NSC papers', timeframe: 'Ongoing', resource: 'SAAEA exam archive' },
+  ],
+  Technical: [
+    { action: 'Build one complete project from scratch', timeframe: '4–6 weeks', resource: 'freeCodeCamp or The Odin Project' },
+    { action: 'Master Excel / Google Sheets to advanced level', timeframe: '2 weeks', resource: 'ExcelJet tutorials (free)' },
+    { action: 'Complete one structured online course', timeframe: '6–8 weeks', resource: 'Coursera / edX (audit free)' },
+  ],
+  Social: [
+    { action: 'Join one student society or community org', timeframe: 'This term', resource: 'School / campus noticeboard' },
+    { action: 'Practice active listening — paraphrase 3 conversations daily', timeframe: '2 weeks', resource: 'Self-directed practice' },
+    { action: 'Lead a study group or small project team', timeframe: 'Next month', resource: 'Class peers' },
+  ],
+  Creative: [
+    { action: 'Complete a side project on a problem you care about', timeframe: '4–6 weeks', resource: 'Self-directed' },
+    { action: 'Sketch 3 ideas for a random problem every morning (5 min)', timeframe: '3 weeks', resource: 'Notebook' },
+    { action: 'Study one design discipline (UX, architecture, writing)', timeframe: '4 weeks', resource: 'YouTube / Canva Design School' },
+  ],
+  Verbal: [
+    { action: 'Read one non-fiction article and summarise it daily', timeframe: '4 weeks', resource: 'Mail & Guardian, Daily Maverick' },
+    { action: 'Write a 300-word reflection each week on what you learned', timeframe: '6 weeks', resource: 'Personal journal / Google Docs' },
+    { action: 'Complete NSC reading comprehension past papers weekly', timeframe: '3 weeks', resource: 'NSC past papers (SAAEA)' },
+  ],
+  Numerical: [
+    { action: 'Complete 30 min of Maths practice every day', timeframe: 'Ongoing', resource: 'Khan Academy Maths' },
+    { action: 'Attempt a full Maths paper under timed conditions weekly', timeframe: '8 weeks', resource: 'NSC exam papers' },
+    { action: 'Learn financial basics (interest, budgeting, percentages)', timeframe: '2 weeks', resource: 'Investopedia / YouTube' },
+  ],
+  Spatial: [
+    { action: 'Practice 3D visualisation exercises daily (10 min)', timeframe: '3 weeks', resource: 'YouTube tutorials + graph paper' },
+    { action: 'Study one Engineering Graphics or CAD concept weekly', timeframe: '6 weeks', resource: 'Free CAD tutorials (Fusion 360)' },
+    { action: 'Build or assemble a physical model (electrical kit, model)', timeframe: '2 weeks', resource: 'Hardware store / DIY kits' },
+  ],
+  Practical: [
+    { action: 'Complete one real-world task in your area of interest', timeframe: 'Next school holiday', resource: 'Family business or community org' },
+    { action: 'Document 3 problems you solved this week with method + outcome', timeframe: 'Ongoing', resource: 'Personal journal' },
+    { action: 'Shadow someone working in your target career for a day', timeframe: 'Within 1 month', resource: 'School career centre / LinkedIn' },
+  ],
 };
 
 // Map DB capability_graphs columns → CAPS labels (best-fit)
@@ -182,7 +220,7 @@ export default function SkillsPage({ capabilityData, psychProfile, careers = [],
                     <div style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: 'hsl(var(--warning))' }}>{c.v}</div>
                   </div>
                   <div className="caption" style={{ marginTop: '0.25rem', fontSize: '0.75rem' }}>
-                    {GROWTH_NOTES[c.l] ?? 'Targeted practice over 4-6 weeks should move this 8-12 points.'}
+                    {DEVELOPMENT_ACTIONS[c.l]?.[0]?.action ?? 'Targeted practice over 4-6 weeks should move this 8-12 points.'}
                   </div>
                 </div>
               ))}
@@ -313,6 +351,60 @@ export default function SkillsPage({ capabilityData, psychProfile, careers = [],
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Development playbook — show for the 2 lowest-scoring dimensions */}
+      <div className="card" style={{ marginTop: '1.25rem' }}>
+        <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Development playbook</div>
+        <h3 className="subheading" style={{ marginTop: '0.25rem', marginBottom: '1rem' }}>
+          Specific actions to lift your lowest dimensions
+        </h3>
+        <div className="grid-2">
+          {sorted.slice(-2).map(c => {
+            const actions = DEVELOPMENT_ACTIONS[c.l];
+            if (!actions) return null;
+            return (
+              <div key={c.l} style={{ padding: '1rem', background: 'hsl(var(--muted) / 0.3)', borderRadius: 8 }}>
+                <div className="row-between" style={{ marginBottom: '0.75rem' }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{c.l}</div>
+                    <div className="caption" style={{ marginTop: '0.125rem' }}>{DESCRIPTIONS[c.l]}</div>
+                  </div>
+                  <div style={{ fontWeight: 900, fontSize: '1.5rem', color: 'hsl(var(--warning))', fontVariantNumeric: 'tabular-nums' }}>
+                    {c.v}
+                  </div>
+                </div>
+                <div className="stack">
+                  {actions.map((a, i) => (
+                    <div key={i} style={{ paddingBottom: '0.625rem', borderBottom: i < actions.length - 1 ? '1px solid hsl(var(--border))' : 'none' }}>
+                      <div className="row" style={{ gap: '0.625rem', alignItems: 'flex-start' }}>
+                        <span style={{
+                          width: 20, height: 20, borderRadius: 999, flexShrink: 0,
+                          background: i === 0 ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                          color: i === 0 ? 'hsl(var(--primary-fg))' : 'hsl(var(--muted-fg))',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontWeight: 800, fontSize: '0.625rem', marginTop: 2,
+                        }}>
+                          {i + 1}
+                        </span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{a.action}</div>
+                          <div className="caption" style={{ marginTop: '0.125rem', fontSize: '0.6875rem' }}>
+                            {a.timeframe} · {a.resource}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="caption" style={{ marginTop: '0.875rem', fontSize: '0.6875rem', borderTop: '1px solid hsl(var(--border))', paddingTop: '0.75rem' }}>
+          Moving your bottom two dimensions by 8–12 points each typically improves your overall career match by 5–10 points.
+          Consistent 4-week effort is more effective than sporadic intensive sessions.
+        </div>
       </div>
     </div>
   );

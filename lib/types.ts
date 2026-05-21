@@ -43,6 +43,7 @@ export interface Application {
   progId?: string | null;
   submitted?: string;
   decided?: string;
+  deadline?: string;
   fee?: string;
 }
 

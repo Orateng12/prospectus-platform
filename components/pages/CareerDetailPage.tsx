@@ -63,6 +63,52 @@ const CAP_LABEL: Record<keyof CapabilityData, string> = {
   career_readiness: 'Career readiness',
 };
 
+const SA_EMPLOYERS: Record<string, string[]> = {
+  'Software Engineer':       ['Takealot', 'Standard Bank', 'Discovery Health', 'Investec', 'Allan Gray', 'Naspers / Prosus', 'BCX'],
+  'Data Scientist':          ['Discovery Health', 'Absa', 'Old Mutual', 'DataProphet', 'BCX', 'Rand Merchant Bank', 'Sanlam'],
+  'Data Analyst':            ['Discovery', 'Nedbank', 'Shoprite', 'Capitec', 'PwC', 'Deloitte', 'KPMG'],
+  'Actuary':                 ['Old Mutual', 'Sanlam', 'Discovery', 'PwC', 'Deloitte', 'Liberty', 'Momentum'],
+  'Quantitative Analyst':    ['Rand Merchant Bank', 'Investec', 'Absa CIB', 'Standard Bank CIB', 'Allan Gray', 'Coronation'],
+  'ML Engineer':             ['DataProphet', 'Discovery', 'Naspers / Prosus', 'Standard Bank AI', 'Nuvei', 'AWS SA'],
+  'Civil Engineer':          ['AECOM', 'WSP', 'Bigen Group', 'Aurecon', 'SMEC', 'eThekwini Municipality', 'SANRAL'],
+  'Mechanical Engineer':     ['Sasol', 'Eskom', 'ArcelorMittal', 'AECI', 'Bidvest', 'Anglo American'],
+  'Doctor (MBChB)':          ['Netcare', 'Life Healthcare', 'Mediclinic', 'Department of Health', 'NHLS', 'Groote Schuur'],
+  'Doctor':                  ['Netcare', 'Life Healthcare', 'Mediclinic', 'Department of Health', 'NHLS'],
+  'Nurse':                   ['Netcare', 'Life Healthcare', 'Department of Health', 'Mediclinic', 'SANBS'],
+  'Lawyer':                  ['Webber Wentzel', 'Cliffe Dekker Hofmeyr', 'ENSafrica', 'Werksmans', 'DLA Piper ZA'],
+  'Accountant':              ['PwC', 'Deloitte', 'EY', 'KPMG', 'Grant Thornton', 'BDO', 'Capitec'],
+  'Financial Advisor':       ['Old Mutual', 'Sanlam', 'Liberty', 'Discovery', 'PSG Wealth', 'Momentum'],
+  'Teacher':                 ['WCED', 'GDE', 'KZN DoE', 'Curro Holdings', 'ADvTECH', 'Spark Schools'],
+  'Entrepreneur':            ['Own venture', 'Allan Gray Orbis Fellowship', 'Grindstone Accelerator', 'SEDA'],
+  'Product Manager (Tech)':  ['Takealot', 'Standard Bank', 'Discovery', 'Naspers / Prosus', 'Jumo', 'Yoco'],
+  'Product Manager':         ['Takealot', 'Capitec', 'Discovery', 'FNB', 'Standard Bank', 'Shoprite'],
+};
+
+const NEXT_STEPS: Record<string, string[]> = {
+  'Software Engineer':       ['Build a portfolio project on GitHub (3–5 weeks)', 'Take CS50 or freeCodeCamp (free)', 'Apply to CS programmes with APS ≥ 30', 'Attend a hackathon this year'],
+  'Data Scientist':          ['Learn Python basics (4 weeks, Kaggle free course)', 'Complete one end-to-end data project', 'Apply to BCom/BSc Data Science or Statistics', 'Join a data community (DataKind, Zindi)'],
+  'Actuary':                 ['Confirm APS ≥ 42 for UCT/WITS actuarial', 'Study Maths intensively — need 80%+', 'Register for the actuarial science programme', 'Look into Allan Gray / Momentum bursaries'],
+  'Civil Engineer':          ['Confirm APS ≥ 35 for engineering', 'Ensure Maths + Physical Sciences both above 60%', 'Apply to Eskom / AECOM graduate bursary', 'Visit ECSA website for engineering registration requirements'],
+  'Doctor (MBChB)':          ['Target APS 42+ (MBChB is the most competitive)', 'Physical Sciences + Life Sciences + Maths required', 'Apply to UKZN / Wits / UP MBChB with early deadline', 'Shadow a doctor for work-experience letter'],
+  'Doctor':                  ['Target APS 42+ and strong Maths + Sciences', 'Apply to UKZN / Wits / Sefako Makgatho MBChB', 'Explore Funza Lushaka or Medunsa bursary paths', 'Shadow a practitioner for experience letter'],
+  'Lawyer':                  ['APS ≥ 33 typically needed for LLB', 'Focus on English and History for entry', 'Apply to UWC / Wits / UP Law Faculty', 'Attend a moot court or legal clinic as observer'],
+  'Teacher':                 ['Look into Funza Lushaka bursary (covers full costs)', 'Confirm which subject you want to specialise in', 'Apply to BEd programmes at WITS / UJ / UNISA', 'Contact your district DoE about student placements'],
+};
+
+function getNextSteps(careerName: string, aps: number, minAps: number): string[] {
+  const specific = NEXT_STEPS[careerName];
+  if (specific) return specific;
+  const gap = minAps - aps;
+  return [
+    gap > 0
+      ? `Raise APS from ${aps} to ${minAps} — focus on your lowest-scoring subjects`
+      : `Your APS of ${aps} meets the ${minAps} requirement — apply now`,
+    'Research bursary options specific to this career on the Scholarships page',
+    'Book an interview with a career counsellor at your school or SETA office',
+    'Connect with a practitioner in this field for informational guidance',
+  ];
+}
+
 function inferSubjectsFromAps(minAps: number): string {
   if (minAps >= 38) return 'Mathematics (60%+), Physical Sciences or Life Sciences, English HL';
   if (minAps >= 30) return 'Mathematics or Maths Literacy, English, relevant NSC subject';
@@ -223,35 +269,70 @@ export default function CareerDetailPage({ career, programmes: propProgrammes, c
             </div>
           </div>
 
-          {/* Salary sparkline */}
+          {/* Salary progression */}
           <div className="card">
-            <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />10-year salary trajectory</div>
-            <div className="row-between" style={{ marginBottom: '0.75rem' }}>
-              <div>
-                <div className="caption" style={{ fontSize: '0.6875rem' }}>Entry</div>
-                <div style={{ fontWeight: 800 }}>{fmtR(Math.round(career.salary * 0.55))}/mo</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div className="caption" style={{ fontSize: '0.6875rem' }}>Senior</div>
-                <div style={{ fontWeight: 800, color: 'hsl(var(--success))' }}>{fmtR(Math.round(career.salary * 2))}/mo</div>
-              </div>
+            <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Salary progression</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
+              {[
+                { level: 'Entry',   years: '0–3 yrs',  mult: 0.55, cls: '' },
+                { level: 'Mid',     years: '4–7 yrs',  mult: 1.0,  cls: '' },
+                { level: 'Senior',  years: '8–14 yrs', mult: 1.6,  cls: 'success' },
+                { level: 'Lead',    years: '15+ yrs',  mult: 2.2,  cls: 'success' },
+              ].map(({ level, years, mult, cls }) => {
+                const amt = Math.round(career.salary * mult);
+                return (
+                  <div key={level} className="card compact" style={{ padding: '0.75rem' }}>
+                    <div className="caption" style={{ fontSize: '0.6875rem' }}>{level}</div>
+                    <div style={{
+                      fontWeight: 900, fontSize: '1.25rem', letterSpacing: '-0.03em',
+                      fontVariantNumeric: 'tabular-nums',
+                      color: cls ? `hsl(var(--${cls}))` : undefined,
+                    }}>
+                      {fmtR(amt)}
+                    </div>
+                    <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.125rem' }}>/mo · {years}</div>
+                    <div className="meter sm" style={{ marginTop: '0.5rem' }}>
+                      <i style={{ width: `${Math.min(100, Math.round((mult / 2.2) * 100))}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <svg width="100%" viewBox="0 0 160 48" preserveAspectRatio="none" style={{ display: 'block' }}>
-              <polyline
-                points={sparklinePoints(career.salary)}
-                fill="none"
-                stroke="hsl(var(--primary))"
-                strokeWidth="2"
-                strokeLinejoin="round"
-                strokeLinecap="round"
-              />
-            </svg>
-            <div className="row-between" style={{ marginTop: '0.375rem' }}>
+            <div className="row-between" style={{ marginTop: '0.875rem', paddingTop: '0.75rem', borderTop: '1px solid hsl(var(--border))' }}>
+              <svg width="100%" viewBox="0 0 160 36" preserveAspectRatio="none" style={{ display: 'block', height: 36 }}>
+                <polyline
+                  points={sparklinePoints(career.salary)}
+                  fill="none"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+            <div className="row-between" style={{ marginTop: '0.25rem' }}>
               <span className="caption" style={{ fontSize: '0.625rem' }}>Year 1</span>
-              <span className="caption" style={{ fontSize: '0.625rem' }}>{fmtR(Math.round(career.salary * 1.2))}/mo · yr 5</span>
-              <span className="caption" style={{ fontSize: '0.625rem', color: 'hsl(var(--success))' }}>{career.growth} · yr 10</span>
+              <span className="caption" style={{ fontSize: '0.625rem', color: 'hsl(var(--success))' }}>10-yr growth: {career.growth}</span>
             </div>
           </div>
+
+          {/* Top SA employers */}
+          {(() => {
+            const employers = SA_EMPLOYERS[career.name] ?? SA_EMPLOYERS['Accountant'];
+            return (
+              <div className="card">
+                <div className="eyebrow" style={{ marginBottom: '0.75rem' }}><span className="dot" />Top SA employers</div>
+                <div className="row" style={{ gap: '0.375rem', flexWrap: 'wrap' }}>
+                  {employers.map(e => (
+                    <span key={e} className="career-tag" style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}>{e}</span>
+                  ))}
+                </div>
+                <div className="caption" style={{ marginTop: '0.625rem', fontSize: '0.6875rem' }}>
+                  Companies actively recruiting {career.name}s in South Africa.
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Right column */}
@@ -278,6 +359,37 @@ export default function CareerDetailPage({ career, programmes: propProgrammes, c
               ))}
             </div>
           </div>
+
+          {/* Actionable next steps */}
+          {(() => {
+            const minAps = fallbackProgs[0]?.aps ?? 30;
+            const steps = getNextSteps(career.name, userAps, minAps);
+            return (
+              <div className="card">
+                <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Your next steps</div>
+                <div className="stack">
+                  {steps.map((step, i) => (
+                    <div key={i} className="row" style={{ gap: '0.75rem', padding: '0.5rem 0', borderBottom: '1px solid hsl(var(--border))', alignItems: 'flex-start' }}>
+                      <span style={{
+                        width: 22, height: 22, borderRadius: 999, flexShrink: 0,
+                        background: i === 0 ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                        color: i === 0 ? 'hsl(var(--primary-fg))' : 'hsl(var(--muted-fg))',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontWeight: 800, fontSize: '0.6875rem', marginTop: 1,
+                      }}>
+                        {i + 1}
+                      </span>
+                      <span style={{ fontSize: '0.8125rem', lineHeight: 1.5 }}>{step}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="row" style={{ marginTop: '0.875rem' }}>
+                  <button className="btn btn-primary btn-sm" onClick={() => navigate('programmes')}>Browse programmes →</button>
+                  <button className="btn btn-outline btn-sm" onClick={() => navigate('scholarships')}>Find funding →</button>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Skills gap */}
           {capabilityData && (
