@@ -3,6 +3,7 @@ import RadarChart from '@/components/RadarChart';
 import { rankCareersByMatch, getCareerCapRequirements, getCareerBigFiveRanges } from '@/lib/scoring';
 import type { CareerBigFiveRanges } from '@/lib/scoring';
 import type { CapabilityData, Capability, PsychProfileData, Career, Route } from '@/lib/types';
+import { DB_TO_CAP, CAP_DB_LABEL, CAP_DESCRIPTIONS, BIG5_LABEL, BIG5_DESC } from '@/lib/capability';
 
 interface SkillsPageProps {
   capabilityData?: CapabilityData | null;
@@ -13,17 +14,6 @@ interface SkillsPageProps {
   navigate?: (r: Route) => void;
   onOpenCareer?: (name: string) => void;
 }
-
-const DESCRIPTIONS: Record<string, string> = {
-  Analytical:  'Pattern recognition · structured reasoning',
-  Technical:   'Tool mastery · systems thinking',
-  Social:      'Empathy · group dynamics',
-  Creative:    'Divergent thinking · synthesis',
-  Verbal:      'Comprehension · written expression',
-  Numerical:   'Quantitative fluency · statistics',
-  Spatial:     'Visualisation · 3D reasoning',
-  Practical:   'Real-world execution · hands-on',
-};
 
 const DEVELOPMENT_ACTIONS: Record<string, Array<{ action: string; timeframe: string; resource: string }>> = {
   Analytical: [
@@ -68,32 +58,6 @@ const DEVELOPMENT_ACTIONS: Record<string, Array<{ action: string; timeframe: str
   ],
 };
 
-// Map DB capability_graphs columns → CAPS labels (best-fit)
-const DB_TO_CAP: Array<[keyof CapabilityData, string]> = [
-  ['analytical_thinking',  'Analytical'],
-  ['technical_aptitude',   'Technical'],
-  ['communication_skills', 'Social'],
-  ['creative_thinking',    'Creative'],
-  ['leadership_potential', 'Verbal'],
-  ['academic_readiness',   'Numerical'],
-  ['risk_tolerance_score', 'Spatial'],
-  ['entrepreneurial_drive','Practical'],
-];
-
-// Human-readable label for each CapabilityData DB key
-const CAP_DB_LABEL: Record<keyof CapabilityData, string> = {
-  analytical_thinking:  'Analytical',
-  technical_aptitude:   'Technical',
-  communication_skills: 'Communication',
-  creative_thinking:    'Creative',
-  leadership_potential: 'Leadership',
-  academic_readiness:   'Academic',
-  risk_tolerance_score: 'Risk tolerance',
-  entrepreneurial_drive:'Entrepreneurial',
-  perseverance:         'Perseverance',
-  career_readiness:     'Career readiness',
-};
-
 export default function SkillsPage({ capabilityData, psychProfile, careers = [], userAps = 0, onRetake, navigate, onOpenCareer }: SkillsPageProps) {
   let caps: Capability[] = CAPS.map(c => ({ ...c }));
 
@@ -109,23 +73,6 @@ export default function SkillsPage({ capabilityData, psychProfile, careers = [],
   const composite = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
   const sorted = [...caps].sort((a, b) => b.v - a.v);
   const hasData = !!capabilityData;
-
-  // ── Big Five alignment ────────────────────────────────────────────────────
-  const BIG5_LABEL: Record<string, string> = {
-    conscientiousness: 'Conscientiousness',
-    openness:          'Openness',
-    extraversion:      'Extraversion',
-    agreeableness:     'Agreeableness',
-    neuroticism:       'Neuroticism',
-  };
-
-  const BIG5_DESC: Record<string, string> = {
-    conscientiousness: 'Organisation · diligence · reliability',
-    openness:          'Curiosity · imagination · flexibility',
-    extraversion:      'Sociability · assertiveness · energy',
-    agreeableness:     'Empathy · cooperation · trust',
-    neuroticism:       'Emotional stability · stress management',
-  };
 
   // ── Career gap analysis ───────────────────────────────────────────────────
   // Find the student's best-matched career and show exact capability gaps
@@ -390,7 +337,7 @@ export default function SkillsPage({ capabilityData, psychProfile, careers = [],
               <i style={{ width: `${c.v}%` }} />
             </div>
             <div className="caption" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>
-              {DESCRIPTIONS[c.l]}
+              {CAP_DESCRIPTIONS[c.l]}
             </div>
           </div>
         ))}
@@ -411,7 +358,7 @@ export default function SkillsPage({ capabilityData, psychProfile, careers = [],
                 <div className="row-between" style={{ marginBottom: '0.75rem' }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{c.l}</div>
-                    <div className="caption" style={{ marginTop: '0.125rem' }}>{DESCRIPTIONS[c.l]}</div>
+                    <div className="caption" style={{ marginTop: '0.125rem' }}>{CAP_DESCRIPTIONS[c.l]}</div>
                   </div>
                   <div style={{ fontWeight: 900, fontSize: '1.5rem', color: 'hsl(var(--warning))', fontVariantNumeric: 'tabular-nums' }}>
                     {c.v}

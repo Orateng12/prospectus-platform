@@ -3,7 +3,7 @@
 import { useState, useMemo, useTransition } from 'react';
 import type { Route, Subject, Programme, PsychProfileData, CapabilityData } from '@/lib/types';
 import { PROGRAMMES } from '@/lib/data';
-import { calcAPS, fmtR } from '@/lib/utils';
+import { calcAPS, fmtR, uniToneClass } from '@/lib/utils';
 import { scoreCareerMatch } from '@/lib/scoring';
 import { toggleSavedProgramme } from '@/app/actions/toggleSavedProgramme';
 import AddApplicationModal from '@/components/AddApplicationModal';
@@ -123,16 +123,7 @@ function getProgrammeEmployers(programmeName: string): string[] {
   return PROGRAMME_EMPLOYERS.default;
 }
 
-function uniToneClass(uni: string): string {
-  const u = uni.toLowerCase();
-  if (u.includes('cape town') || u === 'uct') return 'uct';
-  if (u.includes('witwatersrand') || u.includes('wits')) return 'wits';
-  if (u.includes('stellenbosch') || u === 'sun') return 'sun';
-  if (u.includes('pretoria') || u === 'up') return 'up';
-  if (u.includes('ukzn') || u.includes('kwazulu')) return 'ukzn';
-  if (u.includes('cape peninsula') || u.includes('cput')) return 'cput';
-  return 'default-uni';
-}
+
 
 const PATHWAY_LABELS: Record<string, string> = {
   direct:     'Direct entry',

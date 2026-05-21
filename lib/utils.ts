@@ -65,3 +65,14 @@ export function calcAPSForCurriculum(subjects: Subject[]): number {
 export function fmtR(n: number): string {
   return 'R\u00A0' + n.toLocaleString('en-ZA');
 }
+
+export function uniToneClass(nameOrShort: string): string {
+  const u = nameOrShort.toLowerCase();
+  if (u === 'uct'  || u.includes('cape town'))                            return 'uct';
+  if (u === 'wits' || u.includes('witwatersrand'))                        return 'wits';
+  if (u === 'sun'  || u.includes('stellenbosch'))                        return 'sun';
+  if (u === 'up'   || u.includes('pretoria'))                             return 'up';
+  if (u === 'ukzn' || u.includes('kwazulu') || u.includes('kwazulu-natal')) return 'ukzn';
+  if (u === 'cput' || u.includes('cape peninsula'))                       return 'cput';
+  return 'default-uni';
+}

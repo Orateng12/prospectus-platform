@@ -7,6 +7,7 @@ import { rankCareersByMatch, getCareerCapRequirements, getCareerBigFiveRanges } 
 import type { CareerBigFiveRanges } from '@/lib/scoring';
 import type { BigFiveTrait, RiasecItem, PsychProfileData, CapabilityData, Capability, Career, Route } from '@/lib/types';
 import AiInsightCard from '@/components/AiInsightCard';
+import { DB_TO_CAP, CAP_DB_LABEL, CAP_DESCRIPTIONS, BIG5_LABEL, BIG5_DESC } from '@/lib/capability';
 
 const RIASEC_CAREERS: Record<string, string> = {
   Realistic:     'Engineering · Architecture · Agriculture',
@@ -47,19 +48,6 @@ interface AssessmentPageProps {
 
 type Tab = 'personality' | 'skills';
 
-// ── Skills helpers (from SkillsPage) ────────────────────────────────────────
-
-const DESCRIPTIONS: Record<string, string> = {
-  Analytical: 'Pattern recognition · structured reasoning',
-  Technical:  'Tool mastery · systems thinking',
-  Social:     'Empathy · group dynamics',
-  Creative:   'Divergent thinking · synthesis',
-  Verbal:     'Comprehension · written expression',
-  Numerical:  'Quantitative fluency · statistics',
-  Spatial:    'Visualisation · 3D reasoning',
-  Practical:  'Real-world execution · hands-on',
-};
-
 const GROWTH_NOTES: Record<string, string> = {
   Analytical: 'Analytical is the gateway to engineering, actuarial, and data science. Suggested: daily logic puzzles + Khan Academy Statistics (4 weeks).',
   Technical:  'Technical opens engineering, IT, and systems roles. Suggested: build a small electronics or coding project; 6-week bootcamp adds ~18 points.',
@@ -69,30 +57,6 @@ const GROWTH_NOTES: Record<string, string> = {
   Numerical:  'Numerical fluency is required for finance, actuarial, and data roles. Suggested: work through NSC Maths past papers at 75%+ consistency before graduation.',
   Spatial:    'Spatial reasoning is key for architecture, engineering drawing, and medicine. Suggested: 3D modelling software (Tinkercad, free) for 20 min/day over 4 weeks.',
   Practical:  'Practical execution separates high-scoring students from high-impact graduates. Suggested: lead a school or community project — any completed real-world deliverable counts.',
-};
-
-const DB_TO_CAP: Array<[keyof CapabilityData, string]> = [
-  ['analytical_thinking',  'Analytical'],
-  ['technical_aptitude',   'Technical'],
-  ['communication_skills', 'Social'],
-  ['creative_thinking',    'Creative'],
-  ['leadership_potential', 'Verbal'],
-  ['academic_readiness',   'Numerical'],
-  ['risk_tolerance_score', 'Spatial'],
-  ['entrepreneurial_drive','Practical'],
-];
-
-const CAP_DB_LABEL: Record<keyof CapabilityData, string> = {
-  analytical_thinking:  'Analytical',
-  technical_aptitude:   'Technical',
-  communication_skills: 'Communication',
-  creative_thinking:    'Creative',
-  leadership_potential: 'Leadership',
-  academic_readiness:   'Academic',
-  risk_tolerance_score: 'Risk tolerance',
-  entrepreneurial_drive:'Entrepreneurial',
-  perseverance:         'Perseverance',
-  career_readiness:     'Career readiness',
 };
 
 // ── Page ─────────────────────────────────────────────────────────────────────
@@ -143,18 +107,6 @@ export default function CognitivePage({
   const composite = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
   const sorted    = [...caps].sort((a, b) => b.v - a.v);
   const hasCapData = !!capabilityData;
-
-  const BIG5_LABEL: Record<string, string> = {
-    conscientiousness: 'Conscientiousness', openness: 'Openness',
-    extraversion: 'Extraversion', agreeableness: 'Agreeableness', neuroticism: 'Neuroticism',
-  };
-  const BIG5_DESC: Record<string, string> = {
-    conscientiousness: 'Organisation · diligence · reliability',
-    openness:          'Curiosity · imagination · flexibility',
-    extraversion:      'Sociability · assertiveness · energy',
-    agreeableness:     'Empathy · cooperation · trust',
-    neuroticism:       'Emotional stability · stress management',
-  };
 
   const topCareer = psychProfile && capabilityData && careers.length > 0
     ? rankCareersByMatch(careers, psychProfile, capabilityData, userAps)[0] ?? null
@@ -445,7 +397,7 @@ export default function CognitivePage({
                 <div className={`meter ${c.v >= 80 ? 'success' : c.v >= 65 ? 'primary' : c.v >= 55 ? 'accent' : 'warning'}`} style={{ marginTop: '0.5rem' }}>
                   <i style={{ width: `${c.v}%` }} />
                 </div>
-                <div className="caption" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>{DESCRIPTIONS[c.l]}</div>
+                <div className="caption" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>{CAP_DESCRIPTIONS[c.l]}</div>
               </div>
             ))}
           </div>

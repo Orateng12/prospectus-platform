@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { UNIS, PROGRAMMES, PROVINCES } from '@/lib/data';
-import { calcAPS, fmtR } from '@/lib/utils';
+import { calcAPS, fmtR, uniToneClass } from '@/lib/utils';
 import type { Subject, Route, CompareItem } from '@/lib/types';
 
 type Tab = 'all' | 'eligible' | 'tier1' | 'comprehensive' | 'uot' | 'tvet' | 'private' | 'distance';
@@ -27,17 +27,6 @@ interface UniversitiesPageProps {
   compareItems: CompareItem[];
   onToggleCompare: (item: CompareItem) => void;
   userProvince?: string;
-}
-
-function uniToneClass(short: string): string {
-  const s = short.toUpperCase();
-  if (s === 'UCT') return 'uct';
-  if (s === 'WITS') return 'wits';
-  if (s === 'SUN') return 'sun';
-  if (s === 'UP') return 'up';
-  if (s === 'UKZN') return 'ukzn';
-  if (s === 'CPUT') return 'cput';
-  return 'default-uni';
 }
 
 export default function UniversitiesPage({ subjects, navigate, compareItems, onToggleCompare, userProvince }: UniversitiesPageProps) {
