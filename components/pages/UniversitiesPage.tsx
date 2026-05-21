@@ -2,10 +2,10 @@
 
 import { useState, useMemo } from 'react';
 import { UNIS, PROGRAMMES, PROVINCES } from '@/lib/data';
-import { calcAPS, fmtR } from '@/lib/utils';
+import { calcAPS, fmtR, uniToneClass, uniLogoPath } from '@/lib/utils';
 import type { Subject, Route, CompareItem } from '@/lib/types';
 
-type Tab = 'all' | 'eligible' | 'tier1' | 'tvet' | 'private';
+type Tab = 'all' | 'eligible' | 'tier1' | 'comprehensive' | 'uot' | 'tvet' | 'private' | 'distance';
 type ViewMode = 'list' | 'map';
 
 // Maps full province names (from user_profiles) to PROVINCES ids
@@ -66,18 +66,61 @@ function uniToneClass(short: string): string {
 export default function UniversitiesPage({ subjects, navigate, compareItems, onToggleCompare, userProvince }: UniversitiesPageProps) {
   const [tab, setTab] = useState<Tab>('all');
   const [view, setView] = useState<ViewMode>('list');
+  const [visibleCount, setVisibleCount] = useState(9);
   const aps = calcAPS(subjects);
   const homeProvinceId = userProvince ? (PROVINCE_NAME_TO_ID[userProvince] ?? null) : null;
 
+  const eligibleUniShorts = useMemo(() => {
+    return new Set(
+      PROGRAMMES.filter(p => p.aps <= aps).map(p => {
+        const match = UNIS.find(u => u.name === p.uni);
+        return match?.short;
+      }).filter(Boolean)
+    );
+  }, [aps]);
+
+  // Per-university count of eligible programmes
+  const eligibleProgsByUni = useMemo(() => {
+    return PROGRAMMES.filter(p => p.aps <= aps).reduce<Record<string, number>>((acc, p) => {
+      const uni = UNIS.find(u => u.name === p.uni);
+      if (uni) acc[uni.short] = (acc[uni.short] ?? 0) + 1;
+      return acc;
+    }, {});
+  }, [aps]);
+
+  // Universities the student is within 6 APS points of qualifying at
+  const nearlyEligible = useMemo(() => {
+    return UNIS
+      .filter(u => !eligibleUniShorts.has(u.short))
+      .map(u => {
+        const uProgs = PROGRAMMES.filter(p => p.uni === u.name);
+        if (uProgs.length === 0) return null;
+        const minAps = Math.min(...uProgs.map(p => p.aps));
+        const gap = minAps - aps;
+        return gap > 0 && gap <= 6 ? { ...u, gap, minAps } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a!.gap - b!.gap)
+      .slice(0, 3) as Array<typeof UNIS[number] & { gap: number; minAps: number }>;
+  }, [aps, eligibleUniShorts]);
+
   const displayed = useMemo(() => {
-    if (tab === 'tier1') return UNIS.filter(u => u.acpt === 'Tier 1');
-    if (tab === 'tvet') return UNIS.filter(u => u.acpt === 'Tier 2');
+    if (tab === 'eligible')      return UNIS.filter(u => eligibleUniShorts.has(u.short));
+    if (tab === 'tier1')         return UNIS.filter(u => u.acpt === 'Tier 1');
+    if (tab === 'comprehensive') return UNIS.filter(u => u.acpt === 'Comprehensive');
+    if (tab === 'uot')           return UNIS.filter(u => u.acpt === 'UoT');
+    if (tab === 'tvet')          return UNIS.filter(u => u.acpt === 'TVET');
+    if (tab === 'private')       return UNIS.filter(u => u.acpt === 'Private');
+    if (tab === 'distance')      return UNIS.filter(u => u.acpt === 'Distance');
     return UNIS;
-  }, [tab]);
+  }, [tab, eligibleUniShorts]);
 
   const totalProgs = PROVINCES.reduce((s, p) => s + p.n, 0);
   const sortedByN   = [...PROVINCES].sort((a, b) => b.n - a.n);
   const sortedByFee = [...PROVINCES].sort((a, b) => b.fees - a.fees);
+  const homeUniCount = homeProvinceId
+    ? UNIS.filter(u => (PROVINCE_NAME_TO_ID[u.province] ?? null) === homeProvinceId).length
+    : 0;
 
   return (
     <div className="page-anim">
@@ -85,7 +128,7 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
         <div className="breadcrumb">Workspace · Universities</div>
         <div className="row-between">
           <div>
-            <div className="eyebrow"><span className="dot" />26 SA institutions</div>
+            <div className="eyebrow"><span className="dot" />{UNIS.length} SA institutions</div>
             <h2 className="heading" style={{ marginTop: '0.375rem' }}>Universities &amp; institutions</h2>
             <p className="body-text" style={{ marginTop: '0.5rem', maxWidth: '44rem' }}>
               Every accredited South African public university, plus selected private and TVET institutions — ranked by your eligibility, capability fit and funding likelihood.
@@ -125,7 +168,7 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
                 </div>
                 <div className="row" style={{ gap: '0.375rem' }}>
                   <span className="badge">{totalProgs} eligible</span>
-                  <span className="badge success">1 home</span>
+                  {homeUniCount > 0 && <span className="badge success">{homeUniCount} home</span>}
                 </div>
               </div>
 
@@ -245,7 +288,7 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
                   </div>
                 </div>
                 <p className="body-text" style={{ fontSize: '0.8125rem', marginTop: '0.625rem' }}>{p.intel}</p>
-                <button className="btn btn-outline btn-sm" style={{ marginTop: '0.875rem' }}>
+                <button className="btn btn-outline btn-sm" style={{ marginTop: '0.875rem' }} onClick={() => navigate('programmes')}>
                   Browse programmes →
                 </button>
               </div>
@@ -255,24 +298,68 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
       ) : (
         // ── List view ──────────────────────────────────────────────────────
         <>
+          {nearlyEligible.length > 0 && (
+            <div className="card" style={{ marginBottom: '1.25rem', borderColor: 'hsl(var(--warning) / 0.4)', background: 'hsl(var(--warning) / 0.03)' }}>
+              <div className="eyebrow" style={{ marginBottom: '0.625rem' }}><span className="dot" />Almost there — within reach</div>
+              <div className="grid-3" style={{ gap: '0.75rem' }}>
+                {nearlyEligible.map(u => (
+                  <div key={u.short} className="card compact" style={{ background: 'transparent' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{u.name}</div>
+                    <div className="caption" style={{ marginTop: 2 }}>Minimum APS: {u.minAps}</div>
+                    <div className="row" style={{ marginTop: '0.5rem', gap: '0.375rem' }}>
+                      <span className="badge warning">+{u.gap} APS needed</span>
+                      <span className="badge">{u.acpt}</span>
+                    </div>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ marginTop: '0.5rem', width: '100%', fontSize: '0.6875rem' }}
+                      onClick={() => navigate('simulator')}
+                    >
+                      Simulate mark increase →
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="tabs">
-            {([['all', `All (${UNIS.length})`], ['eligible', 'Eligible'], ['tier1', 'Tier 1'], ['tvet', 'Tier 2 / UoT'], ['private', 'Private']] as const).map(([t, label]) => (
-              <button key={t} className={`tab${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>{label}</button>
+            {([
+              ['all',           `All (${UNIS.length})`],
+              ['eligible',      `Eligible (${UNIS.filter(u => eligibleUniShorts.has(u.short)).length})`],
+              ['tier1',         `Tier 1 (${UNIS.filter(u => u.acpt === 'Tier 1').length})`],
+              ['comprehensive', `Comprehensive (${UNIS.filter(u => u.acpt === 'Comprehensive').length})`],
+              ['uot',           `UoTs (${UNIS.filter(u => u.acpt === 'UoT').length})`],
+              ['tvet',          `TVET (${UNIS.filter(u => u.acpt === 'TVET').length})`],
+              ['private',       `Private (${UNIS.filter(u => u.acpt === 'Private').length})`],
+              ['distance',      `Distance (${UNIS.filter(u => u.acpt === 'Distance').length})`],
+            ] as [Tab, string][]).map(([t, label]) => (
+              <button key={t} className={`tab${tab === t ? ' active' : ''}`} onClick={() => { setTab(t as Tab); setVisibleCount(9); }}>{label}</button>
             ))}
           </div>
 
           <div className="grid-3">
-            {displayed.map(u => {
+            {displayed.slice(0, visibleCount).map(u => {
               const inCompare = compareItems.some(c => c.id === u.short);
-              const odds = apsOddsFor(u.accept, u.acpt, aps);
-              const oddsColor = odds >= 50 ? 'success' : odds >= 25 ? '' : 'warning';
-              const gradData = GRAD_OUTCOMES[u.short.toUpperCase()];
+              const eligCount  = eligibleProgsByUni[u.short] ?? 0;
+              const isEligible = eligCount > 0;
               return (
                 <div className="card interactive" key={u.short} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div className="row-between">
                     <div className="row" style={{ gap: '0.625rem' }}>
-                      <div className={`img-tile sm ${uniToneClass(u.short)}`} aria-hidden="true" style={{ flexShrink: 0, fontWeight: 800, fontSize: '0.8125rem' }}>
-                        {u.short}
+                      <div className={`img-tile sm ${uniToneClass(u.short)}`} style={{ flexShrink: 0, position: 'relative' }}>
+                        <img
+                          src={uniLogoPath(u.name)}
+                          alt={u.short}
+                          width={38} height={38}
+                          style={{ objectFit: 'contain', zIndex: 2 }}
+                          onError={e => {
+                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                            const fb = e.currentTarget.nextElementSibling as HTMLElement | null;
+                            if (fb) fb.style.display = 'block';
+                          }}
+                        />
+                        <span style={{ display: 'none', fontWeight: 800, fontSize: '0.75rem', position: 'absolute', zIndex: 2 }}>{u.short}</span>
                       </div>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '0.9375rem', letterSpacing: '-0.01em' }}>{u.name}</div>
@@ -286,13 +373,13 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
 
                   <div className="uni-stat-row">
                     <div>
-                      <div className="caption" style={{ fontSize: '0.6875rem' }}>Programmes</div>
+                      <div className="caption" style={{ fontSize: '0.6875rem' }}>Total progs</div>
                       <div style={{ fontWeight: 800, fontSize: '1.0625rem', fontVariantNumeric: 'tabular-nums' }}>{u.progs}</div>
                     </div>
                     <div>
-                      <div className="caption" style={{ fontSize: '0.6875rem' }}>Your est. odds</div>
-                      <div style={{ fontWeight: 800, fontSize: '1.0625rem', fontVariantNumeric: 'tabular-nums', color: `hsl(var(--${oddsColor}))` }}>
-                        ~{odds}%
+                      <div className="caption" style={{ fontSize: '0.6875rem' }}>Eligible</div>
+                      <div style={{ fontWeight: 800, fontSize: '1.0625rem', fontVariantNumeric: 'tabular-nums', color: isEligible ? 'hsl(var(--success))' : 'hsl(var(--muted-fg))' }}>
+                        {eligCount}
                       </div>
                     </div>
                     <div>
@@ -312,7 +399,10 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
                   )}
 
                   <div className="row" style={{ gap: '0.375rem' }}>
-                    <span className={`badge ${oddsColor || 'success'}`}>APS {aps}: ~{odds}% odds</span>
+                    {isEligible
+                      ? <span className="badge success">{eligCount} eligible</span>
+                      : <span className="badge accent">APS needed</span>
+                    }
                     <span className={`badge ${u.acpt === 'Tier 1' ? 'brand' : 'info'}`}>{u.acpt}</span>
                   </div>
 
@@ -323,13 +413,38 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
                     </button>
                     <button className="btn btn-primary btn-sm" style={{ flex: 1 }}
                       onClick={() => navigate('programmes')}>
-                      Browse →
+                      Programmes →
                     </button>
+                    {u.website && (
+                      <a
+                        href={u.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-outline btn-sm"
+                        title="Open official website"
+                        style={{ flexShrink: 0, padding: '0 0.5rem' }}
+                      >
+                        ↗
+                      </a>
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
+          {visibleCount < displayed.length && (
+            <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+              <button
+                className="btn btn-outline"
+                onClick={() => setVisibleCount(v => Math.min(v + 9, displayed.length))}
+              >
+                Show {Math.min(9, displayed.length - visibleCount)} more institutions
+              </button>
+              <div className="caption" style={{ marginTop: '0.5rem', color: 'hsl(var(--muted-fg))' }}>
+                Showing {Math.min(visibleCount, displayed.length)} of {displayed.length}
+              </div>
+            </div>
+          )}
 
           <div className="card stack-3" style={{ marginTop: '1.25rem' }}>
             <div className="row-between">

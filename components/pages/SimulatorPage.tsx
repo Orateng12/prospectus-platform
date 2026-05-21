@@ -20,6 +20,191 @@ interface SimulatorPageProps {
   householdIncome?: number;
 }
 
+// Find minimum mark to reach the next higher NSC point level
+function markForNextPoint(mark: number): number | null {
+  const boundaries = [30, 40, 50, 60, 70, 80];
+  for (const b of boundaries) {
+    if (mark < b) return b;
+  }
+  return null; // already at max (80+)
+}
+
+interface UnlockStep {
+  subjectId: string;
+  subjectName: string;
+  fromMark: number;
+  toMark: number;
+  markDelta: number;
+  ptsGained: number;
+}
+
+// Greedy: find cheapest subject mark increases to gain `gap` APS points
+function optimalPathToAps(subjects: Subject[], gap: number): UnlockStep[] | null {
+  if (gap <= 0) return [];
+  const BOUNDARIES = [30, 40, 50, 60, 70, 80];
+  // For each subject, all valid upgrade steps (cheapest first)
+  const allSteps: UnlockStep[] = subjects
+    .filter(s => s.id !== 'lo' && s.designated)
+    .flatMap(s => {
+      const currentPts = apsPoints(s.mark);
+      return BOUNDARIES
+        .filter(b => b > s.mark)
+        .map(b => ({
+          subjectId: s.id,
+          subjectName: s.name,
+          fromMark: s.mark,
+          toMark: b,
+          markDelta: b - s.mark,
+          ptsGained: apsPoints(b) - currentPts,
+        }))
+        .filter(step => step.ptsGained > 0);
+    })
+    .sort((a, b) => (a.markDelta / a.ptsGained) - (b.markDelta / b.ptsGained));
+
+  let ptsLeft = gap;
+  const chosen: UnlockStep[] = [];
+  const used = new Set<string>();
+  for (const step of allSteps) {
+    if (ptsLeft <= 0) break;
+    if (used.has(step.subjectId)) continue;
+    used.add(step.subjectId);
+    chosen.push(step);
+    ptsLeft -= step.ptsGained;
+  }
+  return ptsLeft <= 0 ? chosen : null;
+}
+
+interface GradeBoundaryProps {
+  subjects: Subject[];
+  aps: number;
+  allProgs: Programme[];
+  onApply: (id: string, val: string) => void;
+}
+
+function GradeBoundaryCalculator({ subjects, aps, allProgs, onApply }: GradeBoundaryProps) {
+  const maxAps = subjects.filter(s => s.id !== 'lo' && s.designated).length * 7;
+  const [targetAps, setTargetAps] = useState(() => Math.min(aps + 3, maxAps));
+
+  const gap = targetAps - aps;
+  const progsNow = allProgs.filter(p => p.aps <= aps).length;
+  const progsAtTarget = allProgs.filter(p => p.aps <= targetAps).length;
+  const progsUnlocked = progsAtTarget - progsNow;
+
+  // For each designated subject (excl. LO), compute what mark is needed for each additional point
+  const rows = useMemo(() => {
+    return subjects
+      .filter(s => s.id !== 'lo' && s.designated)
+      .map(s => {
+        const current = s.mark;
+        const currentPts = apsPoints(current);
+        const nextMark = markForNextPoint(current);
+        if (nextMark === null) return null; // already maxed
+        const ptsGained = apsPoints(nextMark) - currentPts;
+        const markIncrease = nextMark - current;
+        return { subject: s, current, nextMark, markIncrease, ptsGained };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a!.markIncrease - b!.markIncrease) as NonNullable<ReturnType<typeof subjects.map>>[number][];
+  }, [subjects]);
+
+  if (gap <= 0 && targetAps <= aps) {
+    // target is already met — still show the section but with a green message
+  }
+
+  return (
+    <div className="card" style={{ marginTop: '1.75rem' }}>
+      <div className="row-between" style={{ marginBottom: '1rem' }}>
+        <div>
+          <div className="eyebrow"><span className="dot" />Grade boundary calculator</div>
+          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>What marks do I need to reach APS {targetAps}?</h3>
+        </div>
+        {progsUnlocked > 0 && (
+          <span className="badge success" style={{ height: '1.5rem', fontSize: '0.75rem' }}>
+            +{progsUnlocked} programmes unlocked
+          </span>
+        )}
+      </div>
+
+      <div className="row" style={{ alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+        <span className="caption" style={{ flexShrink: 0 }}>Target APS</span>
+        <input
+          type="range"
+          className="slider"
+          min={aps}
+          max={maxAps}
+          step={1}
+          value={targetAps}
+          onChange={e => setTargetAps(Number(e.target.value))}
+          style={{ flex: 1 }}
+        />
+        <input
+          type="number"
+          className="sub-input"
+          min={aps}
+          max={maxAps}
+          value={targetAps}
+          onChange={e => setTargetAps(Math.max(aps, Math.min(maxAps, Number(e.target.value))))}
+        />
+      </div>
+
+      {gap <= 0 ? (
+        <div className="caption" style={{ color: 'hsl(var(--success))', fontWeight: 600 }}>
+          ✓ Your current APS ({aps}) already meets or exceeds this target.
+        </div>
+      ) : (
+        <>
+          <div className="caption" style={{ marginBottom: '0.75rem' }}>
+            Need <strong>+{gap} APS point{gap !== 1 ? 's' : ''}</strong>. Cheapest subjects to improve first:
+          </div>
+          <div className="stack">
+            {(rows as Array<{ subject: Subject; current: number; nextMark: number; markIncrease: number; ptsGained: number }>).map(({ subject: s, current, nextMark, markIncrease, ptsGained }, i) => (
+              <div
+                key={s.id}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto auto auto',
+                  gap: '0.75rem',
+                  alignItems: 'center',
+                  padding: '0.5rem 0',
+                  borderBottom: '1px solid hsl(var(--border))',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: i === 0 ? 700 : 600, fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    {s.name}
+                    {i === 0 && <span className="badge success" style={{ height: '1rem', fontSize: '0.5625rem', padding: '0 0.3125rem' }}>Cheapest</span>}
+                  </div>
+                  <div className="caption" style={{ marginTop: '0.125rem' }}>
+                    {current}% → <strong>{nextMark}%</strong> = +{ptsGained} APS pt{ptsGained !== 1 ? 's' : ''}
+                  </div>
+                </div>
+                <div style={{ fontWeight: 900, fontSize: '1.125rem', fontVariantNumeric: 'tabular-nums', color: i === 0 ? 'hsl(var(--success))' : 'hsl(var(--muted-fg))' }}>
+                  +{markIncrease}%
+                </div>
+                <span className={`badge ${ptsGained >= 2 ? 'success' : 'info'}`} style={{ height: '1.25rem', fontSize: '0.5625rem' }}>
+                  +{ptsGained} pt{ptsGained !== 1 ? 's' : ''}
+                </span>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ padding: '0 0.375rem', fontSize: '0.6875rem', height: '1.5rem' }}
+                  onClick={() => onApply(s.id, String(nextMark))}
+                >
+                  Apply
+                </button>
+              </div>
+            ))}
+          </div>
+          {progsUnlocked > 0 && (
+            <div className="caption" style={{ marginTop: '0.75rem', color: 'hsl(var(--success))', fontWeight: 600 }}>
+              Reaching APS {targetAps} unlocks {progsUnlocked} more programme{progsUnlocked !== 1 ? 's' : ''} you can&apos;t access at APS {aps}.
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // For each designated subject, find the minimum mark increase to gain the next APS point
 function cheapestLever(subject: Subject) {
   const currentPts = apsPoints(subject.mark);
@@ -122,22 +307,42 @@ export default function SimulatorPage({
       .slice(0, 3);
   }, [currentCareerData]);
 
+  const [expandedNearMiss, setExpandedNearMiss] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [savedCascade, setSavedCascade] = useState<{
+    opened: Programme[];
+    closed: Programme[];
+    crossings: Array<{ name: string; baseScore: number; currentScore: number }>;
+    strategicDelta: number;
+    apsGain: number;
+  } | null>(null);
 
   function handleChange(id: string, raw: string) {
     const mark = Math.max(0, Math.min(100, parseInt(raw) || 0));
     onSubjectChange(id, mark);
     setSaveMsg(null);
+    setSavedCascade(null);
   }
 
   function handleSave() {
+    // Capture cascade snapshot before save so it persists after baseline resets
+    const cascadeSnapshot = (delta !== 0 || opened.length > 0 || closed.length > 0 || thresholdCrossings.length > 0)
+      ? {
+          opened: opened.slice(0, 5),
+          closed: closed.slice(0, 5),
+          crossings: thresholdCrossings,
+          strategicDelta: strategicDelta ?? 0,
+          apsGain: delta,
+        }
+      : null;
     startTransition(async () => {
       const result = await saveSubjectMarks(subjects);
       if (result && 'error' in result) {
         setSaveMsg({ ok: false, text: result.error ?? 'Save failed' });
       } else {
         setSaveMsg({ ok: true, text: 'Marks saved' });
+        if (cascadeSnapshot) setSavedCascade(cascadeSnapshot);
         onSaved?.(subjects);
         setTimeout(() => setSaveMsg(null), 3000);
       }
@@ -176,6 +381,106 @@ export default function SimulatorPage({
           </div>
         </div>
       </div>
+
+      {savedCascade && (
+        <div className="card" style={{
+          marginBottom: '1.25rem',
+          borderColor: savedCascade.apsGain >= 0 ? 'hsl(var(--success) / 0.4)' : 'hsl(var(--destructive) / 0.4)',
+          background: savedCascade.apsGain >= 0 ? 'hsl(var(--success) / 0.03)' : 'hsl(var(--destructive) / 0.03)',
+        }}>
+          <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+            <div>
+              <div className="eyebrow"><span className="dot" />What your saved marks changed</div>
+              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
+                APS {baselineAps} → {baselineAps + savedCascade.apsGain}
+                {savedCascade.apsGain !== 0 && (
+                  <span className={`badge ${savedCascade.apsGain > 0 ? 'success' : 'destructive'}`} style={{ marginLeft: '0.5rem' }}>
+                    {savedCascade.apsGain > 0 ? '+' : ''}{savedCascade.apsGain}
+                  </span>
+                )}
+                {savedCascade.strategicDelta !== 0 && (
+                  <span className={`badge ${savedCascade.strategicDelta > 0 ? 'success' : 'destructive'}`} style={{ marginLeft: '0.375rem' }}>
+                    Strategic {savedCascade.strategicDelta > 0 ? '+' : ''}{savedCascade.strategicDelta} pts
+                  </span>
+                )}
+              </h3>
+            </div>
+            <button className="btn btn-ghost btn-sm" onClick={() => setSavedCascade(null)} aria-label="Dismiss">✕</button>
+          </div>
+
+          <div className="grid-2" style={{ gap: '0.875rem', alignItems: 'start' }}>
+            <div>
+              {savedCascade.opened.length > 0 ? (
+                <>
+                  <div className="caption" style={{ fontWeight: 600, marginBottom: '0.375rem' }}>
+                    {savedCascade.opened.length} programme{savedCascade.opened.length !== 1 ? 's' : ''} now open
+                  </div>
+                  <div className="stack">
+                    {savedCascade.opened.map(p => (
+                      <div key={p.id} className="row-between" style={{ fontSize: '0.8125rem', padding: '0.25rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{p.name}</div>
+                          <div className="caption" style={{ fontSize: '0.6875rem' }}>{p.uni}</div>
+                        </div>
+                        <span className="badge success" style={{ height: '1rem', fontSize: '0.5625rem' }}>APS {p.aps}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {onNavigateProgramme && (
+                    <button
+                      className="btn btn-outline btn-sm"
+                      style={{ marginTop: '0.625rem', width: '100%' }}
+                      onClick={() => onNavigateProgramme('')}
+                    >
+                      View in Explorer →
+                    </button>
+                  )}
+                </>
+              ) : savedCascade.closed.length > 0 ? (
+                <>
+                  <div className="caption" style={{ fontWeight: 600, marginBottom: '0.375rem', color: 'hsl(var(--destructive))' }}>
+                    {savedCascade.closed.length} programme{savedCascade.closed.length !== 1 ? 's' : ''} now out of reach
+                  </div>
+                  <div className="stack">
+                    {savedCascade.closed.map(p => (
+                      <div key={p.id} className="row-between" style={{ fontSize: '0.8125rem', padding: '0.25rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                        <div style={{ fontWeight: 600 }}>{p.name}</div>
+                        <span className="badge destructive" style={{ height: '1rem', fontSize: '0.5625rem' }}>APS {p.aps}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="caption">No programme eligibility changed.</div>
+              )}
+            </div>
+
+            <div className="stack">
+              {savedCascade.crossings.length > 0 && (
+                <div>
+                  <div className="caption" style={{ fontWeight: 600, marginBottom: '0.375rem' }}>Career score changes</div>
+                  {savedCascade.crossings.map(c => {
+                    const d = c.currentScore - c.baseScore;
+                    return (
+                      <div key={c.name} className="row-between" style={{ fontSize: '0.8125rem', padding: '0.1875rem 0' }}>
+                        <span>{c.name}</span>
+                        <div className="row" style={{ gap: '0.25rem', alignItems: 'baseline' }}>
+                          <span className="caption">{c.baseScore}</span>
+                          <span className="caption">→</span>
+                          <span style={{ fontWeight: 800, color: d > 0 ? 'hsl(var(--success))' : 'hsl(var(--destructive))' }}>{c.currentScore}</span>
+                          <span className={`badge ${d > 0 ? 'success' : 'destructive'}`} style={{ height: '1rem', fontSize: '0.5rem', padding: '0 0.1875rem' }}>
+                            {d > 0 ? '+' : ''}{d}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="sim-grid">
         {/* Left: APS display + subjects */}
@@ -415,8 +720,9 @@ export default function SimulatorPage({
               <div className="stack">
                 {nearMiss.map(p => {
                   const gap = p.aps - aps;
-                  // Find the cheapest single lever to bridge this specific gap
-                  const lever = levers.find(l => l.lever !== null && l.lever.apsDelta >= gap);
+                  const path = optimalPathToAps(subjects, gap);
+                  const isExpanded = expandedNearMiss === p.id;
+                  const totalMarkDelta = path ? path.reduce((s, x) => s + x.markDelta, 0) : null;
                   return (
                     <div
                       key={p.id}
@@ -430,16 +736,80 @@ export default function SimulatorPage({
                     >
                       <div className="row-between">
                         <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.name}</div>
-                        <span className={`badge ${gap <= 2 ? 'warning' : 'default'}`}>
-                          APS {p.aps} · gap +{gap}
-                        </span>
+                        <div className="row" style={{ gap: '0.375rem' }}>
+                          <span className={`badge ${gap <= 2 ? 'warning' : 'default'}`}>
+                            +{gap} APS
+                          </span>
+                          {path && (
+                            <button
+                              className="btn btn-ghost btn-sm"
+                              style={{ height: '1.25rem', fontSize: '0.5625rem', padding: '0 0.375rem', color: 'hsl(var(--primary))' }}
+                              onClick={() => setExpandedNearMiss(isExpanded ? null : p.id)}
+                            >
+                              {isExpanded ? 'Hide path ▲' : 'Show path ▼'}
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div className="caption">
-                        {p.uni} · {fmtR(p.fees)}/yr
-                      </div>
-                      {lever && (
+                      <div className="caption">{p.uni} · {fmtR(p.fees)}/yr · fit {p.fit}/100</div>
+
+                      {/* Collapsed hint */}
+                      {!isExpanded && path && (
                         <div className="caption" style={{ color: 'hsl(var(--success))', fontWeight: 600, fontSize: '0.75rem' }}>
-                          → Raise {lever.subject.name} by {lever.lever!.markDelta}% ({lever.subject.mark}% → {lever.lever!.targetMark}%) to unlock
+                          {path.length === 1
+                            ? `→ Raise ${path[0].subjectName} by ${path[0].markDelta}% to unlock`
+                            : `→ ${path.length} subjects · +${totalMarkDelta}% total effort to unlock`}
+                        </div>
+                      )}
+                      {!path && (
+                        <div className="caption" style={{ color: 'hsl(var(--muted-fg))', fontSize: '0.75rem' }}>
+                          Requires marks beyond current subject ceilings
+                        </div>
+                      )}
+
+                      {/* Expanded optimal path */}
+                      {isExpanded && path && (
+                        <div style={{
+                          marginTop: '0.375rem', padding: '0.75rem',
+                          background: 'hsl(var(--success) / 0.05)',
+                          border: '1px solid hsl(var(--success) / 0.2)',
+                          borderRadius: 8,
+                        }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--muted-fg))', marginBottom: '0.5rem' }}>
+                            Optimal unlock path · +{totalMarkDelta}% total
+                          </div>
+                          <div className="stack-2">
+                            {path.map((step, i) => (
+                              <div key={step.subjectId} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '0.5rem', alignItems: 'center' }}>
+                                <div>
+                                  <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{step.subjectName}</div>
+                                  <div className="caption" style={{ fontSize: '0.625rem' }}>
+                                    {step.fromMark}% → {step.toMark}% · +{step.ptsGained} APS pt{step.ptsGained !== 1 ? 's' : ''}
+                                  </div>
+                                </div>
+                                <div style={{ fontWeight: 800, fontSize: '1rem', color: 'hsl(var(--success))', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>
+                                  +{step.markDelta}%
+                                </div>
+                                <button
+                                  className="btn btn-ghost btn-sm"
+                                  style={{ height: '1.5rem', fontSize: '0.6875rem', padding: '0 0.375rem' }}
+                                  onClick={() => handleChange(step.subjectId, String(step.toMark))}
+                                  title="Apply this target mark"
+                                >
+                                  Apply
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          {onNavigateProgramme && (
+                            <button
+                              className="btn btn-outline btn-sm"
+                              style={{ marginTop: '0.75rem', width: '100%', fontSize: '0.75rem' }}
+                              onClick={() => onNavigateProgramme(p.id)}
+                            >
+                              View {p.name} →
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -604,6 +974,9 @@ export default function SimulatorPage({
           </div>
         )}
       </div>
+
+      {/* ── Grade Boundary Calculator ───────────────────────────────────────── */}
+      <GradeBoundaryCalculator subjects={subjects} aps={aps} allProgs={allProgs} onApply={handleChange} />
     </div>
   );
 }

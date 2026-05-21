@@ -9,7 +9,7 @@ interface SubjectDetailPageProps {
   subjects: Subject[];
   programmes?: Programme[];
   savedProgrammeIds?: string[];
-  navigate: (r: Route) => void;
+  navigate: (r: Route, prog?: string) => void;
 }
 
 const APS_TABLE = [
@@ -23,14 +23,52 @@ const APS_TABLE = [
 ];
 
 const STUDY_TIPS: Record<string, string[]> = {
-  math:     ['Practice past papers from 2021–2025 (DBE website)', 'Focus on algebra, functions, and statistics', 'Do 30 min of timed problem-solving daily'],
-  pscience: ['Master Newton\'s laws and electricity circuits first — highest exam weight', 'Use the CAPS formula sheet in every practice session', 'Pair with a study partner for experimental write-ups'],
-  eng:      ['Read one quality article per day and summarise it in 3 sentences', 'Practice essay structure: introduction, 3 body paragraphs, conclusion', 'Work through past comprehension papers under timed conditions'],
-  lifesci:  ['Use labelled diagrams for cell biology and genetics', 'Make a glossary of technical terms per chapter', 'Focus on ecology and human systems — most frequently tested'],
-  history:  ['Practice source-based questions from all periods', 'Learn to write structured essays with clear argument and evidence', 'Build a timeline for each topic to anchor events'],
-  sesotho:  ['Read Sesotho newspapers or short stories weekly', 'Practise essay writing and formal letter format', 'Focus on grammar rules — consistently tested'],
-  lo:       ['Life Orientation is excluded from APS — focus on core subjects first', 'Aim for 80%+ as it counts toward your NSC certificate', 'Use it as a confidence booster, not an APS driver'],
+  math:        ['Practice past papers from 2021–2025 (DBE website)', 'Focus on algebra, functions, and statistics — highest exam weight', 'Do 30 min of timed problem-solving daily, then mark yourself honestly'],
+  mathliteracy:['Focus on finance, measurement, and data handling sections', 'Work through past exam papers under real conditions', 'Use a calculator for all practicals — speed with accuracy matters'],
+  techmath:    ['Prioritise trigonometry, geometry, and financial maths', 'Practice past Technical Maths NSC papers (2019–2025)', 'Link concepts to real-world engineering applications'],
+  pscience:    ['Master Newton\'s laws and electricity circuits first — highest exam weight', 'Use the CAPS formula sheet in every practice session', 'Pair with a study partner for experimental write-ups'],
+  lifesciences:['Use labelled diagrams for cell biology and genetics', 'Make a glossary of technical terms per chapter', 'Focus on ecology, human systems, and evolution — most frequently tested'],
+  accounting:  ['Practice the balance sheet and income statement until automatic', 'Do at least one full accounting exam per week under time pressure', 'Reconciliation questions are high-value — don\'t skip them'],
+  business:    ['Learn the 4Ps and all business functions thoroughly', 'Write your own case study answers then compare to memo', 'Link theory to real SA companies in your examples'],
+  economics:   ['Understand supply/demand shifts with diagram practice', 'Economic indicators (GDP, inflation, unemployment) are frequently tested', 'Write a sample essay per section — examiners reward structure'],
+  geography:   ['Sketch maps from memory for high-weight regions', 'Practice climate graphs and data response questions', 'Link human geography to current SA news events'],
+  history:     ['Practice source-based questions from all periods', 'Learn to write structured essays with clear argument and evidence', 'Build a timeline for each topic to anchor events in sequence'],
+  it:          ['Code consistently — even 30 min of problem-solving daily compounds fast', 'Review Delphi/Java past papers for patterns in examination questions', 'Build a small project that uses the concepts you\'re studying'],
+  cat:         ['Master spreadsheet formulas — they appear in every paper', 'Practice word-processing and presentation tasks under time pressure', 'Theory section: learn hardware/software concepts in plain English'],
+  eng:         ['Read one quality article per day and summarise it in 3 sentences', 'Practice essay structure: introduction, 3 body paragraphs, conclusion', 'Work through past comprehension papers under timed conditions'],
+  afr:         ['Read Afrikaans short stories or articles for 15 min daily', 'Practice formal and informal letter formats', 'Focus on grammar: conjunctions, sentence structure, tenses'],
+  zul:         ['Listen to isiZulu radio or news daily for comprehension', 'Practise essay and formal letter writing formats', 'Master grammar rules — consistently tested across all papers'],
+  sesotho:     ['Read Sesotho newspapers or short stories weekly', 'Practise essay writing and formal letter format', 'Focus on grammar rules — consistently tested'],
+  lo:          ['Life Orientation is excluded from APS — focus on core subjects first', 'Aim for 80%+ as it counts toward your NSC certificate', 'Use it as a confidence booster, not an APS driver'],
 };
+
+function getStudyTips(subjectId: string, subjectName: string): string[] {
+  const id = subjectId.toLowerCase();
+  const name = subjectName.toLowerCase();
+  if (STUDY_TIPS[id]) return STUDY_TIPS[id];
+  if (name.includes('mathematics') && !name.includes('literacy') && !name.includes('technical')) return STUDY_TIPS.math;
+  if (name.includes('mathematical literacy') || name.includes('maths literacy')) return STUDY_TIPS.mathliteracy;
+  if (name.includes('technical math')) return STUDY_TIPS.techmath;
+  if (name.includes('physical science')) return STUDY_TIPS.pscience;
+  if (name.includes('life science')) return STUDY_TIPS.lifesciences;
+  if (name.includes('accounting')) return STUDY_TIPS.accounting;
+  if (name.includes('business')) return STUDY_TIPS.business;
+  if (name.includes('economics')) return STUDY_TIPS.economics;
+  if (name.includes('geography')) return STUDY_TIPS.geography;
+  if (name.includes('history')) return STUDY_TIPS.history;
+  if (name.includes('information technology') || name.includes(' it ')) return STUDY_TIPS.it;
+  if (name.includes('computer application') || name.includes('cat')) return STUDY_TIPS.cat;
+  if (name.includes('english')) return STUDY_TIPS.eng;
+  if (name.includes('afrikaans')) return STUDY_TIPS.afr;
+  if (name.includes('zulu') || name.includes('isizulu')) return STUDY_TIPS.zul;
+  if (name.includes('sesotho') || name.includes('sotho')) return STUDY_TIPS.sesotho;
+  if (name.includes('life orientation')) return STUDY_TIPS.lo;
+  return [
+    'Work through the most recent 3 years of DBE past papers for this subject',
+    'Identify your weakest chapter and dedicate 30 min daily to it for 2 weeks',
+    'Form a study group with peers to explain concepts to each other',
+  ];
+}
 
 function getNextApsThreshold(currentMark: number): { mark: number; pts: number } | null {
   const currentPts = apsPoints(currentMark);
@@ -87,7 +125,7 @@ export default function SubjectDetailPage({ subject, subjects, programmes: propP
   }
   impactProgs.sort((a, b) => a.markNeeded - b.markNeeded);
 
-  const tips = STUDY_TIPS[subject.id] ?? ['Focus on past papers and timed practice', 'Identify your weakest topics and address them first', 'Seek help from your teacher for topics you struggle with'];
+  const tips = getStudyTips(subject.id, subject.name);
 
   // Mark trajectory: what would total APS be at key thresholds for this subject
   const otherAps = subject.designated ? currentAps - currentPts : currentAps;
@@ -95,8 +133,8 @@ export default function SubjectDetailPage({ subject, subjects, programmes: propP
     ? [50, 55, 60, 65, 70, 75, 80].map(mark => {
         const pts      = apsPoints(mark);
         const totalAps = otherAps + pts;
-        const newUnlocked = allProgs.filter(p => p.aps <= totalAps && p.aps > currentAps).length;
-        return { mark, pts, totalAps, newUnlocked };
+        const newProgs = allProgs.filter(p => p.aps <= totalAps && p.aps > currentAps);
+        return { mark, pts, totalAps, newProgs };
       })
     : [];
   // The single row that corresponds to the student's current mark (largest trajectory mark ≤ subject.mark)
@@ -154,6 +192,21 @@ export default function SubjectDetailPage({ subject, subjects, programmes: propP
           {/* APS conversion table */}
           <div className="card">
             <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Mark → APS conversion</div>
+            <div style={{ marginBottom: '0.875rem' }}>
+              <div style={{ position: 'relative', height: '0.375rem', borderRadius: 999, background: 'hsl(var(--border))' }}>
+                <div style={{
+                  position: 'absolute', left: 0, top: 0, bottom: 0,
+                  width: `${Math.min(subject.mark, 100)}%`,
+                  borderRadius: 999,
+                  background: subject.mark >= 80 ? 'hsl(var(--success))' : subject.mark >= 60 ? 'hsl(var(--primary))' : subject.mark >= 40 ? 'hsl(var(--warning))' : 'hsl(var(--destructive))',
+                }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem' }}>
+                <span className="caption" style={{ fontSize: '0.5rem' }}>0%</span>
+                <span className="caption" style={{ fontSize: '0.5rem', fontWeight: 700, color: 'hsl(var(--fg))' }}>{subject.mark}% — you</span>
+                <span className="caption" style={{ fontSize: '0.5rem' }}>100%</span>
+              </div>
+            </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                 <thead>
@@ -184,16 +237,20 @@ export default function SubjectDetailPage({ subject, subjects, programmes: propP
               </table>
             </div>
 
-            {nextThreshold && (
-              <div className="card compact" style={{ marginTop: '0.875rem', background: 'hsl(var(--success) / 0.08)', borderColor: 'hsl(var(--success) / 0.3)' }}>
-                <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>
-                  Raise to {nextThreshold.mark}% → earn {nextThreshold.pts} pts (+{nextThreshold.pts - currentPts})
+            {nextThreshold && (() => {
+              const marksNeeded = nextThreshold.mark - subject.mark;
+              const studyWeeks = Math.max(1, Math.ceil(marksNeeded / 5));
+              return (
+                <div className="card compact" style={{ marginTop: '0.875rem', background: 'hsl(var(--success) / 0.08)', borderColor: 'hsl(var(--success) / 0.3)' }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                    Raise to {nextThreshold.mark}% → earn {nextThreshold.pts} pts (+{nextThreshold.pts - currentPts})
+                  </div>
+                  <div className="caption" style={{ marginTop: '0.25rem', fontSize: '0.6875rem' }}>
+                    {marksNeeded}% to go · approx. {studyWeeks === 1 ? '1 week' : `${studyWeeks} weeks`} of focused daily practice
+                  </div>
                 </div>
-                <div className="caption" style={{ marginTop: '0.25rem', fontSize: '0.6875rem' }}>
-                  That&apos;s {subject.mark < nextThreshold.mark ? nextThreshold.mark - subject.mark : 0}% to go
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
 
           {/* Study tips */}
@@ -245,7 +302,15 @@ export default function SubjectDetailPage({ subject, subjects, programmes: propP
                           <td style={{ padding: '0.4rem 0.375rem', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{row.pts}</td>
                           <td style={{ padding: '0.4rem 0.375rem', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: highlight ? 'hsl(var(--success))' : undefined }}>{row.totalAps}</td>
                           <td style={{ padding: '0.4rem 0.375rem', textAlign: 'right', fontSize: '0.75rem' }}>
-                            {row.newUnlocked > 0 ? <span style={{ color: 'hsl(var(--success))', fontWeight: 700 }}>+{row.newUnlocked}</span> : <span className="caption">—</span>}
+                            {row.newProgs.length > 0 ? (
+                              <div>
+                                <span style={{ color: 'hsl(var(--success))', fontWeight: 700 }}>+{row.newProgs.length}</span>
+                                <div className="caption" style={{ fontSize: '0.5rem', lineHeight: 1.35, marginTop: '0.125rem' }}>
+                                  {row.newProgs.slice(0, 2).map(p => p.name).join(', ')}
+                                  {row.newProgs.length > 2 && ` +${row.newProgs.length - 2} more`}
+                                </div>
+                              </div>
+                            ) : <span className="caption">—</span>}
                           </td>
                         </tr>
                       );
@@ -326,9 +391,18 @@ export default function SubjectDetailPage({ subject, subjects, programmes: propP
                         <span className="badge success" style={{ flexShrink: 0, marginLeft: '0.5rem' }}>+{apsGain} APS</span>
                       </div>
                       <div className="caption" style={{ marginBottom: '0.375rem' }}>{prog.uni} · {fmtR(prog.fees)}/yr</div>
-                      <div style={{ fontSize: '0.8125rem' }}>
-                        Raise to <strong style={{ color: 'hsl(var(--primary))' }}>{markNeeded}%</strong> to unlock
-                        <span className="caption" style={{ marginLeft: '0.375rem' }}>({markNeeded - subject.mark}% to go)</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
+                        <div style={{ fontSize: '0.8125rem' }}>
+                          Raise to <strong style={{ color: 'hsl(var(--primary))' }}>{markNeeded}%</strong> to unlock
+                          <span className="caption" style={{ marginLeft: '0.375rem' }}>({markNeeded - subject.mark}% to go)</span>
+                        </div>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          style={{ fontSize: '0.6875rem', padding: '0.125rem 0.5rem', height: 'auto', flexShrink: 0 }}
+                          onClick={() => navigate('programmes', prog.id)}
+                        >
+                          View →
+                        </button>
                       </div>
                     </div>
                   ))}

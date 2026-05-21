@@ -1,8 +1,21 @@
+export type Curriculum = 'NSC' | 'IEB' | 'Cambridge_IGCSE' | 'Cambridge_AS' | 'Cambridge_A' | 'NCV' | 'IB';
+
+export type SubjectType =
+  | 'home_language' | 'first_additional' | 'second_additional'
+  | 'mathematics' | 'math_literacy' | 'technical_math'
+  | 'elective' | 'life_orientation';
+
+export type FundingType = 'bursary' | 'scholarship' | 'loan' | 'grant' | 'seta' | 'international' | 'disability';
+export type FundingProviderType = 'government' | 'corporate' | 'ngo' | 'seta' | 'university' | 'international';
+
 export interface Subject {
   id: string;
   name: string;
   mark: number;
   designated: boolean;
+  curriculum?: Curriculum;
+  subjectType?: SubjectType;
+  grade?: string;
 }
 
 export interface Programme {
@@ -16,6 +29,7 @@ export interface Programme {
   pathway: 'direct' | 'extended' | 'foundation' | 'tvet';
   salary: number;
   demand: 'High' | 'Med' | 'Low';
+  requiredSubjects?: string[];
 }
 
 export interface Application {
@@ -29,6 +43,7 @@ export interface Application {
   progId?: string | null;
   submitted?: string;
   decided?: string;
+  deadline?: string;
   fee?: string;
 }
 
@@ -42,7 +57,8 @@ export interface University {
   accept: number;
   fees: number;
   tag: 'success' | 'info' | 'warning' | 'destructive';
-  acpt: string;
+  acpt: 'Tier 1' | 'Comprehensive' | 'UoT' | 'TVET' | 'Distance' | 'Private';
+  website?: string;
 }
 
 export interface CompareItem {
@@ -66,6 +82,20 @@ export interface Scholarship {
   match: number;
   eligibility: string;
   deadline: string;
+}
+
+export interface FundingOpportunity extends Scholarship {
+  id: string;
+  type: FundingType;
+  provider_type: FundingProviderType;
+  service_contract?: boolean;
+  disability_specific?: boolean;
+  province_specific?: string;
+  application_url?: string;
+  last_verified_at?: string;
+  income_threshold?: number;
+  min_aps?: number;
+  study_fields?: string[];
 }
 
 export interface Capability {
@@ -201,7 +231,8 @@ export type Route =
   | 'application-detail'
   | 'scholarship-detail'
   | 'career-detail'
-  | 'subject-detail';
+  | 'subject-detail'
+  | 'notifications';
 
 // Routes still in the type for backward-compatibility with navigate() callsites.
 // Sidebar items removed: financial, skills, map, discover, nsfas, documents, deadlines, compare
@@ -228,15 +259,21 @@ export interface DbDocument {
   signed_url?: string;
 }
 
+export interface DbCustomDeadline {
+  id: string;
+  title: string;
+  date: string;
+}
+
 export interface DbNotification {
   id: string;
   type: string;
   title: string;
   message: string;
-  link?: string;
-  read: boolean;
-  priority: string;
-  created_at: string;
+  link?: string | null;
+  read?: boolean | null;
+  priority?: string | null;
+  created_at?: string | null;
 }
 
 export interface OnboardingData {

@@ -5,8 +5,36 @@ import { BIG5, RIASEC, CAPS } from '@/lib/data';
 import RadarChart from '@/components/RadarChart';
 import { rankCareersByMatch, getCareerCapRequirements, getCareerBigFiveRanges } from '@/lib/scoring';
 import type { CareerBigFiveRanges } from '@/lib/scoring';
-import type { BigFiveTrait, RiasecItem, PsychProfileData, CapabilityData, Capability, Career } from '@/lib/types';
+import type { BigFiveTrait, RiasecItem, PsychProfileData, CapabilityData, Capability, Career, Route } from '@/lib/types';
 import AiInsightCard from '@/components/AiInsightCard';
+import { DB_TO_CAP, CAP_DB_LABEL, CAP_DESCRIPTIONS, BIG5_LABEL, BIG5_DESC } from '@/lib/capability';
+
+const RIASEC_CAREERS: Record<string, string> = {
+  Realistic:     'Engineering · Architecture · Agriculture',
+  Investigative: 'Data Science · Research · Medicine',
+  Artistic:      'Design · Media · Architecture',
+  Social:        'Education · Healthcare · Social Work',
+  Enterprising:  'Management · Law · Entrepreneurship',
+  Conventional:  'Finance · Accounting · Administration',
+};
+
+const RIASEC_TRACKS: Record<string, string> = {
+  Realistic:     'hands-on, technical, and practical tracks',
+  Investigative: 'research, analytical, and scientific tracks',
+  Artistic:      'creative, expressive, and design tracks',
+  Social:        'people-centred, education, and healthcare tracks',
+  Enterprising:  'leadership, business, and entrepreneurial tracks',
+  Conventional:  'structured, financial, and administrative tracks',
+};
+
+const RIASEC_STYLE: Record<string, string> = {
+  Realistic:     'You prefer concrete problems with clear, tangible outcomes.',
+  Investigative: 'You thrive when investigating abstract problems and building understanding.',
+  Artistic:      'You gravitate toward ambiguity, self-expression, and originality.',
+  Social:        'You are energised by helping, teaching, and collaborating with others.',
+  Enterprising:  'You are motivated by influence, persuasion, and driving results.',
+  Conventional:  'You excel at systematic, detail-oriented tasks with defined procedures.',
+};
 
 interface AssessmentPageProps {
   psychProfile?: PsychProfileData | null;
@@ -15,50 +43,20 @@ interface AssessmentPageProps {
   userAps?: number;
   initialTab?: 'personality' | 'skills';
   onRetake?: () => void;
+  navigate?: (r: Route) => void;
 }
 
 type Tab = 'personality' | 'skills';
 
-// ── Skills helpers (from SkillsPage) ────────────────────────────────────────
-
-const DESCRIPTIONS: Record<string, string> = {
-  Analytical: 'Pattern recognition · structured reasoning',
-  Technical:  'Tool mastery · systems thinking',
-  Social:     'Empathy · group dynamics',
-  Creative:   'Divergent thinking · synthesis',
-  Verbal:     'Comprehension · written expression',
-  Numerical:  'Quantitative fluency · statistics',
-  Spatial:    'Visualisation · 3D reasoning',
-  Practical:  'Real-world execution · hands-on',
-};
-
 const GROWTH_NOTES: Record<string, string> = {
-  Verbal:   'Lifting Verbal opens Law, journalism, PM tracks. Suggested: 4-week reading-comprehension program.',
-  Creative: 'Creative correlates with design + research roles. Suggested: portfolio project on side problem.',
-};
-
-const DB_TO_CAP: Array<[keyof CapabilityData, string]> = [
-  ['analytical_thinking',  'Analytical'],
-  ['technical_aptitude',   'Technical'],
-  ['communication_skills', 'Social'],
-  ['creative_thinking',    'Creative'],
-  ['leadership_potential', 'Verbal'],
-  ['academic_readiness',   'Numerical'],
-  ['risk_tolerance_score', 'Spatial'],
-  ['entrepreneurial_drive','Practical'],
-];
-
-const CAP_DB_LABEL: Record<keyof CapabilityData, string> = {
-  analytical_thinking:  'Analytical',
-  technical_aptitude:   'Technical',
-  communication_skills: 'Communication',
-  creative_thinking:    'Creative',
-  leadership_potential: 'Leadership',
-  academic_readiness:   'Academic',
-  risk_tolerance_score: 'Risk tolerance',
-  entrepreneurial_drive:'Entrepreneurial',
-  perseverance:         'Perseverance',
-  career_readiness:     'Career readiness',
+  Analytical: 'Analytical is the gateway to engineering, actuarial, and data science. Suggested: daily logic puzzles + Khan Academy Statistics (4 weeks).',
+  Technical:  'Technical opens engineering, IT, and systems roles. Suggested: build a small electronics or coding project; 6-week bootcamp adds ~18 points.',
+  Social:     'Social (communication) unlocks management, medicine, and law. Suggested: join a debating society or Toastmasters — 6 months of practice typically adds 12–18 points.',
+  Creative:   'Creative correlates with design and research roles. Suggested: complete a portfolio project on a real-world problem — design process thinking builds this skill.',
+  Verbal:     'Verbal opens Law, journalism, and PM tracks. Suggested: 4-week structured reading-comprehension programme + one essay per week.',
+  Numerical:  'Numerical fluency is required for finance, actuarial, and data roles. Suggested: work through NSC Maths past papers at 75%+ consistency before graduation.',
+  Spatial:    'Spatial reasoning is key for architecture, engineering drawing, and medicine. Suggested: 3D modelling software (Tinkercad, free) for 20 min/day over 4 weeks.',
+  Practical:  'Practical execution separates high-scoring students from high-impact graduates. Suggested: lead a school or community project — any completed real-world deliverable counts.',
 };
 
 // ── Page ─────────────────────────────────────────────────────────────────────
@@ -70,8 +68,10 @@ export default function CognitivePage({
   userAps = 0,
   initialTab = 'personality',
   onRetake,
+  navigate,
 }: AssessmentPageProps) {
   const [tab, setTab] = useState<Tab>(initialTab);
+  const [showBig5Info, setShowBig5Info] = useState(false);
 
   // ── Personality data ───────────────────────────────────────────────────────
   const big5: BigFiveTrait[] = BIG5.map(b => {
@@ -107,18 +107,6 @@ export default function CognitivePage({
   const composite = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
   const sorted    = [...caps].sort((a, b) => b.v - a.v);
   const hasCapData = !!capabilityData;
-
-  const BIG5_LABEL: Record<string, string> = {
-    conscientiousness: 'Conscientiousness', openness: 'Openness',
-    extraversion: 'Extraversion', agreeableness: 'Agreeableness', neuroticism: 'Neuroticism',
-  };
-  const BIG5_DESC: Record<string, string> = {
-    conscientiousness: 'Organisation · diligence · reliability',
-    openness:          'Curiosity · imagination · flexibility',
-    extraversion:      'Sociability · assertiveness · energy',
-    agreeableness:     'Empathy · cooperation · trust',
-    neuroticism:       'Emotional stability · stress management',
-  };
 
   const topCareer = psychProfile && capabilityData && careers.length > 0
     ? rankCareersByMatch(careers, psychProfile, capabilityData, userAps)[0] ?? null
@@ -183,8 +171,15 @@ export default function CognitivePage({
                 <div className="eyebrow"><span className="dot" />Big Five</div>
                 <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Trait profile</h3>
               </div>
-              <button className="btn btn-ghost btn-sm">What is this?</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowBig5Info(v => !v)}>
+                {showBig5Info ? 'Hide' : 'What is this?'}
+              </button>
             </div>
+            {showBig5Info && (
+              <div style={{ background: 'hsl(var(--muted) / 0.5)', borderRadius: '0.5rem', padding: '0.875rem', marginBottom: '0.875rem', fontSize: '0.8125rem', lineHeight: 1.6 }}>
+                <strong>The Big Five (OCEAN)</strong> is the most well-validated personality model in psychology. Each trait sits on a spectrum — there is no "good" or "bad" score. Your scores were inferred from your assessment responses and feed the career match algorithm directly. A score of 50 is average; 70+ is meaningfully above average for that trait.
+              </div>
+            )}
             {big5.map(b => (
               <div key={b.l} style={{ padding: '0.625rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
                 <div className="row-between">
@@ -206,22 +201,52 @@ export default function CognitivePage({
               <div className="eyebrow"><span className="dot" />RIASEC profile</div>
               <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Holland code · {hollandCode}</h3>
               <p className="body-text" style={{ marginTop: '0.375rem', fontSize: '0.8125rem' }}>
-                {top2}-dominant profile — aligns with technical, research, and analytical career tracks.
+                {top2}-dominant profile — aligns with{' '}
+                {RIASEC_TRACKS[riasec[0]?.l] ?? 'research and analytical tracks'}{' '}
+                and {RIASEC_TRACKS[riasec[1]?.l] ?? 'practical tracks'}.{' '}
+                {RIASEC_STYLE[riasec[0]?.l] ?? ''}{' '}
                 Work style: <strong>{workStyle}</strong>. Primary motivation: <strong>{motivation}</strong>.
               </p>
               <div style={{ marginTop: '1rem' }}>
                 {riasec.map(r => (
-                  <div key={r.l} className="progress-row" style={{ marginBottom: '0.5rem' }}>
-                    <span className="label">{r.l}</span>
-                    <div className={`meter ${r.v >= 80 ? 'success' : r.v >= 60 ? 'primary' : 'accent'}`}><i style={{ width: `${r.v}%` }} /></div>
-                    <span className="val">{r.v}</span>
+                  <div key={r.l} style={{ marginBottom: '0.625rem' }}>
+                    <div className="progress-row">
+                      <span className="label">{r.l}</span>
+                      <div className={`meter ${r.v >= 80 ? 'success' : r.v >= 60 ? 'primary' : 'accent'}`}><i style={{ width: `${r.v}%` }} /></div>
+                      <span className="val">{r.v}</span>
+                    </div>
+                    {RIASEC_CAREERS[r.l] && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.125rem', paddingLeft: '0.125rem' }}>
+                        <span className="caption" style={{ fontSize: '0.625rem', color: 'hsl(var(--muted-fg))' }}>{RIASEC_CAREERS[r.l]}</span>
+                        {navigate && (
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            style={{ height: '1.25rem', fontSize: '0.5625rem', padding: '0 0.375rem', color: 'hsl(var(--primary))' }}
+                            onClick={() => navigate('careers')}
+                          >
+                            Explore →
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
+              {navigate && topCareer && (
+                <div style={{ marginTop: '0.875rem', paddingTop: '0.875rem', borderTop: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>Top match: {topCareer.name}</div>
+                    <div className="caption" style={{ fontSize: '0.6875rem', marginTop: 1 }}>Score {topCareer.personalScore}/100 · explore the full list</div>
+                  </div>
+                  <button className="btn btn-outline btn-sm" onClick={() => navigate('careers')}>
+                    All careers →
+                  </button>
+                </div>
+              )}
             </div>
 
             <AiInsightCard
-              context={{ type: 'cognitive', aps: 0, subjects: [], psychProfile: psychProfile ?? null, capabilityData: null, strategicScore: null, topProgrammes: [], topCareers: [] }}
+              context={{ type: 'cognitive', aps: userAps, subjects: [], psychProfile: psychProfile ?? null, capabilityData: capabilityData ?? null, strategicScore: null, topProgrammes: [], topCareers: topCareer ? [topCareer] : [] }}
             />
           </div>
         </div>
@@ -246,7 +271,7 @@ export default function CognitivePage({
                 <p className="body-text" style={{ fontSize: '0.8125rem' }}>
                   Eight cognitive dimensions inferred from your assessments, marks history and self-reports. Hover any axis on the radar to see what feeds it.
                 </p>
-                <button className="btn btn-outline btn-sm" style={{ marginTop: '0.75rem' }}>Update inputs</button>
+                <button className="btn btn-outline btn-sm" style={{ marginTop: '0.75rem' }} onClick={onRetake}>Update inputs</button>
               </div>
               <div className="card">
                 <div className="eyebrow"><span className="dot" />Strengths</div>
@@ -372,7 +397,7 @@ export default function CognitivePage({
                 <div className={`meter ${c.v >= 80 ? 'success' : c.v >= 65 ? 'primary' : c.v >= 55 ? 'accent' : 'warning'}`} style={{ marginTop: '0.5rem' }}>
                   <i style={{ width: `${c.v}%` }} />
                 </div>
-                <div className="caption" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>{DESCRIPTIONS[c.l]}</div>
+                <div className="caption" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>{CAP_DESCRIPTIONS[c.l]}</div>
               </div>
             ))}
           </div>

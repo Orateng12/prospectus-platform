@@ -2,19 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Route, PsychProfileData, CapabilityData } from '@/lib/types';
+import { chat, ROUTE_LABELS } from '@/app/actions/chat';
+import type { ChatTurn } from '@/app/actions/chat';
 
 interface DiscoverPageProps {
   navigate: (r: Route) => void;
   psychProfile?: PsychProfileData | null;
   capabilityData?: CapabilityData | null;
+  userAps?: number;
+  householdIncome?: number;
+  userFirstName?: string;
 }
-
-type RiasecKey = 'realistic' | 'investigative' | 'artistic' | 'social' | 'enterprising' | 'conventional';
-
-const RIASEC_LABELS: Record<RiasecKey, string> = {
-  investigative: 'Investigative', realistic: 'Realistic', artistic: 'Artistic',
-  social: 'Social', enterprising: 'Enterprising', conventional: 'Conventional',
-};
 
 interface Citation {
   label: string;
@@ -41,44 +39,37 @@ const SEED_MESSAGES: ChatMessage[] = [
   },
 ];
 
-const CANNED_REPLIES: Record<string, { text: string; citations: Citation[] }> = {
-  maths_english: {
-    text: 'Programmes that **reward both Maths and English** as core inputs are unusual — most lean one direction. Three worth shortlisting:\n\n**BCom Economics & Politics** (UCT, SUN, Wits) — quantitative econ + heavy writing.\n**BA Politics, Philosophy & Economics** (UCT) — a maths paper every year, three essay-driven majors.\n**BSc Mathematical Statistics + English minor** (UP) — unusual stack, lets you go quant trader or analyst-journalist.',
-    citations: [{ label: 'Programme explorer', route: 'programmes' }],
-  },
-  outdoors: {
-    text: 'For careers that put you outside more than half the week, three paths fit:\n\n**BSc Geological Sciences** (Wits, Rhodes) — mining + environmental field work. SA labour market is mid-demand but the bursary pipeline is dense.\n\n**BSc Forestry & Wood Science** (SUN) — small intake, almost guaranteed employment with Sappi or Mondi.\n\n**BSc Agricultural Sciences** (UP, SUN, UFS) — TVET pathway also available.',
-    citations: [{ label: 'Career Explorer', route: 'careers' }, { label: 'Programmes', route: 'programmes' }],
-  },
-  geography: {
-    text: 'Dropping History for Geography is a **net positive** on your profile. Three reasons:\n\n1. Geography is a designated subject with broader programme acceptance — specifically opens BSc Environmental and BSc GIS pathways.\n2. Your Investigative + Realistic RIASEC scores correlate higher with spatial reasoning — Geography exercises that directly.\n3. APS impact: assuming you score similarly (~68), your APS stays flat. No downside.',
-    citations: [{ label: 'Open simulator', route: 'simulator' }, { label: 'Programmes', route: 'programmes' }],
-  },
-  nsfas: {
-    text: 'Five-step NSFAS guide for 2026:\n\n**1. Confirm eligibility.** Household income under R350k = full cover; under R600k = partial.\n**2. Apply online.** nsfas.org.za, between September and January each year.\n**3. Upload supporting docs.** Payslips, ID, school report, SARS notice.\n**4. Track in your dashboard.** Paste your reference number into Applications.\n**5. Re-confirm yearly.** NSFAS is renewable but requires 50% pass rate.',
-    citations: [{ label: 'NSFAS Calculator', route: 'nsfas' }, { label: 'Funding Strategy', route: 'funding' }],
-  },
-  default: {
-    text: 'I\'d need a more specific question — try one of the prompts below, or phrase it as a trade-off ("X or Y?"), a goal ("how do I afford Z?"), or a constraint ("only programmes in KZN").',
-    citations: [{ label: 'Career Explorer', route: 'careers' }, { label: 'Programmes', route: 'programmes' }],
-  },
-};
+function buildSuggestedPrompts(userAps?: number, householdIncome?: number, psychProfile?: { realistic?: number; investigative?: number; social?: number; enterprising?: number; artistic?: number } | null): string[] {
+  const prompts: string[] = [];
 
-function guessReply(prompt: string): { text: string; citations: Citation[] } {
-  const p = prompt.toLowerCase();
-  if (p.includes('maths') && p.includes('english')) return CANNED_REPLIES.maths_english;
-  if (p.includes('outdoor') || p.includes('outside') || p.includes('field')) return CANNED_REPLIES.outdoors;
-  if (p.includes('geography') || p.includes('history')) return CANNED_REPLIES.geography;
-  if (p.includes('nsfas') || p.includes('fund') || p.includes('bursary')) return CANNED_REPLIES.nsfas;
-  return CANNED_REPLIES.default;
+  if (userAps) {
+    prompts.push(`My APS is ${userAps} — which programmes have the best career outcomes?`);
+  } else {
+    prompts.push('Show me programmes where I can use my Maths and English equally');
+  }
+
+  if (psychProfile) {
+    const riasec = [
+      { k: 'realistic', v: psychProfile.realistic ?? 0, prompt: 'What careers use hands-on technical skills and suit a practical personality?' },
+      { k: 'investigative', v: psychProfile.investigative ?? 0, prompt: 'I love research and analysis — what high-demand careers fit this?' },
+      { k: 'social', v: psychProfile.social ?? 0, prompt: 'I want to work with people and make a social impact — what should I study?' },
+      { k: 'enterprising', v: psychProfile.enterprising ?? 0, prompt: 'I have entrepreneurial drive — which degree will best prepare me to start a business?' },
+      { k: 'artistic', v: psychProfile.artistic ?? 0, prompt: 'What careers combine creativity with a good salary in South Africa?' },
+    ].sort((a, b) => b.v - a.v);
+    prompts.push(riasec[0].prompt);
+  } else {
+    prompts.push('I want to work outdoors — what should I study?');
+  }
+
+  if (householdIncome !== undefined && householdIncome <= 600_000) {
+    prompts.push('How do I stack NSFAS with a bursary to fully cover my costs?');
+  } else {
+    prompts.push('What merit bursaries can I apply for without an income test?');
+  }
+
+  prompts.push('Compare engineering vs computer science for long-term salary growth in SA');
+  return prompts.slice(0, 4);
 }
-
-const SUGGESTED_PROMPTS = [
-  'Show me programmes where I can use my Maths and English equally',
-  'I want to work outdoors — what should I study?',
-  'What if I drop History and add Geography?',
-  'How does NSFAS actually work?',
-];
 
 function renderText(text: string): React.ReactNode[] {
   return text.split('\n\n').map((block, i) => {
@@ -96,10 +87,14 @@ function renderText(text: string): React.ReactNode[] {
   });
 }
 
-export default function DiscoverPage({ navigate, psychProfile }: DiscoverPageProps) {
+export default function DiscoverPage({ navigate, psychProfile, capabilityData, userAps, householdIncome, userFirstName }: DiscoverPageProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(SEED_MESSAGES);
+  const [conversationHistory, setConversationHistory] = useState<ChatTurn[]>([]);
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
+
+  const suggestedPrompts = buildSuggestedPrompts(userAps, householdIncome, psychProfile);
 
   useEffect(() => {
     if (transcriptRef.current) {
@@ -107,22 +102,52 @@ export default function DiscoverPage({ navigate, psychProfile }: DiscoverPagePro
     }
   }, [messages]);
 
-  function sendMessage(prompt: string) {
+  async function sendMessage(prompt: string) {
     const trimmed = prompt.trim();
-    if (!trimmed) return;
+    if (!trimmed || isLoading) return;
     setInput('');
+    setIsLoading(true);
+
+    const snapshot = conversationHistory;
     setMessages(prev => [
       ...prev,
       { role: 'user', text: trimmed },
       { role: 'ai', typing: true },
     ]);
-    setTimeout(() => {
-      const reply = guessReply(trimmed);
-      setMessages(prev => [...prev.slice(0, -1), { role: 'ai', ...reply }]);
-    }, 1100);
+
+    const result = await chat(snapshot, trimmed);
+
+    if ('error' in result) {
+      setMessages(prev => [
+        ...prev.slice(0, -1),
+        {
+          role: 'ai',
+          text: result.error === 'AI not configured'
+            ? 'The AI advisor is not yet configured — ask the platform admin to add an API key.'
+            : 'I had trouble reaching the AI — please try again in a moment.',
+          citations: [],
+        },
+      ]);
+    } else {
+      const citations: Citation[] = result.routes
+        .filter(r => r in ROUTE_LABELS)
+        .map(r => ({ label: ROUTE_LABELS[r], route: r as Route }));
+
+      setMessages(prev => [
+        ...prev.slice(0, -1),
+        { role: 'ai', text: result.text, citations },
+      ]);
+      setConversationHistory(prev => [
+        ...prev,
+        { role: 'user', content: trimmed },
+        { role: 'assistant', content: result.text },
+      ]);
+    }
+
+    setIsLoading(false);
   }
 
-  const initial = psychProfile?.openness !== undefined ? 'L' : 'L';
+  const initial = userFirstName ? userFirstName.charAt(0).toUpperCase() : 'S';
 
   return (
     <div className="page-anim">
@@ -131,13 +156,18 @@ export default function DiscoverPage({ navigate, psychProfile }: DiscoverPagePro
         <div className="row-between">
           <div>
             <div className="eyebrow"><span className="dot" />Ask in plain language</div>
-            <h2 className="heading" style={{ marginTop: '0.375rem' }}>Discover · AI search</h2>
+            <h2 className="heading" style={{ marginTop: '0.375rem' }}>Discover · AI Advisor</h2>
             <p className="body-text" style={{ marginTop: '0.5rem', maxWidth: '44rem' }}>
-              Ask anything about your options. The engine cross-references your profile, the labour market and 4,200 programmes — then cites specifically what it used.
+              Ask anything about your options. Claude cross-references your profile, the SA labour market and thousands of programmes — then cites specifically what it used.
             </p>
           </div>
           <div className="row">
-            <button className="btn btn-outline" onClick={() => setMessages([])}>Clear conversation</button>
+            <button
+              className="btn btn-outline"
+              onClick={() => { setMessages([]); setConversationHistory([]); }}
+            >
+              Clear conversation
+            </button>
           </div>
         </div>
       </div>
@@ -149,7 +179,7 @@ export default function DiscoverPage({ navigate, psychProfile }: DiscoverPagePro
               {messages.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '2rem', color: 'hsl(var(--muted-fg))' }}>
                   <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✦</div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>Ask Prospectus AI anything</div>
+                  <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>Ask your personal advisor anything</div>
                   <div className="caption" style={{ marginTop: '0.25rem' }}>Try one of the prompts on the right to get started.</div>
                 </div>
               )}
@@ -179,8 +209,7 @@ export default function DiscoverPage({ navigate, psychProfile }: DiscoverPagePro
                         )}
                         {msg.role === 'ai' && (
                           <div className="chat-meta">
-                            <span>GPT-4 · cross-checked by Gemini</span>
-                            <span style={{ marginLeft: 'auto' }}>grounded in your profile</span>
+                            <span>Powered by Claude · grounded in your profile</span>
                           </div>
                         )}
                       </>
@@ -195,6 +224,7 @@ export default function DiscoverPage({ navigate, psychProfile }: DiscoverPagePro
                 placeholder="Ask something specific — try a trade-off, a goal, or a constraint…"
                 rows={2}
                 value={input}
+                disabled={isLoading}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => {
                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -205,10 +235,11 @@ export default function DiscoverPage({ navigate, psychProfile }: DiscoverPagePro
               />
               <button
                 className="btn btn-primary btn-lg"
-                style={{ height: 56, alignSelf: 'stretch' }}
+                style={{ height: 56, alignSelf: 'stretch', opacity: isLoading ? 0.6 : 1 }}
+                disabled={isLoading}
                 onClick={() => sendMessage(input)}
               >
-                Ask →
+                {isLoading ? '…' : 'Ask →'}
               </button>
             </div>
           </div>
@@ -218,12 +249,13 @@ export default function DiscoverPage({ navigate, psychProfile }: DiscoverPagePro
           <div className="card">
             <div className="eyebrow"><span className="dot" />Try one of these</div>
             <div className="stack" style={{ marginTop: '0.625rem' }}>
-              {SUGGESTED_PROMPTS.map(p => (
+              {suggestedPrompts.map(p => (
                 <button
                   key={p}
                   className="focus-item"
-                  style={{ background: 'transparent', cursor: 'pointer', width: '100%', textAlign: 'left', border: '1px solid hsl(var(--border))' }}
+                  style={{ background: 'transparent', cursor: isLoading ? 'not-allowed' : 'pointer', width: '100%', textAlign: 'left', border: '1px solid hsl(var(--border))', opacity: isLoading ? 0.5 : 1 }}
                   onClick={() => sendMessage(p)}
+                  disabled={isLoading}
                 >
                   <span className="focus-num">?</span>
                   <div style={{ flex: 1, fontWeight: 500, fontSize: '0.8125rem' }}>{p}</div>
@@ -233,20 +265,46 @@ export default function DiscoverPage({ navigate, psychProfile }: DiscoverPagePro
             </div>
           </div>
           <div className="card">
-            <div className="eyebrow"><span className="dot" />How the engine reasons</div>
-            <div className="stack-2" style={{ marginTop: '0.625rem' }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>1. Profile pull</div>
-                <div className="caption">Your APS, Big Five, RIASEC, capability graph and household profile.</div>
-              </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>2. Domain search</div>
-                <div className="caption">4,200 programmes, 250 careers, 180 funding sources, labour market signal.</div>
-              </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>3. Reason &amp; cite</div>
-                <div className="caption">GPT-4 reasons over the union, Gemini cross-checks, both produce citations.</div>
-              </div>
+            <div className="eyebrow"><span className="dot" />What Claude can see</div>
+            <div className="stack" style={{ marginTop: '0.625rem' }}>
+              {([
+                {
+                  label: 'APS score',
+                  loaded: !!userAps && userAps > 0,
+                  detail: userAps && userAps > 0 ? `${userAps} pts · programme eligibility live` : 'Add subjects on Profile page',
+                },
+                {
+                  label: 'RIASEC + Big Five',
+                  loaded: !!psychProfile,
+                  detail: psychProfile
+                    ? `${['Realistic','Investigative','Artistic','Social','Enterprising','Conventional'].sort((a,b)=>(psychProfile[b.toLowerCase() as keyof PsychProfileData] as number??0)-(psychProfile[a.toLowerCase() as keyof PsychProfileData] as number??0)).slice(0,2).join('-')} dominant · career matching active`
+                    : 'Take assessment to unlock career matching',
+                },
+                {
+                  label: '8 capability dimensions',
+                  loaded: !!capabilityData,
+                  detail: capabilityData
+                    ? `Composite ${Math.round([capabilityData.analytical_thinking,capabilityData.technical_aptitude,capabilityData.communication_skills,capabilityData.creative_thinking,capabilityData.leadership_potential,capabilityData.entrepreneurial_drive,capabilityData.perseverance,capabilityData.academic_readiness].reduce((a,b)=>a+b,0)/8)}/100 · gap analysis live`
+                    : 'Assessment not yet taken',
+                },
+                {
+                  label: 'Household income',
+                  loaded: !!householdIncome,
+                  detail: householdIncome
+                    ? `R${Math.round(householdIncome/1000)}k/yr · ${householdIncome <= 350_000 ? 'NSFAS-eligible · bursary matching on' : 'Corporate + merit bursary matching on'}`
+                    : 'Add on Profile to improve funding advice',
+                },
+              ] as Array<{ label: string; loaded: boolean; detail: string }>).map(src => (
+                <div key={src.label} className="row" style={{ gap: '0.5rem', alignItems: 'flex-start', padding: '0.375rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                  <span className={`badge ${src.loaded ? 'success' : 'accent'}`} style={{ fontSize: '0.5rem', flexShrink: 0, marginTop: 3 }}>
+                    {src.loaded ? '✓' : '?'}
+                  </span>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{src.label}</div>
+                    <div className="caption" style={{ fontSize: '0.6875rem', marginTop: 1 }}>{src.detail}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

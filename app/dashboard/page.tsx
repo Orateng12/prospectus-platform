@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation';
 import { requireAuth } from '@/lib/supabase/requireAuth';
-import { SUBJECTS, PROGRAMMES, CAREERS } from '@/lib/data';
+import { SUBJECTS, PROGRAMMES, CAREERS, FUNDING_OPPORTUNITIES } from '@/lib/data';
 import { computeStrategicScore } from '@/lib/scoring';
 import Dashboard from '@/components/Dashboard';
 import type {
-  Subject, Programme, Career,
-  PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbCareer, DbDocument,
+  Subject, Programme, Career, FundingOpportunity,
+  PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbCareer, DbDocument, DbNotification, DbCustomDeadline,
 } from '@/lib/types';
 
 function pathwayFromQualType(qt: string | null, nqf: number | null): Programme['pathway'] {
@@ -58,7 +58,7 @@ export default async function Page() {
   if (!auth.ok) redirect('/login');
   const { user, supabase } = auth;
 
-  const [profileResult, progResult, psychResult, capResult, scoreResult, appsResult, careersResult, savedResult, scholarshipAppsResult, documentsResult, notificationsResult] = await Promise.all([
+  const [profileResult, progResult, psychResult, capResult, scoreResult, appsResult, careersResult, savedResult, scholarshipAppsResult, documentsResult, notificationsResult, customDeadlinesResult, fundingResult] = await Promise.all([
     supabase
       .from('user_profiles')
       .select('aps_score, subject_marks, first_name, last_name, province, household_income, matric_year')
@@ -112,9 +112,20 @@ export default async function Page() {
       .eq('user_id', user.id),
     supabase
       .from('notifications')
-      .select('id')
+      .select('id, type, title, message, link, read, priority, created_at')
       .eq('user_id', user.id)
-      .eq('read', false),
+      .order('created_at', { ascending: false })
+      .limit(50),
+    supabase
+      .from('custom_deadlines')
+      .select('id, title, date')
+      .eq('user_id', user.id)
+      .order('date', { ascending: true }),
+    supabase
+      .from('funding_opportunities')
+      .select('id, name, amount, type, provider_type, eligibility, deadline, income_threshold, min_aps, study_fields, service_contract, disability_specific, province_specific, application_url, last_verified_at')
+      .eq('is_active', true)
+      .order('amount', { ascending: false }),
   ]);
 
   const profile = profileResult.data;
@@ -160,9 +171,13 @@ export default async function Page() {
   }
 
   // Psychological profile
-  // Redirect new users to onboarding if they haven't built their profile yet
-  const needsOnboarding = !psychResult.data && !capResult.data && !profile?.province;
-  if (needsOnboarding) redirect('/onboarding');
+  // Only redirect brand-new accounts that have no profile row at all (auth trigger not yet run).
+  // PGRST116 = "0 rows returned by .single()" — the row genuinely doesn't exist.
+  // Any other error code (network, RLS, etc.) is treated as degraded mode, not a redirect.
+  // Users who have a profile but haven't completed onboarding stay on the dashboard in
+  // graceful-degraded (empty) mode rather than being bounced on every router.refresh().
+  const isNewAccount = !profile && profileResult.error?.code === 'PGRST116';
+  if (isNewAccount) redirect('/onboarding');
 
   const psychProfile: PsychProfileData | null = psychResult.data ?? null;
 
@@ -234,8 +249,41 @@ export default async function Page() {
     }>).map(d => ({ ...d, signed_url: urlMap[d.storage_path] }));
   }
 
-  // Unread notification count
-  const unreadNotificationCount = (notificationsResult.data ?? []).length;
+  // Notifications — full data for NotificationsPage
+  const notifications: DbNotification[] = (notificationsResult.data ?? []) as DbNotification[];
+  const unreadNotificationCount = notifications.filter(n => !n.read).length;
+
+  // Custom deadlines
+  const customDeadlines: DbCustomDeadline[] = (customDeadlinesResult.data ?? []) as DbCustomDeadline[];
+
+  // Funding opportunities — fall back to static if DB is empty
+  let fundingOpportunities: FundingOpportunity[] = FUNDING_OPPORTUNITIES;
+  if (fundingResult.data && fundingResult.data.length > 0) {
+    fundingOpportunities = (fundingResult.data as Array<{
+      id: string; name: string; amount: number; type: string; provider_type: string;
+      eligibility: string; deadline: string | null; income_threshold: number | null;
+      min_aps: number | null; study_fields: string[] | null; service_contract: boolean | null;
+      disability_specific: boolean | null; province_specific: string | null;
+      application_url: string | null; last_verified_at: string | null;
+    }>).map(f => ({
+      id: f.id,
+      name: f.name,
+      amount: f.amount,
+      match: 70, // base match — overridden by computeMatch in ScholarshipsPage
+      eligibility: f.eligibility,
+      deadline: f.deadline ?? 'Rolling',
+      type: f.type as FundingOpportunity['type'],
+      provider_type: f.provider_type as FundingOpportunity['provider_type'],
+      service_contract: f.service_contract ?? false,
+      disability_specific: f.disability_specific ?? false,
+      province_specific: f.province_specific ?? undefined,
+      application_url: f.application_url ?? undefined,
+      last_verified_at: f.last_verified_at ?? undefined,
+      income_threshold: f.income_threshold ?? undefined,
+      min_aps: f.min_aps ?? undefined,
+      study_fields: f.study_fields ?? undefined,
+    }));
+  }
 
   // Matric year
   const matricYear: number | undefined = (profile as Record<string, unknown> | null)?.matric_year as number | undefined;
@@ -266,7 +314,10 @@ export default async function Page() {
       savedProgrammeIds={savedProgrammeIds}
       appliedScholarshipNames={appliedScholarshipNames}
       documents={documents}
+      notifications={notifications}
       unreadNotificationCount={unreadNotificationCount}
+      customDeadlines={customDeadlines}
+      fundingOpportunities={fundingOpportunities}
     />
   );
 }

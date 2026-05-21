@@ -1,10 +1,10 @@
 'use client';
 
-import type { Scholarship, Route } from '@/lib/types';
+import type { Scholarship, FundingOpportunity, Route } from '@/lib/types';
 import { fmtR } from '@/lib/utils';
 
 interface ScholarshipDetailPageProps {
-  scholarship: Scholarship | null;
+  scholarship: Scholarship | FundingOpportunity | null;
   userAps?: number;
   householdIncome?: number;
   userProvince?: string;
@@ -17,57 +17,65 @@ interface Criterion {
   met: boolean | null; // null = unknown
 }
 
-function parseCriteria(eligibility: string, userAps?: number, householdIncome?: number): Criterion[] {
+function parseCriteria(
+  scholarship: Scholarship | FundingOpportunity,
+  userAps?: number,
+  householdIncome?: number,
+  userProvince?: string,
+): Criterion[] {
+  const fo = scholarship as FundingOpportunity;
   const criteria: Criterion[] = [];
+  const eligibility = scholarship.eligibility;
   const lower = eligibility.toLowerCase();
 
-  // APS requirement
-  const apsMatch = eligibility.match(/APS\s*[≥>=]+\s*(\d+)/);
-  if (apsMatch) {
-    const required = parseInt(apsMatch[1]);
+  const parsedApsMatch = eligibility.match(/APS\s*[≥>=]+\s*(\d+)/);
+  const minAps = fo.min_aps ?? (parsedApsMatch ? parseInt(parsedApsMatch[1]) : null);
+  if (minAps !== null) {
     criteria.push({
-      label: `APS ≥ ${required}`,
-      met: userAps !== undefined ? userAps >= required : null,
+      label: `APS ≥ ${minAps}`,
+      met: userAps !== undefined ? userAps >= minAps : null,
     });
   }
 
-  // Financial need
-  if (lower.includes('financial need')) {
+  const incomeThreshold = fo.income_threshold ?? (lower.includes('financial need') ? 350000 : null);
+  if (incomeThreshold !== null) {
     criteria.push({
-      label: 'Financial need (household income ≤ R 350k)',
-      met: householdIncome !== undefined ? householdIncome <= 350000 : null,
+      label: `Household income ≤ ${fmtR(incomeThreshold)}`,
+      met: householdIncome !== undefined ? householdIncome <= incomeThreshold : null,
     });
   }
 
-  // Subject requirements (Maths)
+  if (fo.province_specific) {
+    criteria.push({
+      label: `${fo.province_specific} resident`,
+      met: userProvince !== undefined ? userProvince === fo.province_specific : null,
+    });
+  }
+
   if (lower.includes('maths') || lower.includes('mathematics')) {
     const mathMatch = eligibility.match(/[Mm]aths?\s*[≥>=]+\s*(\d+)/);
     const required = mathMatch ? parseInt(mathMatch[1]) : 60;
-    criteria.push({
-      label: `Mathematics ≥ ${required}%`,
-      met: userAps !== undefined ? userAps >= 34 : null, // rough proxy
-    });
+    criteria.push({ label: `Mathematics ≥ ${required}%`, met: null });
   }
 
-  // Programme/field requirement (BSc, BCom, etc.)
   const progMatch = eligibility.match(/\b(BSc|BCom|BEng|BA|BEd|LLB|BPharm)\b/g);
   if (progMatch) {
-    criteria.push({
-      label: `Programme: ${progMatch.slice(0, 3).join(' / ')}`,
-      met: null,
-    });
+    criteria.push({ label: `Programme: ${progMatch.slice(0, 3).join(' / ')}`, met: null });
   }
 
-  // RIASEC/personality (entrepreneurial)
-  if (lower.includes('entrepreneur') || lower.includes('leader')) {
-    criteria.push({
-      label: 'Entrepreneurial/leadership pitch required',
-      met: null,
-    });
+  if (lower.includes('work experience') || lower.includes('yrs work')) {
+    criteria.push({ label: '≥ 2 years work experience', met: null });
   }
 
-  // SA citizen
-  criteria.push({ label: 'South African citizen', met: null });
+  if (lower.includes('entrepreneur') || lower.includes('leadership pitch')) {
+    criteria.push({ label: 'Leadership/entrepreneurial pitch required', met: null });
+  }
+
+  if (fo.service_contract) {
+    criteria.push({ label: 'Service contract required after graduation', met: null });
+  }
+
+  criteria.push({ label: 'South African citizen or permanent resident', met: null });
 
   return criteria;
 }
@@ -89,6 +97,56 @@ function addWeeks(dateStr: string, weeks: number): string {
   return dateStr;
 }
 
+function getApplicationSteps(type: string, providerType: string, isServiceContract: boolean): string[] {
+  if (type === 'loan') {
+    return [
+      'Visit the bank\'s website or nearest branch to obtain the student loan application form.',
+      'Gather your ID, proof of registration or acceptance letter, and a guardian\'s income statement. A guarantor with permanent income is required by most lenders.',
+      'Request a cost-of-study breakdown (tuition, accommodation, books) from your institution\'s finance office.',
+      'Submit at least 4–6 weeks before your institution\'s registration deadline.',
+      'Follow up every two weeks by phone or branch visit until you receive a written decision letter.',
+    ];
+  }
+  if (type === 'seta') {
+    return [
+      'Confirm your field of study appears on this SETA\'s list of registered occupations (available on the SETA website).',
+      'If employed: ask your employer\'s HR or skills development facilitator to submit the bursary application — SETAs primarily fund through levy-paying employers.',
+      'If a school-leaver: apply directly via the SETA\'s individual bursary portal with certified ID, NSC results, and a motivation letter.',
+      'Attach proof of enrolment or an official acceptance letter from your institution.',
+      'SETA bursaries follow the government fiscal year — deadlines typically fall between February and April. Apply well in advance.',
+    ];
+  }
+  if (providerType === 'government') {
+    return [
+      'Download the application form from the official government department, provincial bursary website, or DHET online portal.',
+      'Certified documents required: South African ID, NSC certificate or latest results, proof of income for every household earner (payslips or SASSA letter), and proof of residence.',
+      'Obtain a letter of acceptance or proof of enrolment from your institution — applications without this are automatically rejected.',
+      'Submit the complete bundle in one submission — government bursaries do not accept late or supplementary documents.',
+      'Record your submission reference number and follow up after 6–8 weeks if you have not received an acknowledgement.',
+    ];
+  }
+  if (providerType === 'international') {
+    return [
+      'Register on the scholarship portal as early as possible — access to the full application form typically requires an activated account.',
+      'Write a compelling personal statement (800–1 200 words) covering academic record, leadership experience, community involvement, and long-term development goals.',
+      'Secure two strong references from teachers, lecturers, or employers who can speak to your academic ability and character.',
+      'Prepare certified copies of your ID or passport, NSC or university transcripts, and proof of language proficiency if required.',
+      isServiceContract
+        ? 'Review the return-home or service obligation carefully — most leadership awards require you to return to SA and apply skills locally.'
+        : 'Submit at least two weeks before the deadline — international portals often experience high traffic near closing dates.',
+    ];
+  }
+  return [
+    `Visit ${isServiceContract ? "the sponsor's careers or bursary portal" : "the scholarship provider's official website"} to obtain the current application form.`,
+    'Prepare certified copies of ID, NSC certificate or latest results, and proof of household income for all earners.',
+    'Write a 400–600 word motivation letter explaining your chosen field, career goals, and why you are a strong candidate.',
+    'Obtain two reference letters from Grade 12 teachers or lecturers who can speak to your academic ability and work ethic.',
+    isServiceContract
+      ? 'Read the service contract before accepting — you may be required to work for the funder for 1–3 years after graduation. Clarify posting location and start date up front.'
+      : 'Submit the complete application by the closing date. Late or incomplete submissions are not considered under any circumstances.',
+  ];
+}
+
 export default function ScholarshipDetailPage({ scholarship, userAps, householdIncome, userProvince, userName, navigate }: ScholarshipDetailPageProps) {
   if (!scholarship) {
     return (
@@ -101,15 +159,34 @@ export default function ScholarshipDetailPage({ scholarship, userAps, householdI
     );
   }
 
-  const criteria = parseCriteria(scholarship.eligibility, userAps, householdIncome);
+  const fo = scholarship as FundingOpportunity;
+  const applicationUrl = fo.application_url ?? null;
+  const isServiceContract = fo.service_contract ?? false;
+  const isDisabilitySpecific = fo.disability_specific ?? false;
+  const studyFields = fo.study_fields ?? [];
+  const lastVerified = fo.last_verified_at ?? null;
+
+  const foType = fo.type ?? 'bursary';
+  const foProviderType = fo.provider_type ?? 'corporate';
+  const applicationSteps = getApplicationSteps(foType, foProviderType, isServiceContract);
+
+  const criteria = parseCriteria(scholarship, userAps, householdIncome, userProvince);
   const metCount = criteria.filter(c => c.met === true).length;
   const totalKnown = criteria.filter(c => c.met !== null).length;
 
-  const keyDates = [
-    { label: 'Prepare documents', date: addWeeks(scholarship.deadline, 4) },
-    { label: 'Submit application', date: addWeeks(scholarship.deadline, 2) },
-    { label: 'Application closes', date: scholarship.deadline },
-  ];
+  const isRolling = scholarship.deadline === 'Rolling';
+  const keyDates = isRolling
+    ? [
+        { label: 'Applications open year-round', date: 'Any time', isClose: false },
+        { label: 'Allow 4–6 weeks for processing', date: 'Ongoing', isClose: false },
+      ]
+    : [
+        { label: 'Research & approach referees', date: addWeeks(scholarship.deadline, 8), isClose: false },
+        { label: 'Gather certified documents', date: addWeeks(scholarship.deadline, 5), isClose: false },
+        { label: 'Write motivation letter', date: addWeeks(scholarship.deadline, 3), isClose: false },
+        { label: 'Final review & submit', date: addWeeks(scholarship.deadline, 1), isClose: false },
+        { label: 'Application closes', date: scholarship.deadline, isClose: true },
+      ];
 
   return (
     <div className="page-anim">
@@ -127,6 +204,12 @@ export default function ScholarshipDetailPage({ scholarship, userAps, householdI
             <div className="eyebrow"><span className="dot" />Scholarship detail</div>
             <h2 className="heading" style={{ marginTop: '0.375rem' }}>{scholarship.name}</h2>
             <div className="caption" style={{ marginTop: '0.25rem' }}>{scholarship.eligibility}</div>
+            <div className="row" style={{ marginTop: '0.5rem', gap: '0.375rem', flexWrap: 'wrap' }}>
+              {isServiceContract && <span className="badge warning">Service contract required</span>}
+              {isDisabilitySpecific && <span className="badge info">Disability-specific</span>}
+              {studyFields.map(f => <span key={f} className="badge" style={{ fontSize: '0.65rem' }}>{f}</span>)}
+              {lastVerified && <span className="badge" style={{ fontSize: '0.65rem' }}>Verified {new Date(lastVerified).toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' })}</span>}
+            </div>
           </div>
           <div className="row" style={{ alignItems: 'flex-start', gap: '0.75rem' }}>
             <div className="card compact" style={{ textAlign: 'center', padding: '0.5rem 0.875rem' }}>
@@ -216,25 +299,61 @@ export default function ScholarshipDetailPage({ scholarship, userAps, householdI
                   <div style={{
                     minWidth: 52, textAlign: 'center',
                     fontWeight: 800, fontSize: '0.9375rem',
-                    color: i === keyDates.length - 1 ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
+                    color: d.isClose ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
                     fontVariantNumeric: 'tabular-nums',
                   }}>
                     {d.date}
                   </div>
-                  <div style={{ fontSize: '0.875rem', fontWeight: i === keyDates.length - 1 ? 600 : 400 }}>{d.label}</div>
+                  <div style={{ fontSize: '0.875rem', fontWeight: d.isClose ? 600 : 400 }}>{d.label}</div>
                 </div>
               ))}
             </div>
           </div>
 
+          {(() => {
+            const TYPICAL_COST = 95000;
+            const coveragePct = Math.min(100, Math.round((scholarship.amount / TYPICAL_COST) * 100));
+            const surplus = scholarship.amount - TYPICAL_COST;
+            return (
+              <div className="card">
+                <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Annual cost coverage</div>
+                <div className="stack-2">
+                  <div className="row-between">
+                    <span className="caption" style={{ fontSize: '0.8125rem' }}>Award value</span>
+                    <span style={{ fontWeight: 800, color: 'hsl(var(--success))' }}>{fmtR(scholarship.amount)}</span>
+                  </div>
+                  <div className="row-between">
+                    <span className="caption" style={{ fontSize: '0.8125rem' }}>Typical SA annual cost</span>
+                    <span style={{ fontWeight: 600 }}>{fmtR(TYPICAL_COST)}</span>
+                  </div>
+                  <div>
+                    <div className="meter success" style={{ marginBottom: '0.25rem' }}>
+                      <i style={{ width: `${coveragePct}%` }} />
+                    </div>
+                    <div className="row-between">
+                      <span className="caption" style={{ fontSize: '0.6875rem' }}>
+                        {coveragePct >= 100 ? 'Full annual cost covered' : coveragePct >= 75 ? 'Largely covered' : coveragePct >= 50 ? 'About half covered' : 'Partial support'}
+                      </span>
+                      <span style={{ fontWeight: 700, fontSize: '0.8125rem', color: coveragePct >= 100 ? 'hsl(var(--success))' : 'hsl(var(--primary))' }}>{coveragePct}%</span>
+                    </div>
+                  </div>
+                </div>
+                {surplus > 0 && (
+                  <div className="caption" style={{ marginTop: '0.625rem', fontSize: '0.6875rem', padding: '0.5rem', background: 'hsl(var(--success) / 0.08)', borderRadius: 'var(--r-sm)', border: '1px solid hsl(var(--success) / 0.2)' }}>
+                    {fmtR(surplus)} surplus may cover textbooks, transport, and personal expenses.
+                  </div>
+                )}
+                <div className="caption" style={{ marginTop: '0.5rem', fontSize: '0.5625rem' }}>
+                  Based on average SA tuition + accommodation. Actual costs vary by institution and field.
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="card">
             <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />How to apply</div>
             <div className="stack-2">
-              {[
-                'Visit the scholarship provider\'s official website to download the application form.',
-                'Prepare certified copies of ID, NSC results, and proof of income for all household members.',
-                'Submit your completed form and supporting documents before the closing date.',
-              ].map((step, i) => (
+              {applicationSteps.map((step, i) => (
                 <div key={i} className="row" style={{ gap: '0.875rem', alignItems: 'flex-start' }}>
                   <div style={{
                     width: 24, height: 24, borderRadius: 999, flexShrink: 0,
@@ -249,9 +368,29 @@ export default function ScholarshipDetailPage({ scholarship, userAps, householdI
                 </div>
               ))}
             </div>
-            <button className="btn btn-primary" style={{ marginTop: '1.25rem', width: '100%' }}>
-              Apply on scholarship website →
-            </button>
+            {isServiceContract && (
+              <div style={{ marginTop: '0.875rem', padding: '0.75rem', background: 'hsl(var(--warning) / 0.1)', border: '1px solid hsl(var(--warning) / 0.3)', borderRadius: 'var(--r-md)' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.8125rem', color: 'hsl(var(--warning))' }}>Service contract applies</div>
+                <p className="caption" style={{ marginTop: '0.25rem', lineHeight: 1.5 }}>
+                  You will be required to work for the sponsor after graduation, typically for 1–3 years. Read the service agreement before accepting the award.
+                </p>
+              </div>
+            )}
+            {applicationUrl ? (
+              <a
+                href={applicationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary"
+                style={{ marginTop: '1.25rem', width: '100%', textAlign: 'center', display: 'block' }}
+              >
+                Apply on scholarship website →
+              </a>
+            ) : (
+              <button className="btn btn-primary" style={{ marginTop: '1.25rem', width: '100%' }} disabled>
+                Search "{scholarship.name}" for application link
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Route, DbDocument } from '@/lib/types';
+import type { Route, DbDocument, DbApplication } from '@/lib/types';
 import { uploadDocument } from '@/app/actions/uploadDocument';
 import { deleteDocument } from '@/app/actions/deleteDocument';
 import { refreshDocumentUrl } from '@/app/actions/refreshDocumentUrl';
@@ -34,6 +34,17 @@ const DOC_CATALOG: DocMeta[] = [
 
 const CATEGORIES = [...new Set(DOC_CATALOG.map(d => d.category))];
 
+const INST_REQUIRED: Record<string, string[]> = {
+  uct:     ['id', 'matric', 'results', 'photo'],
+  wits:    ['id', 'matric', 'results', 'photo', 'aps'],
+  nsfas:   ['id', 'matric', 'residence', 'income'],
+  uj:      ['id', 'matric', 'results'],
+  up:      ['id', 'matric', 'results'],
+  sun:     ['id', 'matric', 'results'],
+  ukzn:    ['id', 'matric', 'aps'],
+  default: ['id', 'matric'],
+};
+
 function fmtBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
@@ -49,9 +60,10 @@ function fmtDate(iso: string): string {
 interface DocumentsPageProps {
   navigate?: (r: Route) => void;
   documents?: DbDocument[];
+  applications?: DbApplication[];
 }
 
-export default function DocumentsPage({ navigate, documents = [] }: DocumentsPageProps) {
+export default function DocumentsPage({ navigate, documents = [], applications = [] }: DocumentsPageProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingDocType, setPendingDocType] = useState<string | null>(null);
@@ -66,6 +78,30 @@ export default function DocumentsPage({ navigate, documents = [] }: DocumentsPag
   const uploadedMap: Record<string, DbDocument> = Object.fromEntries(
     documents.map(d => [d.doc_type, d]),
   );
+
+  // Derive which institutions the student has applied to, for priority highlighting
+  const appliedInstitutions = new Set(
+    applications.map(a => a.institution_name.split(' ')[0].toLowerCase())
+  );
+  const INST_ALIASES: Record<string, string[]> = {
+    uct:   ['university of cape town', 'uct'],
+    wits:  ['wits', 'university of the witwatersrand'],
+    nsfas: ['nsfas'],
+    uj:    ['uj', 'university of johannesburg'],
+    up:    ['up', 'university of pretoria', 'tuks'],
+    sun:   ['stellenbosch', 'sun'],
+    ukzn:  ['ukzn', 'university of kwazulu'],
+  };
+  function isRequiredByApplied(requiredList: string[]): boolean {
+    return requiredList.some(r => {
+      const rLow = r.toLowerCase();
+      if (appliedInstitutions.has(rLow)) return true;
+      for (const aliases of Object.values(INST_ALIASES)) {
+        if (aliases.includes(rLow) && aliases.some(a => appliedInstitutions.has(a))) return true;
+      }
+      return false;
+    });
+  }
 
   async function handleViewFresh(docType: string) {
     setRefreshingUrl(docType);
@@ -162,6 +198,58 @@ export default function DocumentsPage({ navigate, documents = [] }: DocumentsPag
         ))}
       </div>
 
+      {applications.length > 0 && (() => {
+        const seenKeys = new Set<string>();
+        const rows = applications.flatMap(app => {
+          const nameL = app.institution_name.toLowerCase();
+          let key = 'default';
+          for (const [k, aliases] of Object.entries(INST_ALIASES)) {
+            if (aliases.some(a => nameL.includes(a))) { key = k; break; }
+          }
+          if (seenKeys.has(key)) return [];
+          seenKeys.add(key);
+          const required = INST_REQUIRED[key] ?? INST_REQUIRED.default;
+          const missingDocs = required.filter(dt => !uploadedMap[dt]);
+          return [{
+            name: app.institution_name,
+            key,
+            required,
+            uploadedCount: required.length - missingDocs.length,
+            missingNames: missingDocs.map(dt => DOC_CATALOG.find(d => d.type === dt)?.name ?? dt),
+          }];
+        });
+        if (rows.length === 0) return null;
+        return (
+          <div className="card" style={{ marginBottom: '1.25rem' }}>
+            <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Application readiness</div>
+            <div className="stack">
+              {rows.map(r => {
+                const pct = r.required.length > 0 ? Math.round((r.uploadedCount / r.required.length) * 100) : 100;
+                const ready = r.missingNames.length === 0;
+                return (
+                  <div key={r.key} style={{ padding: '0.625rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                    <div className="row-between" style={{ marginBottom: '0.375rem' }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{r.name}</div>
+                      <span className={`badge ${ready ? 'success' : 'warning'}`} style={{ fontSize: '0.5625rem' }}>
+                        {ready ? 'Ready' : `${r.uploadedCount}/${r.required.length} docs`}
+                      </span>
+                    </div>
+                    <div className={`meter ${ready ? 'success' : 'warning'}`} style={{ marginBottom: '0.25rem' }}>
+                      <i style={{ width: `${pct}%` }} />
+                    </div>
+                    {!ready && (
+                      <div className="caption" style={{ fontSize: '0.6875rem', color: 'hsl(var(--warning))' }}>
+                        Still needed: {r.missingNames.join(', ')}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="stack-3">
         {CATEGORIES.map(cat => {
           const catDocs = DOC_CATALOG.filter(d => d.category === cat);
@@ -180,6 +268,7 @@ export default function DocumentsPage({ navigate, documents = [] }: DocumentsPag
                   const isDeletingThis = isPending && confirmDeleteType === null && !pendingDocType;
                   const err = rowError[doc.type];
                   const isConfirmingDelete = confirmDeleteType === doc.type;
+                  const isPriorityForApps = applications.length > 0 && !isUploaded && isRequiredByApplied(doc.required);
 
                   return (
                     <div
@@ -191,10 +280,18 @@ export default function DocumentsPage({ navigate, documents = [] }: DocumentsPag
                         alignItems: 'flex-start',
                         padding: '0.75rem 0',
                         borderBottom: '1px solid hsl(var(--border))',
+                        ...(isPriorityForApps ? { background: 'hsl(var(--warning) / 0.05)', margin: '0 -0.75rem', padding: '0.75rem' } : {}),
                       }}
                     >
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{doc.name}</div>
+                        <div style={{ fontWeight: 600, fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                          {doc.name}
+                          {isPriorityForApps && (
+                            <span className="badge warning" style={{ height: '1.125rem', fontSize: '0.5625rem', padding: '0 0.375rem' }}>
+                              Needed now
+                            </span>
+                          )}
+                        </div>
                         <div className="caption" style={{ marginTop: 2 }}>
                           {isUploaded
                             ? `${dbDoc.file_name}${dbDoc.file_size ? ` · ${fmtBytes(dbDoc.file_size)}` : ''} · ${fmtDate(dbDoc.uploaded_at)}`

@@ -130,6 +130,26 @@ export default function ApplicationDetailPage({ application, navigate }: Applica
   const isPending   = application.status === 'warning' || application.status === 'info';
   const isFinal     = application.status === 'success' || application.status === 'destructive';
 
+  // Stale submission detection
+  const daysSinceSubmit = application.submitted
+    ? Math.floor((Date.now() - new Date(application.submitted).getTime()) / 86_400_000)
+    : null;
+  const isStale = daysSinceSubmit !== null && daysSinceSubmit > 30 && !isFinal;
+
+  // Days to deadline
+  const daysToDeadline = application.deadline
+    ? Math.ceil((new Date(application.deadline).getTime() - Date.now()) / 86_400_000)
+    : null;
+
+  // "What to do now" guidance
+  const guidance = isFinal && application.status === 'success'
+    ? { icon: '🎉', text: 'Offer received — review and accept before the deadline.', cta: 'Review offer letter, confirm acceptance, and submit registration fee.', cls: 'success' }
+    : isFinal
+    ? { icon: '📋', text: 'Application unsuccessful — consider alternatives.', cta: 'Check appeal requirements or explore other programmes with your APS.', cls: 'warning' }
+    : application.submitted && !isFinal
+    ? { icon: '⏳', text: 'Waiting for decision — check email daily.', cta: 'Admissions offices typically respond within 4–8 weeks. Follow up politely if stale.', cls: 'info' }
+    : { icon: '📤', text: 'Submit your application as soon as possible.', cta: 'Gather certified ID, NSC results, transcripts, and income proof. Most portals close at 23:59.', cls: 'warning' };
+
   return (
     <div className="page-anim">
       <div className="page-head">
@@ -157,6 +177,46 @@ export default function ApplicationDetailPage({ application, navigate }: Applica
           </div>
         </div>
       </div>
+
+      {/* Guidance + stale alert */}
+      <div
+        className="card"
+        style={{ marginBottom: '1.25rem', borderLeft: `3px solid hsl(var(--${guidance.cls}))`, padding: '1rem 1.25rem' }}
+      >
+        <div className="row-between" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{guidance.icon} {guidance.text}</div>
+            <div className="caption" style={{ marginTop: '0.375rem' }}>{guidance.cta}</div>
+            {daysToDeadline !== null && (
+              <div
+                className={`badge ${daysToDeadline <= 7 ? 'destructive' : daysToDeadline <= 21 ? 'warning' : 'info'}`}
+                style={{ marginTop: '0.5rem', display: 'inline-flex' }}
+              >
+                {daysToDeadline > 0 ? `${daysToDeadline} days to deadline` : 'Deadline passed'}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {isStale && (
+        <div
+          className="card"
+          style={{ marginBottom: '1.25rem', borderLeft: '3px solid hsl(var(--warning))', padding: '1rem 1.25rem', background: 'hsl(var(--warning) / 0.05)' }}
+        >
+          <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'hsl(var(--warning))' }}>
+            ⚠ No update in {daysSinceSubmit} days
+          </div>
+          <div className="caption" style={{ marginTop: '0.375rem' }}>
+            Applications typically receive a response within 30–45 days. Consider following up with the admissions office by email, quoting your application reference number.
+          </div>
+          <div className="row" style={{ marginTop: '0.625rem' }}>
+            <span className="caption" style={{ fontSize: '0.75rem' }}>
+              Subject: Application follow-up — {application.short ?? application.uni} — [Your Name]
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Status action buttons */}
       {!isFinal && (

@@ -1,16 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { APPS } from '@/lib/data';
-import type { Application, DbApplication, Programme } from '@/lib/types';
-import { saveApplication } from '@/app/actions/saveApplication';
+import { fmtR } from '@/lib/utils';
+import type { Application, DbApplication, Programme, Route } from '@/lib/types';
+import AddApplicationModal from '@/components/AddApplicationModal';
 
 interface ApplicationsPageProps {
   applications?: DbApplication[];
   onOpenDetail?: (app: Application) => void;
   programmes?: Programme[];
   userAps?: number;
+  householdIncome?: number;
+  navigate?: (r: Route) => void;
 }
 
 type Portfolio = 'safety' | 'target' | 'reach' | 'unknown';
@@ -26,6 +28,13 @@ function classifyApp(app: Application, programmes: Programme[], userAps: number)
   if (gap >= 5) return 'safety';
   if (gap >= -3) return 'target';
   return 'reach';
+}
+
+function computeReadiness(app: Application, programmes: Programme[], userAps: number, income?: number): number {
+  const portfolio = classifyApp(app, programmes, userAps);
+  const apsScore = portfolio === 'safety' ? 90 : portfolio === 'target' ? 65 : portfolio === 'reach' ? 35 : 50;
+  const fundingScore = income === undefined ? 60 : income <= 350_000 ? 85 : income <= 600_000 ? 55 : 30;
+  return Math.round(apsScore * 0.6 + fundingScore * 0.4);
 }
 
 function fallbackProgrammes(apps: Application[], programmes: Programme[], userAps: number): Programme[] {
@@ -103,129 +112,9 @@ function dbToApp(a: DbApplication): Application {
   };
 }
 
-// ── Add-application modal ────────────────────────────────────────────────────
-
-function AddApplicationModal({
-  programmes,
-  onClose,
-  onAdded,
-}: {
-  programmes: Programme[];
-  onClose: () => void;
-  onAdded: () => void;
-}) {
-  const router = useRouter();
-  const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState<Programme | null>(null);
-  const [deadline, setDeadline] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const filtered = query.trim()
-    ? programmes.filter(p =>
-        p.name.toLowerCase().includes(query.toLowerCase()) ||
-        p.uni.toLowerCase().includes(query.toLowerCase()),
-      ).slice(0, 8)
-    : programmes.slice(0, 8);
-
-  async function handleAdd() {
-    if (!selected) return;
-    setSaving(true);
-    setError(null);
-    const result = await saveApplication(selected.id, selected.name, selected.uni, deadline || undefined);
-    setSaving(false);
-    if ('error' in result) {
-      setError(result.error);
-    } else {
-      router.refresh();
-      onAdded();
-      onClose();
-    }
-  }
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 1000,
-      background: 'hsl(var(--bg) / 0.85)',
-      backdropFilter: 'blur(4px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '1rem',
-    }} onClick={onClose}>
-      <div
-        className="card"
-        style={{ width: '100%', maxWidth: '28rem', maxHeight: '80vh', overflowY: 'auto' }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="row-between" style={{ marginBottom: '1rem' }}>
-          <h3 className="subheading">Add application</h3>
-          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
-        </div>
-
-        <div style={{ marginBottom: '0.75rem' }}>
-          <div className="caption" style={{ fontSize: '0.6875rem', marginBottom: '0.25rem' }}>Search programme or institution</div>
-          <input
-            className="input"
-            style={{ width: '100%' }}
-            placeholder="e.g. Computer Science, UCT…"
-            value={query}
-            onChange={e => { setQuery(e.target.value); setSelected(null); }}
-            autoFocus
-          />
-        </div>
-
-        <div className="stack" style={{ marginBottom: '0.875rem', maxHeight: '14rem', overflowY: 'auto' }}>
-          {filtered.length === 0 && (
-            <div className="caption" style={{ padding: '0.5rem', textAlign: 'center' }}>No programmes found.</div>
-          )}
-          {filtered.map(p => (
-            <div
-              key={p.id}
-              onClick={() => setSelected(p)}
-              style={{
-                padding: '0.5rem 0.625rem',
-                borderRadius: 6,
-                cursor: 'pointer',
-                background: selected?.id === p.id ? 'hsl(var(--primary) / 0.1)' : 'transparent',
-                border: selected?.id === p.id ? '1px solid hsl(var(--primary) / 0.4)' : '1px solid transparent',
-              }}
-            >
-              <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.name}</div>
-              <div className="caption" style={{ fontSize: '0.75rem' }}>{p.uni} · APS {p.aps}</div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ marginBottom: '1rem' }}>
-          <div className="caption" style={{ fontSize: '0.6875rem', marginBottom: '0.25rem' }}>Application deadline (optional)</div>
-          <input
-            className="input"
-            type="date"
-            style={{ width: '100%' }}
-            value={deadline}
-            onChange={e => setDeadline(e.target.value)}
-          />
-        </div>
-
-        {error && <p style={{ color: 'hsl(var(--destructive))', fontSize: '0.8125rem', marginBottom: '0.625rem' }}>{error}</p>}
-
-        <div className="row" style={{ justifyContent: 'flex-end', gap: '0.5rem' }}>
-          <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
-          <button
-            className="btn btn-primary btn-sm"
-            disabled={!selected || saving}
-            onClick={handleAdd}
-          >
-            {saving ? 'Adding…' : 'Add application'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default function ApplicationsPage({ applications: dbApps, onOpenDetail, programmes = [], userAps = 0 }: ApplicationsPageProps) {
+export default function ApplicationsPage({ applications: dbApps, onOpenDetail, programmes = [], userAps = 0, householdIncome, navigate }: ApplicationsPageProps) {
   const [tab, setTab] = useState<Tab>('all');
   const [selected, setSelected] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -273,6 +162,7 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail, p
         />
       )}
 
+
       <div className="page-head">
         <div className="breadcrumb">Execute · Applications</div>
         <div className="row-between">
@@ -304,7 +194,7 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail, p
           { l: 'Submitted',     v: String(apps.filter(a => a.submitted).length || apps.length), h: `of ${apps.length} total`,               c: '' },
           { l: 'Accepted',      v: String(counts.accepted),                                     h: counts.accepted > 0 ? 'Confirmed offer' : 'Awaiting decisions', c: counts.accepted > 0 ? 'success' : '' },
           { l: 'Pending',       v: String(counts.pending + counts.review),                      h: 'awaiting response',                      c: counts.pending + counts.review > 0 ? 'warning' : '' },
-          { l: 'Avg response',  v: '11 days',                                                   h: 'industry avg: 21 days',                  c: 'success' },
+          { l: 'Avg response',  v: (() => { const withDates = apps.filter(a => a.submitted && a.decided && !a.decided.startsWith('Deadline')); if (withDates.length === 0) return '—'; const avg = Math.round(withDates.reduce((sum, a) => { try { return sum + Math.abs(new Date(a.decided!).getTime() - new Date(a.submitted!).getTime()) / 86_400_000; } catch { return sum; } }, 0) / withDates.length); return isNaN(avg) || avg <= 0 ? '—' : `${avg}d`; })(), h: 'submitted → decision window', c: 'success' },
         ].map(({ l, v, h, c }) => (
           <div className="card kpi" key={l}>
             <div className="lbl">{l}</div>
@@ -333,42 +223,65 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail, p
       ) : (
         <div className="app-grid grid-2 stack-3" style={{ gridTemplateColumns: selectedApp ? '1fr 1fr' : '1fr', alignItems: 'start' }}>
           <div className="stack">
-            {displayed.map(a => (
-              <div
-                key={a.id ?? a.uni}
-                className="card"
-                style={{
-                  cursor: 'pointer',
-                  borderColor: selected === a.id ? 'hsl(var(--primary) / 0.5)' : undefined,
-                }}
-                onClick={() => {
-                  if (onOpenDetail) {
-                    onOpenDetail(a);
-                  } else {
-                    setSelected(prev => prev === a.id ? null : a.id ?? null);
-                  }
-                }}
-              >
-                <div className="row-between">
-                  <div style={{ fontWeight: 700, fontSize: '0.9375rem', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.uni}</div>
-                  <span className={`badge ${a.status}`} style={{ flexShrink: 0, marginLeft: '0.5rem' }}>{a.label}</span>
-                </div>
-                <div className="caption" style={{ marginTop: '0.25rem' }}>{a.meta}</div>
-                <div className="row" style={{ marginTop: '0.625rem', gap: '0.5rem', alignItems: 'center' }}>
-                  <div className="pipe-stages">
-                    {a.stages.map((s, i) => (
-                      <span key={i} className={`stage ${s}`} />
-                    ))}
+            {displayed.map(a => {
+              const readiness = userAps > 0 && programmes.length > 0
+                ? computeReadiness(a, programmes, userAps, householdIncome)
+                : null;
+              return (
+                <div
+                  key={a.id ?? a.uni}
+                  className="card"
+                  style={{
+                    cursor: 'pointer',
+                    borderColor: selected === a.id ? 'hsl(var(--primary) / 0.5)' : undefined,
+                  }}
+                  onClick={() => {
+                    if (onOpenDetail) {
+                      onOpenDetail(a);
+                    } else {
+                      setSelected(prev => prev === a.id ? null : a.id ?? null);
+                    }
+                  }}
+                >
+                  <div className="row-between">
+                    <div style={{ fontWeight: 700, fontSize: '0.9375rem', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.uni}</div>
+                    <div className="row" style={{ gap: '0.375rem', flexShrink: 0, marginLeft: '0.5rem', alignItems: 'center' }}>
+                      {readiness !== null && (
+                        <span style={{
+                          fontWeight: 900, fontVariantNumeric: 'tabular-nums', fontSize: '1rem',
+                          color: readiness >= 75 ? 'hsl(var(--success))' : readiness >= 50 ? 'hsl(var(--fg))' : 'hsl(var(--warning))',
+                        }}>
+                          {readiness}<span className="caption" style={{ fontWeight: 600, fontSize: '0.5625rem' }}>/100</span>
+                        </span>
+                      )}
+                      <span className={`badge ${a.status}`}>{a.label}</span>
+                    </div>
                   </div>
-                  {a.submitted && (
-                    <span className="caption" style={{ fontSize: '0.6875rem' }}>Submitted {a.submitted}</span>
+                  <div className="caption" style={{ marginTop: '0.25rem' }}>{a.meta}</div>
+                  {readiness !== null && (
+                    <div className="row" style={{ gap: '0.5rem', marginTop: '0.375rem', alignItems: 'center' }}>
+                      <span className="caption" style={{ fontSize: '0.6875rem', flexShrink: 0 }}>Readiness</span>
+                      <div className="meter" style={{ flex: 1, height: 5 }}>
+                        <i style={{ width: `${readiness}%`, background: `hsl(var(--${readiness >= 75 ? 'success' : readiness >= 50 ? 'primary' : 'warning'}))` }} />
+                      </div>
+                    </div>
                   )}
-                  {a.fee && (
-                    <span className="badge" style={{ marginLeft: 'auto', height: '1.25rem', fontSize: '0.6875rem' }}>{a.fee}</span>
-                  )}
+                  <div className="row" style={{ marginTop: '0.5rem', gap: '0.5rem', alignItems: 'center' }}>
+                    <div className="pipe-stages">
+                      {a.stages.map((s, i) => (
+                        <span key={i} className={`stage ${s}`} />
+                      ))}
+                    </div>
+                    {a.submitted && (
+                      <span className="caption" style={{ fontSize: '0.6875rem' }}>Submitted {a.submitted}</span>
+                    )}
+                    {a.fee && (
+                      <span className="badge" style={{ marginLeft: 'auto', height: '1.25rem', fontSize: '0.6875rem' }}>{a.fee}</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {displayed.length === 0 && apps.length > 0 && (
               <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'hsl(var(--muted-fg))' }}>
@@ -424,144 +337,151 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail, p
         </div>
       )}
 
+      {apps.length > 0 && programmes.length > 0 && userAps > 0 && (() => {
+        const classified = apps.map(a => ({ app: a, portfolio: classifyApp(a, programmes, userAps) }));
+        const safetyCount  = classified.filter(c => c.portfolio === 'safety').length;
+        const targetCount  = classified.filter(c => c.portfolio === 'target').length;
+        const reachCount   = classified.filter(c => c.portfolio === 'reach').length;
+        const unknownCount = classified.filter(c => c.portfolio === 'unknown').length;
+        const total = safetyCount + targetCount + reachCount + unknownCount || 1;
+        const ideal = safetyCount >= 1 && targetCount >= 2 && reachCount >= 1;
+        const advice = safetyCount === 0
+          ? 'Add at least 1 safety school (programmes where your APS exceeds the requirement by 5+ points) to guarantee an offer.'
+          : reachCount === 0
+          ? 'Consider adding a reach programme (APS just below requirement) — you may still qualify via motivation letter or alternative entry.'
+          : targetCount < 2
+          ? 'Aim for 2–3 target programmes (close APS match). They balance realistic acceptance odds with strong outcomes.'
+          : 'Your portfolio is well balanced — safety, target, and reach schools all represented.';
+        return (
+          <div className="card" style={{ marginTop: '1.25rem', borderColor: ideal ? 'hsl(var(--success) / 0.4)' : 'hsl(var(--warning) / 0.4)', background: ideal ? 'hsl(var(--success) / 0.02)' : 'hsl(var(--warning) / 0.02)' }}>
+            <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+              <div>
+                <div className="eyebrow"><span className="dot" />Portfolio balance</div>
+                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Safety · Target · Reach distribution</h3>
+              </div>
+              <span className={`badge ${ideal ? 'success' : 'warning'}`}>{ideal ? 'Balanced' : 'Needs work'}</span>
+            </div>
+            {/* Stacked bar */}
+            <div style={{ display: 'flex', height: '0.75rem', borderRadius: 999, overflow: 'hidden', marginBottom: '0.5rem', gap: 2 }}>
+              {safetyCount > 0 && <div style={{ flex: safetyCount / total, background: 'hsl(var(--success))', borderRadius: 999 }} />}
+              {targetCount > 0 && <div style={{ flex: targetCount / total, background: 'hsl(var(--primary))', borderRadius: 999 }} />}
+              {reachCount  > 0 && <div style={{ flex: reachCount  / total, background: 'hsl(var(--warning))', borderRadius: 999 }} />}
+              {unknownCount > 0 && <div style={{ flex: unknownCount / total, background: 'hsl(var(--border))', borderRadius: 999 }} />}
+            </div>
+            <div className="row" style={{ gap: '1rem', marginBottom: '0.875rem', flexWrap: 'wrap' }}>
+              {[
+                { label: 'Safety', count: safetyCount,  color: 'success',     note: 'APS +5 surplus' },
+                { label: 'Target', count: targetCount,  color: 'primary',     note: 'APS ±3 match' },
+                { label: 'Reach',  count: reachCount,   color: 'warning',     note: 'APS below req' },
+              ].map(({ label, count, color, note }) => (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 3, background: `hsl(var(--${color}))`, flexShrink: 0 }} />
+                  <div>
+                    <span style={{ fontWeight: 700, fontSize: '0.875rem', fontVariantNumeric: 'tabular-nums' }}>{count}</span>
+                    <span className="caption" style={{ marginLeft: '0.25rem' }}>{label}</span>
+                    <div className="caption" style={{ fontSize: '0.6rem' }}>{note}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: '0.8125rem', color: ideal ? 'hsl(var(--success))' : 'hsl(var(--warning))', fontWeight: 500 }}>
+              {advice}
+            </div>
+          </div>
+        );
+      })()}
+
       {apps.length > 0 && (
-        <div className="stack" style={{ marginTop: '1.25rem', gap: '1rem' }}>
-
-          {/* Portfolio balance */}
-          {portfolio && (
-            <div className="card">
-              <div className="row-between" style={{ marginBottom: '0.875rem' }}>
-                <div>
-                  <div className="eyebrow"><span className="dot" />Portfolio balance</div>
-                  <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Safety · Target · Reach distribution</h3>
+        <div className="grid-2 stack-3" style={{ marginTop: '1.25rem' }}>
+          <div className="card">
+            <div className="eyebrow"><span className="dot" />Stage breakdown</div>
+            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Where things are</h3>
+            <div className="stack" style={{ marginTop: '0.875rem' }}>
+              {([
+                ['Eligibility check',  100] as const,
+                ['Submit application', apps.filter(a => a.submitted).length > 0 ? Math.round(apps.filter(a => a.submitted).length / apps.length * 100) : 75] as const,
+                ['Document upload',    50] as const,
+                ['Decision received',  counts.accepted + apps.filter(a => a.status === 'destructive').length > 0 ? Math.round((counts.accepted + apps.filter(a => a.status === 'destructive').length) / apps.length * 100) : 25] as const,
+              ] as [string, number][]).map(([l, v]) => (
+                <div key={l} className="progress-row">
+                  <span className="label">{l}</span>
+                  <div className="meter"><i style={{ width: `${v}%` }} /></div>
+                  <span className="val">{v}%</span>
                 </div>
-                <span className="caption" style={{ fontSize: '0.75rem' }}>APS {userAps}</span>
-              </div>
-              <div className="grid-3" style={{ gap: '0.625rem', marginBottom: '0.875rem' }}>
-                {[
-                  {
-                    label: 'Safety',
-                    count: portfolio.safety,
-                    desc: 'Your APS ≥ programme APS + 5',
-                    target: 2,
-                    color: 'success',
-                  },
-                  {
-                    label: 'Target',
-                    count: portfolio.target,
-                    desc: 'Your APS within ±3 of requirement',
-                    target: 2,
-                    color: 'primary',
-                  },
-                  {
-                    label: 'Reach',
-                    count: portfolio.reach,
-                    desc: 'Programme APS > your APS + 3',
-                    target: 1,
-                    color: 'warning',
-                  },
-                ].map(({ label, count, desc, target, color }) => {
-                  const ok = count >= target;
-                  return (
-                    <div key={label} style={{
-                      padding: '0.75rem',
-                      borderRadius: 'var(--r-md)',
-                      background: ok ? `hsl(var(--${color}) / 0.06)` : 'hsl(var(--destructive) / 0.04)',
-                      border: `1px solid hsl(var(--${ok ? color : 'destructive'}) / 0.25)`,
-                    }}>
-                      <div className="row-between">
-                        <span style={{ fontWeight: 700, fontSize: '0.8125rem' }}>{label}</span>
-                        <span style={{
-                          fontWeight: 900, fontSize: '1.5rem', lineHeight: 1,
-                          color: `hsl(var(--${ok ? color : 'destructive'}))`,
-                          fontVariantNumeric: 'tabular-nums',
-                        }}>{count}</span>
-                      </div>
-                      <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.25rem' }}>{desc}</div>
-                      {!ok && (
-                        <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.375rem', color: `hsl(var(--destructive))` }}>
-                          Add {target - count} more {label.toLowerCase()} app{target - count > 1 ? 's' : ''}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              {portfolio.unknown > 0 && (
-                <div className="caption" style={{ fontSize: '0.75rem' }}>
-                  {portfolio.unknown} application{portfolio.unknown > 1 ? 's' : ''} could not be matched to a programme — APS classification unavailable for these.
-                </div>
-              )}
-              {portfolio.safety < 2 && (
-                <div style={{
-                  marginTop: '0.625rem', padding: '0.625rem 0.75rem',
-                  borderRadius: 'var(--r-md)', background: 'hsl(var(--warning) / 0.08)',
-                  border: '1px solid hsl(var(--warning) / 0.3)', fontSize: '0.8125rem', lineHeight: 1.5,
-                }}>
-                  <span style={{ fontWeight: 700 }}>Portfolio risk: </span>
-                  You need at least 2 safety applications (programmes where your APS is 5+ above the minimum). This protects you from rejection cascades if competitive programmes are oversubscribed this cycle.
-                </div>
-              )}
+              ))}
             </div>
-          )}
-
-          <div className="grid-2 stack-3">
-            <div className="card">
-              <div className="eyebrow"><span className="dot" />Stage breakdown</div>
-              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Where things are</h3>
-              <div className="stack" style={{ marginTop: '0.875rem' }}>
-                {[
-                  ['Eligibility check',   100],
-                  ['Submit application',  apps.filter(a => a.submitted).length > 0 ? Math.round(apps.filter(a => a.submitted).length / apps.length * 100) : 75],
-                  ['Document upload',     50],
-                  ['Decision received',   counts.accepted + (apps.filter(a => a.status === 'destructive').length) > 0 ? Math.round((counts.accepted + apps.filter(a => a.status === 'destructive').length) / apps.length * 100) : 25],
-                ].map(([l, v]) => (
-                  <div key={l} className="progress-row">
-                    <span className="label">{l}</span>
-                    <div className="meter"><i style={{ width: `${v}%` }} /></div>
-                    <span className="val">{v}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="card">
-              <div className="eyebrow"><span className="dot" />Next steps</div>
-              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>What to do now</h3>
-              <p style={{ margin: '0.5rem 0 0', fontSize: '0.875rem', lineHeight: 1.6 }}>
-                {counts.rejected > 0
-                  ? 'A rejection is recoverable. The extended/foundation pathway at the same faculty often accepts students 2–4 APS points below the direct entry cut-off.'
-                  : counts.accepted > 0
-                  ? `You have ${counts.accepted} accepted offer${counts.accepted > 1 ? 's' : ''}. Confirm your place and apply for residence before the deadline.`
-                  : counts.pending > 0
-                  ? 'Applications are in review. Use this time to prepare supporting documents and ensure your document vault is complete.'
-                  : 'No applications yet. Start with your highest-fit programme and apply before the first closing date.'}
-              </p>
-              {fallbacks.length > 0 && (
-                <div style={{ marginTop: '0.875rem' }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.5rem' }}>
-                    Alternative programmes at your APS:
-                  </div>
-                  <div className="stack">
-                    {fallbacks.map(p => (
-                      <div key={p.id} style={{
-                        padding: '0.5rem 0.625rem',
-                        borderRadius: 6,
-                        background: 'hsl(var(--muted) / 0.5)',
-                        border: '1px solid hsl(var(--border))',
-                      }}>
-                        <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{p.name}</div>
-                        <div className="caption" style={{ fontSize: '0.6875rem' }}>
-                          {p.uni} · APS {p.aps} · {p.demand} demand
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+          </div>
+          <div className="card">
+            <div className="eyebrow"><span className="dot" />Advisor note</div>
+            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>What to do next</h3>
+            <p style={{ margin: '0.5rem 0 0', fontSize: '0.875rem', lineHeight: 1.6 }}>
+              {counts.rejected > 0
+                ? 'A rejection is recoverable — the extended pathway at the same faculty often has a higher acceptance rate at your APS. Consider the foundation year option.'
+                : counts.accepted > 0
+                ? `You have ${counts.accepted} accepted offer${counts.accepted > 1 ? 's' : ''}. Confirm your place and apply for residence before the deadline.`
+                : counts.pending > 0
+                ? 'Applications are in review. Use this time to prepare supporting documents and ensure your document vault is complete.'
+                : 'No applications yet. Start with your highest-fit programme and apply before the first closing date.'}
+            </p>
+            {counts.rejected > 0 && (
+              <button
+                className="btn btn-outline btn-sm"
+                style={{ marginTop: '0.75rem' }}
+                onClick={() => navigate?.('programmes')}
+              >
+                Review extended pathways →
+              </button>
+            )}
           </div>
         </div>
       )}
+
+      {/* Fallback programme suggestions — shown when there are rejections */}
+      {(() => {
+        const fallbacks = fallbackProgrammes(apps, programmes, userAps);
+        if (fallbacks.length === 0) return null;
+        return (
+          <div className="card" style={{ marginTop: '1.25rem', borderLeft: '3px solid hsl(var(--warning))' }}>
+            <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+              <div>
+                <div className="eyebrow"><span className="dot" />Recovery options</div>
+                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
+                  Alternative programmes within your APS range
+                </h3>
+                <p className="caption" style={{ marginTop: '0.25rem' }}>
+                  Based on your rejections, here are similar-fit programmes you haven&apos;t applied to yet.
+                </p>
+              </div>
+              <button className="btn btn-outline btn-sm" onClick={() => navigate?.('programmes')}>
+                Browse all →
+              </button>
+            </div>
+            <div className="stack">
+              {fallbacks.map(p => (
+                <button
+                  key={p.id}
+                  className="prog-row"
+                  onClick={() => navigate?.('programmes')}
+                >
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.name}</div>
+                    <div className="caption" style={{ marginTop: 2 }}>
+                      {p.uni} · APS {p.aps} · {fmtR(p.fees)} / yr · {p.dur} years
+                    </div>
+                  </div>
+                  <span className={`badge ${p.pathway}`}>
+                    {p.pathway[0].toUpperCase() + p.pathway.slice(1)}
+                  </span>
+                  <div className="fit">
+                    <span className="n">{p.fit}</span>
+                    <span className="caption">fit</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

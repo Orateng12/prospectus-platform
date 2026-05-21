@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Subject, PsychProfileData, CapabilityData } from '@/lib/types';
-import { CAPS } from '@/lib/data';
+import { CAPS, SUBJECT_CATALOG } from '@/lib/data';
 import { calcAPS, fmtR, apsPoints } from '@/lib/utils';
 import { updateProfile } from '@/app/actions/updateProfile';
 import { saveSubjectMarks } from '@/app/actions/saveSubjects';
@@ -27,6 +27,7 @@ interface ProfilePageProps {
   emptyMode?: boolean;
   onToggleEmptyMode?: () => void;
   onSubjectsSaved?: (subjects: Subject[]) => void;
+  navigate?: (r: import('@/lib/types').Route) => void;
 }
 
 export default function ProfilePage({
@@ -43,6 +44,7 @@ export default function ProfilePage({
   emptyMode = false,
   onToggleEmptyMode,
   onSubjectsSaved,
+  navigate,
 }: ProfilePageProps) {
   const router = useRouter();
   const [editSection, setEditSection] = useState<string | null>(null);
@@ -64,6 +66,7 @@ export default function ProfilePage({
   const [editSubjects, setEditSubjects] = useState<Subject[]>(() => subjects.map(s => ({ ...s })));
   const [subjectSaving, setSubjectSaving] = useState(false);
   const [subjectError, setSubjectError] = useState<string | null>(null);
+  const [subjectSearch, setSubjectSearch] = useState('');
 
   const displaySubjects = subjects.length > 0 ? subjects : [
     { id: 'eng', name: 'English HL', mark: 62, designated: true },
@@ -84,6 +87,36 @@ export default function ProfilePage({
   const displayName = [firstName, lastName].filter(Boolean).join(' ') || userName;
   const initial = displayName.charAt(0).toUpperCase();
   const displayIncome = Number(incomeStr) || householdIncome || 0;
+
+  // Real profile completion — 7 meaningful signals
+  const completionSignals = [
+    { label: 'Name',          done: !!(firstName && lastName) },
+    { label: 'Province',      done: !!province },
+    { label: 'Matric year',   done: !!matricYearStr },
+    { label: 'Household income', done: !!householdIncome },
+    { label: 'Subjects',      done: subjects.length > 0 },
+    { label: 'Personality',   done: !!psychProfile },
+    { label: 'Capabilities',  done: !!capabilityData },
+  ];
+  const completionPct = Math.round((completionSignals.filter(s => s.done).length / completionSignals.length) * 100);
+  const completionOf  = `${completionSignals.filter(s => s.done).length} of ${completionSignals.length} sections`;
+  const missingSignal = completionSignals.find(s => !s.done);
+
+  // AI confidence tier based on data completeness
+  const aiConfidence = completionPct >= 85 ? 'High' : completionPct >= 57 ? 'Medium' : 'Low';
+  const dataSources  = completionSignals.filter(s => s.done).length + 4; // +4 for APS, subjects count, programmes, careers
+
+  // RIASEC dominant type for display
+  const dominantRiasec = psychProfile
+    ? Object.entries({
+        Realistic: psychProfile.realistic ?? 0,
+        Investigative: psychProfile.investigative ?? 0,
+        Artistic: psychProfile.artistic ?? 0,
+        Social: psychProfile.social ?? 0,
+        Enterprising: psychProfile.enterprising ?? 0,
+        Conventional: psychProfile.conventional ?? 0,
+      }).sort((a, b) => b[1] - a[1])[0]
+    : null;
 
   async function savePersonal() {
     setPersonalSaving(true);
@@ -239,10 +272,10 @@ export default function ProfilePage({
       {/* KPI row */}
       <div className="grid-4 stack-3" style={{ marginBottom: '1.25rem' }}>
         {[
-          { l: 'Profile complete', v: '84%',        h: '13 of 16 sections',   c: 'success' },
-          { l: 'Current APS',     v: String(aps),   h: 'top 12% nationally',  c: 'success' },
-          { l: 'Capability index',v: String(capabilityData ? Math.round([capabilityData.analytical_thinking, capabilityData.technical_aptitude, capabilityData.communication_skills, capabilityData.creative_thinking, capabilityData.leadership_potential, capabilityData.entrepreneurial_drive].reduce((a, b) => a + b, 0) / 6) : 78), h: '+6 vs. baseline', c: 'success' },
-          { l: 'AI confidence',   v: 'High',        h: '11 data sources',     c: '' },
+          { l: 'Profile complete', v: `${completionPct}%`, h: completionPct < 100 ? `Next: ${missingSignal?.label ?? 'all done'}` : 'All sections complete', c: completionPct >= 85 ? 'success' : 'warning' },
+          { l: 'Current APS',     v: String(aps),          h: aps >= 40 ? 'Strong academic profile' : aps >= 32 ? 'Competitive range' : 'Use simulator to improve', c: aps >= 36 ? 'success' : '' },
+          { l: 'Capability index',v: String(capabilityData ? Math.round([capabilityData.analytical_thinking, capabilityData.technical_aptitude, capabilityData.communication_skills, capabilityData.creative_thinking, capabilityData.leadership_potential, capabilityData.entrepreneurial_drive].reduce((a, b) => a + b, 0) / 6) : 0), h: capabilityData ? 'from assessment' : 'Complete assessment to unlock', c: capabilityData ? 'success' : '' },
+          { l: 'AI confidence',   v: aiConfidence,         h: `${dataSources} data sources active`, c: aiConfidence === 'High' ? 'success' : '' },
         ].map(({ l, v, h, c }) => (
           <div className="card kpi" key={l}>
             <div className="lbl">{l}</div>
@@ -251,6 +284,76 @@ export default function ProfilePage({
           </div>
         ))}
       </div>
+
+      {/* Completion guide — show when not 100% */}
+      {completionPct < 100 && !emptyMode && (
+        <div className="card" style={{ marginBottom: '1.25rem', borderColor: 'hsl(var(--warning) / 0.4)', background: 'hsl(var(--warning) / 0.03)' }}>
+          <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+            <div>
+              <div className="eyebrow"><span className="dot" />Complete your profile</div>
+              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
+                {completionPct}% complete · {completionSignals.filter(s => !s.done).length} step{completionSignals.filter(s => !s.done).length !== 1 ? 's' : ''} remaining
+              </h3>
+            </div>
+            <div style={{ width: 72, height: 72, position: 'relative', flexShrink: 0 }}>
+              <svg width="72" height="72" style={{ transform: 'rotate(-90deg)' }}>
+                <circle cx="36" cy="36" r="28" fill="none" stroke="hsl(var(--border))" strokeWidth="6" />
+                <circle cx="36" cy="36" r="28" fill="none"
+                  stroke={completionPct >= 85 ? 'hsl(var(--success))' : 'hsl(var(--warning))'}
+                  strokeWidth="6"
+                  strokeDasharray={`${(completionPct / 100) * 175.9} 175.9`}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.875rem', fontVariantNumeric: 'tabular-nums' }}>
+                {completionPct}%
+              </div>
+            </div>
+          </div>
+          <div className="stack-2">
+            {completionSignals.filter(s => !s.done).map(sig => {
+              let action: (() => void) | null = null;
+              let actionLabel = '';
+              let actionNote = '';
+              if (sig.label === 'Name' || sig.label === 'Province' || sig.label === 'Matric year') {
+                action = () => enterEdit('personal');
+                actionLabel = 'Fill in →';
+                actionNote = 'Needed for province-specific bursary matching';
+              } else if (sig.label === 'Household income') {
+                action = () => enterEdit('household');
+                actionLabel = 'Add income →';
+                actionNote = 'Required to determine NSFAS eligibility';
+              } else if (sig.label === 'Subjects') {
+                action = () => enterEdit('academic');
+                actionLabel = 'Add subjects →';
+                actionNote = 'Your marks calculate your APS score';
+              } else if (sig.label === 'Personality' || sig.label === 'Capabilities') {
+                action = () => router.push('/onboarding?retake=true');
+                actionLabel = 'Take assessment →';
+                actionNote = 'Unlocks career match scores and gap analysis';
+              }
+              return (
+                <div key={sig.label} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5625rem 0.875rem', background: 'hsl(var(--muted) / 0.4)', borderRadius: 8 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: 999, background: 'hsl(var(--warning))', flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{sig.label}</div>
+                    {actionNote && <div className="caption" style={{ fontSize: '0.6875rem', marginTop: 1 }}>{actionNote}</div>}
+                  </div>
+                  {action && (
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={action}
+                      style={{ flexShrink: 0 }}
+                    >
+                      {actionLabel}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid-2 stack-3">
         {/* Personal */}
@@ -353,12 +456,36 @@ export default function ProfilePage({
                 <div style={{ fontWeight: 600, marginTop: '0.125rem' }}>{fmtR(displayIncome)}</div>
               )}
             </div>
-            <div>
-              <div className="caption" style={{ fontSize: '0.6875rem' }}>NSFAS eligibility</div>
-              <div style={{ fontWeight: 600, marginTop: '0.125rem' }}>
-                {displayIncome <= 350000 ? 'Eligible (below R 350k)' : 'Above threshold'}
-              </div>
-            </div>
+            {(() => {
+              const inc = displayIncome;
+              const nsfas   = inc <= 350_000;
+              const provBur = inc <= 400_000;
+              const corpBur = inc <= 600_000;
+              const tiers: Array<{ label: string; eligible: boolean; note: string }> = [
+                { label: 'NSFAS (govt bursary)', eligible: nsfas,   note: nsfas   ? 'Up to R100k/yr · covers fees + living' : 'Threshold: R350k/yr household' },
+                { label: 'Provincial bursaries', eligible: provBur, note: provBur  ? 'Gauteng, WC, KZN, LP bursaries open' : 'Most close above R400k income' },
+                { label: 'Corporate bursaries',  eligible: corpBur, note: corpBur  ? 'Merit-based · income gates are soft' : 'Most corporates have no income cap' },
+                { label: 'Merit scholarships',   eligible: true,    note: 'Allan Gray, Investec, NRF — open to all' },
+              ];
+              return (
+                <div>
+                  <div className="caption" style={{ fontSize: '0.6875rem', marginBottom: '0.5rem' }}>Funding eligibility by tier</div>
+                  <div className="stack" style={{ gap: '0.375rem' }}>
+                    {tiers.map(t => (
+                      <div key={t.label} className="row" style={{ gap: '0.5rem', alignItems: 'flex-start' }}>
+                        <span className={`badge ${t.eligible ? 'success' : 'accent'}`} style={{ fontSize: '0.5rem', flexShrink: 0, marginTop: 2 }}>
+                          {t.eligible ? '✓' : '✗'}
+                        </span>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{t.label}</div>
+                          <div className="caption" style={{ fontSize: '0.6875rem' }}>{t.note}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </Section>
 
@@ -376,8 +503,8 @@ export default function ProfilePage({
               {editSection === 'academic' ? calcAPS(editSubjects) : aps}
             </span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 56px 48px 72px', gap: 0, border: '1px solid hsl(var(--border))', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
-            {['Subject', 'Mark', 'APS', 'Trend'].map(h => (
+          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 56px 48px 72px auto', gap: 0, border: '1px solid hsl(var(--border))', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
+            {['Subject', 'Mark', 'APS', 'Trend', ''].map(h => (
               <div key={h} style={{ padding: '0.5rem 0.75rem', background: 'hsl(var(--muted))', fontWeight: 700, fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'hsl(var(--muted-fg))' }}>{h}</div>
             ))}
             {(editSection === 'academic' ? editSubjects : displaySubjects).map(s => {
@@ -391,9 +518,7 @@ export default function ProfilePage({
                 <div key={`${s.id}-mark`} style={{ padding: '0.5625rem 0.75rem', borderTop: '1px solid hsl(var(--border))', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
                   {editSection === 'academic' ? (
                     <input
-                      type="number"
-                      min={0}
-                      max={100}
+                      type="number" min={0} max={100}
                       className="input"
                       value={editSubjects.find(e => e.id === s.id)?.mark ?? s.mark}
                       onChange={ev => {
@@ -412,53 +537,139 @@ export default function ProfilePage({
                 <div key={`${s.id}-trend`} style={{ padding: '0.5625rem 0.75rem', borderTop: '1px solid hsl(var(--border))' }}>
                   <span className={`badge ${trend}`} style={{ fontSize: '0.5625rem' }}>{trendLabel}</span>
                 </div>,
+                <div key={`${s.id}-rm`} style={{ padding: '0.5625rem 0.5rem', borderTop: '1px solid hsl(var(--border))' }}>
+                  {editSection === 'academic' && (
+                    <button
+                      type="button"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--muted-fg))', fontSize: '0.875rem', lineHeight: 1, padding: '0 2px' }}
+                      title="Remove subject"
+                      onClick={() => setEditSubjects(prev => prev.filter(x => x.id !== s.id))}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>,
               ];
             })}
           </div>
+          {editSection === 'academic' && (
+            <div style={{ marginTop: '0.75rem' }}>
+              <input
+                className="input"
+                placeholder="Search and add a subject…"
+                value={subjectSearch}
+                onChange={e => setSubjectSearch(e.target.value)}
+                style={{ width: '100%' }}
+              />
+              {subjectSearch.trim().length > 0 && (() => {
+                const q = subjectSearch.trim().toLowerCase();
+                const existing = new Set(editSubjects.map(s => s.id));
+                const matches = SUBJECT_CATALOG
+                  .filter(s => !existing.has(s.id) && s.name.toLowerCase().includes(q))
+                  .slice(0, 5);
+                if (matches.length === 0) return <p className="caption" style={{ marginTop: '0.25rem' }}>No subjects found.</p>;
+                return (
+                  <div style={{ marginTop: '0.25rem', border: '1px solid hsl(var(--border))', borderRadius: 6, overflow: 'hidden' }}>
+                    {matches.map(s => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'hsl(var(--card))', border: 'none', borderBottom: '1px solid hsl(var(--border))', cursor: 'pointer', fontSize: '0.875rem' }}
+                        onClick={() => {
+                          setEditSubjects(prev => [...prev, { ...s, mark: 60 }]);
+                          setSubjectSearch('');
+                        }}
+                      >
+                        + {s.name}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </Section>
 
       </div>
 
-      {/* Interests & aspirations */}
+      {/* Personality & Capability snapshot */}
       {!emptyMode && (
         <div className="grid-2 stack-3" style={{ marginTop: '1.25rem' }}>
+          {/* Personality panel — real data when available, prompt when not */}
           <div className="card stack-3">
-            <div className="eyebrow"><span className="dot" />Interests &amp; aspirations</div>
-            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>What drives you</h3>
-            <div className="row" style={{ marginTop: '0.5rem', gap: '0.375rem', flexWrap: 'wrap' }}>
-              {['Technology', 'Problem-solving', 'Sciences', 'Reading', 'Community service', 'Coding club', 'Debate team', 'Maths olympiad'].map(t => (
-                <span key={t} className="badge">{t}</span>
-              ))}
-            </div>
-            <hr className="divider" />
-            <div className="stack-2">
-              {[
-                ['Career anchor', 'Build technology that solves problems for under-served communities'],
-                ['Preferred provinces', 'Western Cape, Gauteng'],
-                ['Willing to relocate', 'Yes — with full bursary'],
-                ['Study language', 'English'],
-              ].map(([l, v]) => (
-                <div key={l}>
-                  <div className="caption" style={{ fontSize: '0.6875rem' }}>{l}</div>
-                  <div style={{ fontWeight: 600, fontSize: '0.875rem', marginTop: '1px' }}>{v}</div>
+            <div className="eyebrow"><span className="dot" />Personality profile</div>
+            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
+              {psychProfile ? 'Your RIASEC + motivation' : 'Complete assessment to unlock'}
+            </h3>
+            {psychProfile ? (
+              <>
+                <div className="stack-2" style={{ marginTop: '0.625rem' }}>
+                  {(Object.entries({
+                    Realistic: psychProfile.realistic ?? 0,
+                    Investigative: psychProfile.investigative ?? 0,
+                    Artistic: psychProfile.artistic ?? 0,
+                    Social: psychProfile.social ?? 0,
+                    Enterprising: psychProfile.enterprising ?? 0,
+                    Conventional: psychProfile.conventional ?? 0,
+                  }) as [string, number][])
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([type, score]) => (
+                      <div key={type} className="progress-row">
+                        <span className="label">{type}</span>
+                        <div className={`meter ${score >= 80 ? 'success' : score >= 60 ? 'primary' : 'accent'}`}>
+                          <i style={{ width: `${score}%` }} />
+                        </div>
+                        <span className="val">{score}</span>
+                      </div>
+                    ))}
                 </div>
-              ))}
-            </div>
+                {dominantRiasec && (
+                  <div className="caption" style={{ marginTop: '0.625rem' }}>
+                    Dominant type: <strong>{dominantRiasec[0]}</strong> ({dominantRiasec[1]}/100)
+                    {psychProfile.primary_motivation ? ` · Motivation: ${psychProfile.primary_motivation}` : ''}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ marginTop: '0.625rem' }}>
+                <p className="body-text" style={{ fontSize: '0.8125rem', color: 'hsl(var(--muted-fg))' }}>
+                  Your Big Five and RIASEC profile unlocks personalised career matching, capability gap analysis, and Intelligence scoring.
+                </p>
+                <div className="row" style={{ marginTop: '0.75rem' }}>
+                  <span className="badge warning">Assessment incomplete</span>
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Capability snapshot */}
           <div className="card stack-3">
             <div className="eyebrow"><span className="dot" />Capability snapshot</div>
-            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Your strengths</h3>
-            <div className="stack" style={{ marginTop: '0.75rem' }}>
-              {caps.map(c => (
-                <div key={c.l} className="progress-row">
-                  <span className="label">{c.l}</span>
-                  <div className={`meter ${c.v >= 80 ? 'success' : c.v >= 65 ? 'primary' : 'accent'}`}>
-                    <i style={{ width: `${c.v}%` }} />
+            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
+              {capabilityData ? 'Your 6 dimensions' : 'Assessment not yet taken'}
+            </h3>
+            {capabilityData ? (
+              <div className="stack" style={{ marginTop: '0.75rem' }}>
+                {caps.map(c => (
+                  <div key={c.l} className="progress-row">
+                    <span className="label">{c.l}</span>
+                    <div className={`meter ${c.v >= 80 ? 'success' : c.v >= 65 ? 'primary' : 'accent'}`}>
+                      <i style={{ width: `${c.v}%` }} />
+                    </div>
+                    <span className="val">{c.v}</span>
                   </div>
-                  <span className="val">{c.v}</span>
+                ))}
+              </div>
+            ) : (
+              <div style={{ marginTop: '0.625rem' }}>
+                <p className="body-text" style={{ fontSize: '0.8125rem', color: 'hsl(var(--muted-fg))' }}>
+                  The capability assessment measures 8 dimensions: analytical, technical, communication, creative, leadership, entrepreneurial, perseverance, and risk tolerance.
+                </p>
+                <div className="row" style={{ marginTop: '0.75rem' }}>
+                  <span className="badge warning">Capability index: not assessed</span>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -487,16 +698,19 @@ export default function ProfilePage({
           </div>
         ) : (
           <div className="stack">
-            {[
-              ['Today, 10:42', 'Ran simulator scenario · "Drop History, add Geography"'],
-              ['Yesterday',    'Saved 3 programmes to shortlist'],
-              ['12 May',       'Completed cognitive assessment — Module 4 of 8'],
-              ['08 May',       'Uploaded payslip to vault'],
-              ['03 May',       'Submitted UCT BSc CS application'],
-            ].map(([d, t]) => (
-              <div key={d} className="row-between" style={{ padding: '0.625rem 0', borderBottom: '1px solid hsl(var(--border))', fontSize: '0.875rem' }}>
+            {((): Array<[string, string]> => {
+              const items: Array<[string, string]> = [];
+              if (subjects.length > 0)     items.push(['Profile data', `${subjects.length} subjects tracked · APS ${aps}`]);
+              if (psychProfile)            items.push(['Assessment', 'Personality profile complete · RIASEC + Big Five']);
+              if (capabilityData)          items.push(['Assessment', `Capability assessment complete · index ${Math.round([capabilityData.analytical_thinking, capabilityData.technical_aptitude, capabilityData.communication_skills, capabilityData.creative_thinking, capabilityData.leadership_potential, capabilityData.entrepreneurial_drive].reduce((a, b) => a + b, 0) / 6)}/100`]);
+              if (householdIncome)         items.push(['Household', `Income: ${fmtR(householdIncome)}/yr · ${householdIncome <= 350_000 ? 'NSFAS eligible' : 'Bursary strategy'}`]);
+              if (province)                items.push(['Location', `Province: ${province}`]);
+              if (items.length === 0)      items.push(['Getting started', 'Add your subjects and complete the assessment to unlock personalised insights']);
+              return items.slice(0, 5);
+            })().map(([d, t], i) => (
+              <div key={i} className="row-between" style={{ padding: '0.625rem 0', borderBottom: '1px solid hsl(var(--border))', fontSize: '0.875rem' }}>
                 <span>{t}</span>
-                <span className="caption" style={{ whiteSpace: 'nowrap', marginLeft: '1rem' }}>{d}</span>
+                <span className="caption" style={{ whiteSpace: 'nowrap', marginLeft: '1rem', color: 'hsl(var(--success))' }}>✓ {d}</span>
               </div>
             ))}
           </div>

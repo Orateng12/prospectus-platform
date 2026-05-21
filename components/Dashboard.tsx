@@ -3,10 +3,10 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type {
-  Route, Subject, Programme, Career, CompareItem, Application, Scholarship,
-  PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbDocument,
+  Route, Subject, Programme, Career, CompareItem, Application, Scholarship, FundingOpportunity,
+  PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbDocument, DbNotification, DbCustomDeadline,
 } from '@/lib/types';
-import { SUBJECTS, CAREERS as STATIC_CAREERS, SCHOLARSHIPS as STATIC_SCHOLARSHIPS } from '@/lib/data';
+import { SUBJECTS, CAREERS as STATIC_CAREERS, FUNDING_OPPORTUNITIES } from '@/lib/data';
 import { calcAPS } from '@/lib/utils';
 import { scoreCareerMatch } from '@/lib/scoring';
 import Sidebar from './Sidebar';
@@ -34,6 +34,7 @@ import DiscoverPage from './pages/DiscoverPage';
 import MapPage from './pages/MapPage';
 import SkillsPage from './pages/SkillsPage';
 import NSFASPage from './pages/NSFASPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 const BASE_APS = 42;
 
@@ -56,7 +57,10 @@ interface DashboardProps {
   savedProgrammeIds?: string[];
   appliedScholarshipNames?: string[];
   documents?: DbDocument[];
+  notifications?: DbNotification[];
   unreadNotificationCount?: number;
+  customDeadlines?: DbCustomDeadline[];
+  fundingOpportunities?: FundingOpportunity[];
 }
 
 export default function Dashboard({
@@ -78,7 +82,10 @@ export default function Dashboard({
   savedProgrammeIds = [],
   appliedScholarshipNames = [],
   documents = [],
+  notifications = [],
   unreadNotificationCount = 0,
+  customDeadlines = [],
+  fundingOpportunities,
 }: DashboardProps) {
   const router = useRouter();
   const [route, setRoute] = useState<Route>('home');
@@ -89,7 +96,7 @@ export default function Dashboard({
   const [selectedProg, setSelectedProg] = useState('');
   const [compareItems, setCompareItems] = useState<CompareItem[]>([]);
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
-  const [selectedScholarship, setSelectedScholarship] = useState<Scholarship | null>(null);
+  const [selectedScholarship, setSelectedScholarship] = useState<Scholarship | FundingOpportunity | null>(null);
   const [selectedCareer, setSelectedCareer] = useState<Career | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [emptyMode, setEmptyMode] = useState(false);
@@ -112,7 +119,7 @@ export default function Dashboard({
     ['draft', 'pending', 'submitted'].includes(a.status.toLowerCase())
   ).length;
   const appliedSet = new Set(appliedScholarshipNames);
-  const unappliedScholarshipCount = STATIC_SCHOLARSHIPS.filter(s => !appliedSet.has(s.name)).length;
+  const unappliedScholarshipCount = FUNDING_OPPORTUNITIES.filter(f => !appliedSet.has(f.name)).length;
 
   const emptySubjects = (initialSubjects ?? SUBJECTS).map(s => ({ ...s, mark: 50 }));
   const displaySubjects = emptyMode ? emptySubjects : subjects;
@@ -181,6 +188,10 @@ export default function Dashboard({
             subjects={displaySubjects}
             userAps={displayAps}
             householdIncome={householdIncome}
+            onOpenCareer={(name) => {
+              const c = (careers ?? STATIC_CAREERS).find(x => x.name === name);
+              if (c) navigateToDetail('career-detail', c);
+            }}
           />
         );
       case 'simulator':
@@ -206,14 +217,25 @@ export default function Dashboard({
             psychProfile={displayPsych}
             capabilityData={displayCap}
             userAps={displayAps}
+            householdIncome={householdIncome}
+            onOpenCareer={(name) => {
+              const c = (careers ?? []).find(x => x.name === name);
+              if (c) navigateToDetail('career-detail', c);
+            }}
           />
         );
       case 'funding':
-        return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} />;
+        return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} fundingOpportunities={emptyMode ? undefined : fundingOpportunities} />;
       case 'nsfas':
-        return <NSFASPage householdIncome={householdIncome} />;
+        return (
+          <NSFASPage
+            householdIncome={householdIncome}
+            programmes={initialProgrammes}
+            userAps={displayAps}
+          />
+        );
       case 'financial':
-        return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} />;
+        return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} fundingOpportunities={emptyMode ? undefined : fundingOpportunities} />;
       case 'careers':
         return (
           <CareersPage
@@ -233,6 +255,16 @@ export default function Dashboard({
             navigate={navigate}
             psychProfile={displayPsych}
             capabilityData={displayCap}
+            userAps={displayAps}
+            householdIncome={householdIncome}
+            userFirstName={userFirstName}
+          />
+        );
+      case 'notifications':
+        return (
+          <NotificationsPage
+            notifications={emptyMode ? [] : notifications}
+            navigate={navigate}
           />
         );
       case 'cognitive':
@@ -243,6 +275,7 @@ export default function Dashboard({
             careers={careers}
             userAps={displayAps}
             onRetake={() => router.push('/onboarding?retake=true')}
+            navigate={navigate}
           />
         );
       case 'skills':
@@ -252,10 +285,16 @@ export default function Dashboard({
             psychProfile={displayPsych}
             careers={careers}
             userAps={displayAps}
+            onRetake={() => router.push('/onboarding?retake=true')}
+            navigate={navigate}
+            onOpenCareer={(name) => {
+              const c = (careers ?? []).find(x => x.name === name);
+              if (c) navigateToDetail('career-detail', c);
+            }}
           />
         );
       case 'map':
-        return <MapPage />;
+        return <MapPage navigate={navigate} userProvince={userProvince} />;
       case 'unis':
         return <UniversitiesPage subjects={displaySubjects} navigate={navigate} compareItems={compareItems} onToggleCompare={toggleCompare} userProvince={userProvince} />;
       case 'compare':
@@ -279,6 +318,7 @@ export default function Dashboard({
             onToggleCompare={toggleCompare}
             onOpenDetail={(s) => navigateToDetail('scholarship-detail', s)}
             appliedScholarshipNames={emptyMode ? [] : appliedScholarshipNames}
+            fundingOpportunities={emptyMode ? undefined : (fundingOpportunities ?? FUNDING_OPPORTUNITIES)}
           />
         );
       case 'applications':
@@ -288,12 +328,14 @@ export default function Dashboard({
             onOpenDetail={(a) => navigateToDetail('application-detail', a)}
             programmes={initialProgrammes}
             userAps={displayAps}
+            householdIncome={householdIncome}
+            navigate={navigate}
           />
         );
       case 'documents':
-        return <DocumentsPage navigate={navigate} documents={emptyMode ? [] : documents} />;
+        return <DocumentsPage navigate={navigate} documents={emptyMode ? [] : documents} applications={emptyMode ? [] : applications} />;
       case 'deadlines':
-        return <DeadlinesPage navigate={navigate} applications={emptyMode ? [] : applications} />;
+        return <DeadlinesPage navigate={navigate} applications={emptyMode ? [] : applications} customDeadlines={emptyMode ? [] : customDeadlines} fundingOpportunities={emptyMode ? undefined : fundingOpportunities} />;
       case 'profile':
         return (
           <ProfilePage
@@ -310,6 +352,7 @@ export default function Dashboard({
             emptyMode={emptyMode}
             onToggleEmptyMode={() => setEmptyMode(p => !p)}
             onSubjectsSaved={handleSubjectsSaved}
+            navigate={navigate}
           />
         );
       case 'application-detail':
@@ -321,6 +364,8 @@ export default function Dashboard({
             programmes={initialProgrammes}
             capabilityData={displayCap}
             navigate={navigate}
+            savedProgrammeIds={displaySavedIds}
+            userAps={displayAps}
           />
         );
       case 'scholarship-detail':
@@ -356,6 +401,14 @@ export default function Dashboard({
             savedProgrammeIds={displaySavedIds}
             psychProfile={displayPsych}
             capabilityData={displayCap}
+            careers={careers ?? STATIC_CAREERS}
+            liveCareerMatches={emptyMode ? {} : liveCareerMatches}
+            customDeadlines={emptyMode ? [] : customDeadlines}
+            documents={emptyMode ? [] : documents}
+            onOpenCareer={(name) => {
+              const c = (careers ?? STATIC_CAREERS).find(x => x.name === name);
+              if (c) navigateToDetail('career-detail', c);
+            }}
           />
         );
     }

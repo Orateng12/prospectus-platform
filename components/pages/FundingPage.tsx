@@ -1,6 +1,9 @@
-import { SCHOLARSHIPS } from '@/lib/data';
+'use client';
+
+import { useState } from 'react';
+import { FUNDING_OPPORTUNITIES } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
-import type { Programme, Route } from '@/lib/types';
+import type { FundingOpportunity, Programme, Route } from '@/lib/types';
 
 // Representative SA institution cost scenarios (tuition only; * 1.8 adds living costs)
 const COST_PATHS = [
@@ -24,6 +27,7 @@ interface FundingPageProps {
   userAps?: number;
   programmes?: Programme[];
   navigate?: (r: Route) => void;
+  fundingOpportunities?: FundingOpportunity[];
 }
 
 function computeNsfas(income: number | undefined): number {
@@ -41,13 +45,33 @@ function computeBursary(aps: number | undefined): number {
   return 0;
 }
 
+function computeMatch(f: FundingOpportunity, aps: number | undefined, income: number | undefined): number {
+  let score = 60;
+  const a = aps ?? 0;
+  if (f.min_aps) score += a >= f.min_aps ? 20 : Math.max(-15, Math.round((a - f.min_aps) / f.min_aps * 20));
+  else score += 8;
+  if (f.income_threshold && income !== undefined) score += income <= f.income_threshold ? 15 : -20;
+  else if (!f.income_threshold) score += 8;
+  return Math.max(10, Math.min(99, score));
+}
+
+const TYPE_ICON: Record<string, string> = {
+  grant: 'N', bursary: 'B', scholarship: 'S', seta: 'T', loan: 'L', international: 'I', disability: 'D',
+};
+const TYPE_CLS: Record<string, string> = {
+  grant: 'nsfas', bursary: 'bursary', scholarship: 'scholar', seta: 'bursary', loan: 'nsfas',
+  international: 'scholar', disability: 'scholar',
+};
+
 const DEFAULT_YEAR1_COST = 165_420;
 const INFLATION = 0.048;
 
-export default function FundingPage({ householdIncome, userAps, programmes, navigate }: FundingPageProps) {
+export default function FundingPage({ householdIncome, userAps, programmes, navigate, fundingOpportunities }: FundingPageProps) {
+  const [showAll, setShowAll] = useState(false);
+
+  const opportunities = fundingOpportunities ?? FUNDING_OPPORTUNITIES;
   const aboveNsfasThreshold = householdIncome !== undefined && householdIncome > 350_000;
 
-  // Derive top programme — highest fit score from the real list, or fallback label
   const topProg = programmes && programmes.length > 0
     ? programmes.reduce((best, p) => p.fit > best.fit ? p : best)
     : null;
@@ -56,26 +80,47 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
 
   const nsfas   = computeNsfas(householdIncome);
   const bursary = computeBursary(userAps);
-  const scholar = 18_000;
-  const total   = year1Cost;
-  const gap     = Math.max(0, total - nsfas - bursary - scholar);
-  const pct     = (n: number) => `${((n / total) * 100).toFixed(1)}%`;
 
-  const projection = [1, 2, 3].map(y => {
+  // Filter and score opportunities
+  const matchedOpps = opportunities
+    .filter(f => {
+      if (f.income_threshold && householdIncome !== undefined && householdIncome > f.income_threshold) return false;
+      if (f.min_aps && (userAps ?? 0) < f.min_aps) return false;
+      return true;
+    })
+    .map(f => ({ ...f, score: computeMatch(f, userAps, householdIncome) }))
+    .sort((a, b) => b.amount - a.amount);
+
+  const topScholar    = matchedOpps.find(f => f.type !== 'loan') ?? null;
+  const serviceScholar = matchedOpps.find(f => f.service_contract) ?? null;
+  const scholar       = topScholar?.amount ?? 18_000;
+  const total         = year1Cost;
+  const gap           = Math.max(0, total - nsfas - bursary - scholar);
+  const pct           = (n: number) => `${((n / total) * 100).toFixed(1)}%`;
+
+  const PIPELINE_LIMIT = 6;
+  const visibleOpps = showAll ? matchedOpps : matchedOpps.slice(0, PIPELINE_LIMIT);
+
+  const degreeYears = topProg?.dur ?? 4;
+  const projection = Array.from({ length: degreeYears }, (_, i) => {
+    const y = i + 1;
     const cost = Math.round(total * Math.pow(1 + INFLATION, y - 1));
     const cov  = Math.min(cost, nsfas + bursary + scholar);
     return { y: `Year ${y}`, cost, cov };
   });
 
-  const monthly = nsfas > 0 ? Math.round(nsfas / 10) : 0;
-
-  const topScholar     = [...SCHOLARSHIPS].sort((a, b) => b.amount - a.amount)[0];
-  const serviceScholar = SCHOLARSHIPS.find(s => s.eligibility.toLowerCase().includes('service'));
-
   const bursaryLabel = bursary >= 95_000 ? 'Investec Bursary' : bursary >= 42_000 ? 'Merit Bursary' : 'Achievement Bursary';
   const bursorySub   = bursary > 0
     ? `APS ${userAps ?? '—'} qualifies · application open`
     : 'APS below merit threshold';
+
+  const fundingTier = householdIncome === undefined
+    ? null
+    : householdIncome <= 350_000
+    ? { label: 'NSFAS-eligible', sub: `Full NSFAS coverage + bursaries available`, cls: 'success', cta: 'nsfas' as const }
+    : householdIncome <= 600_000
+    ? { label: 'Bursary-first strategy', sub: `Above NSFAS threshold · merit bursaries are your primary route`, cls: 'warning', cta: 'scholarships' as const }
+    : { label: 'Merit + self-fund strategy', sub: `High-income bracket · target merit scholarships and service bursaries`, cls: 'info', cta: 'scholarships' as const };
 
   return (
     <div className="page-anim">
@@ -100,8 +145,32 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
         </div>
       </div>
 
+      {fundingTier && userAps !== undefined && (
+        <div
+          className="card"
+          style={{ borderLeft: `3px solid hsl(var(--${fundingTier.cls}))`, marginBottom: '1.25rem', padding: '1rem 1.25rem' }}
+        >
+          <div className="row-between">
+            <div>
+              <div className="eyebrow"><span className="dot" />Your funding profile</div>
+              <div style={{ fontWeight: 800, fontSize: '1.0625rem', marginTop: '0.25rem' }}>{fundingTier.label}</div>
+              <div className="caption" style={{ marginTop: '0.25rem' }}>{fundingTier.sub}</div>
+              <div className="caption" style={{ marginTop: '0.25rem' }}>
+                Household income {fmtR(householdIncome!)} / yr · APS {userAps}
+                {bursary > 0 ? ` · qualifies for ${fmtR(bursary)} bursary` : ''}
+              </div>
+            </div>
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={() => navigate?.(fundingTier.cta)}
+            >
+              {fundingTier.cta === 'nsfas' ? 'Check NSFAS →' : 'View scholarships →'}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="fund-strategy">
-        {/* Totals */}
         <div>
           <div className="caption">Year 1 total cost</div>
           <div className="display" style={{ fontSize: '2.75rem', marginTop: '0.25rem' }}>{fmtR(total)}</div>
@@ -127,7 +196,6 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
           )}
         </div>
 
-        {/* Stack */}
         <div>
           <h3 className="subheading">Funding stack</h3>
           <div className="caption" style={{ marginTop: '0.25rem' }}>Year 1 · ZAR</div>
@@ -147,7 +215,7 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
             {[
               { label: 'NSFAS',       bg: 'hsl(var(--fg))' },
               ...(bursary > 0 ? [{ label: 'Bursary', bg: 'hsl(var(--primary))' }] : []),
-              { label: 'Scholarship', bg: 'hsl(var(--accent))' },
+              { label: topScholar?.name ?? 'Scholarship', bg: 'hsl(var(--accent))' },
               ...(gap > 0 ? [{ label: 'Gap', bg: 'hsl(var(--destructive) / 0.4)' }] : []),
             ].map(x => (
               <span key={x.label} className="row" style={{ gap: '0.375rem' }}>
@@ -161,7 +229,7 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
             {[
               { cls: 'nsfas',   icon: 'N', label: 'NSFAS',                     amount: nsfas,   sub: aboveNsfasThreshold ? 'Above income threshold · not eligible' : 'Government bursary · confirmed eligible' },
               ...(bursary > 0 ? [{ cls: 'bursary', icon: 'B', label: bursaryLabel, amount: bursary, sub: bursorySub }] : []),
-              { cls: 'scholar', icon: 'S', label: 'NRF Innovation Scholarship', amount: scholar, sub: 'Matched 74% · application open' },
+              ...(topScholar ? [{ cls: 'scholar', icon: 'S', label: topScholar.name, amount: scholar, sub: `${topScholar.score}% match · application open` }] : []),
             ].map(x => (
               <div key={x.label} className="fund-source">
                 <div className={`fund-icon ${x.cls}`}>{x.icon}</div>
@@ -178,129 +246,52 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
         </div>
       </div>
 
-      {/* Multi-pathway cost comparison */}
-      <div className="card" style={{ marginTop: '1.25rem' }}>
-        <div className="row-between" style={{ marginBottom: '0.875rem' }}>
-          <div>
-            <div className="eyebrow"><span className="dot" />Institution pathways</div>
-            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>How far your funding goes at each institution</h3>
-          </div>
-          <span className="caption" style={{ fontSize: '0.75rem', maxWidth: 200, textAlign: 'right' }}>
-            Same field of study · coverage shifts with fees
-          </span>
-        </div>
-        <div className="stack">
-          {COST_PATHS.map(path => {
-            const totalCost = Math.round(path.fees * 1.8);
-            const covered   = nsfas + bursary + scholar;
-            const covPct    = Math.min(100, Math.round(covered / totalCost * 100));
-            const pathGap   = Math.max(0, totalCost - covered);
-            const isTop     = topProg ? topProg.uni.toLowerCase().includes(path.uni.toLowerCase()) : false;
-            const color     = covPct >= 90 ? 'var(--success)' : covPct >= 70 ? 'var(--primary)' : 'var(--warning)';
-            return (
-              <div
-                key={path.key}
-                className="fund-pathway-row"
-                style={{
-                  padding: '0.75rem 0',
-                  borderBottom: '1px solid hsl(var(--border))',
-                  ...(isTop ? { borderLeft: '3px solid hsl(var(--primary))', paddingLeft: '0.625rem' } : {}),
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{path.uni}{isTop && <span className="caption" style={{ marginLeft: 6, fontSize: '0.6875rem' }}>★ top fit</span>}</div>
-                  <div className="caption" style={{ fontSize: '0.75rem' }}>{path.prog}</div>
-                  <div className="caption" style={{ fontSize: '0.6875rem', marginTop: 1 }}>{fmtR(path.fees)}/yr · {path.tier}</div>
-                </div>
-                <div className="fund-pathway-bar">
-                  <div className="row-between" style={{ fontSize: '0.75rem', marginBottom: '0.3rem' }}>
-                    <span className="caption">Year 1 total: {fmtR(totalCost)}</span>
-                    <span style={{ fontWeight: 700, color: `hsl(${color})` }}>
-                      {covPct}% · {pathGap > 0 ? `${fmtR(pathGap)} gap` : 'Fully covered'}
-                    </span>
-                  </div>
-                  <div className="meter" style={{ height: 8 }}>
-                    <i style={{ width: `${covPct}%`, background: `hsl(${color})` }} />
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span className={`badge ${covPct >= 90 ? 'success' : covPct >= 70 ? '' : 'warning'}`} style={{ fontSize: '0.6875rem' }}>
-                    {covPct >= 90 ? 'Full cover' : covPct >= 70 ? 'Partial' : 'Large gap'}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div className="caption" style={{ marginTop: '0.75rem', fontSize: '0.75rem' }}>
-          Coverage = NSFAS + merit bursary + scholarship. A lower-cost institution means more of your funding is leftover for emergencies, books and transport.
-        </div>
-      </div>
-
-      {/* Monthly student budget */}
-      {monthly > 0 && (
-        <div className="card" style={{ marginTop: '1.25rem' }}>
-          <div className="row-between" style={{ marginBottom: '0.875rem' }}>
-            <div>
-              <div className="eyebrow"><span className="dot" />Monthly budget</div>
-              <h3 className="subheading nsfas-monthly-head" style={{ marginTop: '0.25rem' }}>
-                What {fmtR(monthly)}/month covers (NSFAS distributes over 10 months)
-              </h3>
-            </div>
-            <span className="badge success">{fmtR(nsfas)}/yr · confirmed eligible</span>
-          </div>
-          <div className="grid-3" style={{ gap: '0.625rem' }}>
-            {MONTHLY_BREAKDOWN.map(item => {
-              const amt = Math.round(monthly * item.pct);
-              return (
-                <div key={item.label} style={{
-                  padding: '0.75rem',
-                  borderRadius: 8,
-                  background: 'hsl(var(--muted) / 0.5)',
-                  border: '1px solid hsl(var(--border))',
-                }}>
-                  <div className="caption" style={{ fontSize: '0.75rem' }}>{item.label}</div>
-                  <div style={{ fontWeight: 800, fontSize: '1.125rem', marginTop: '0.25rem', fontVariantNumeric: 'tabular-nums' }}>{fmtR(amt)}</div>
-                  <div className="caption" style={{ fontSize: '0.6875rem', marginTop: 2 }}>{Math.round(item.pct * 100)}% of monthly</div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="caption" style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
-            Tip: Living at home (if within commuting distance) eliminates the accommodation component — your effective monthly spending money nearly doubles.
-          </div>
-        </div>
-      )}
-
-      {/* Scholarships table */}
+      {/* Funding pipeline */}
       <div className="card">
         <div className="row-between" style={{ marginBottom: '0.875rem' }}>
           <div>
-            <div className="eyebrow"><span className="dot" />Scholarship pipeline</div>
+            <div className="eyebrow"><span className="dot" />Funding pipeline</div>
             <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
-              {SCHOLARSHIPS.length} scholarships matched to your profile
+              {matchedOpps.length} opportunities matched to your profile
             </h3>
           </div>
           <div className="row">
-            <span className="badge success">{SCHOLARSHIPS.filter(s => s.match >= 80).length} ≥ 80%</span>
+            <span className="badge success">{matchedOpps.filter(f => f.score >= 80).length} strong match</span>
             <button className="btn btn-outline btn-sm" onClick={() => navigate?.('scholarships')}>View all →</button>
           </div>
         </div>
         <div className="stack">
-          {SCHOLARSHIPS.map(s => (
-            <div className="scholar-row" key={s.name}>
+          {visibleOpps.map(f => (
+            <div className="scholar-row" key={f.id}>
               <div>
-                <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>{s.name}</div>
-                <div className="caption" style={{ marginTop: 1 }}>{s.eligibility} · closes {s.deadline}</div>
+                <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>{f.name}</div>
+                <div className="caption" style={{ marginTop: 1 }}>
+                  {f.eligibility.split('·')[0].trim()} · closes {f.deadline ?? 'Rolling'}
+                </div>
+                <div className="row" style={{ gap: '0.375rem', marginTop: '0.375rem' }}>
+                  <span className={`badge ${TYPE_CLS[f.type] ?? 'info'}`} style={{ height: '1.125rem', fontSize: '0.5625rem', padding: '0 0.375rem' }}>
+                    {f.type}
+                  </span>
+                  {f.service_contract && (
+                    <span className="badge warning" style={{ height: '1.125rem', fontSize: '0.5625rem', padding: '0 0.375rem' }}>
+                      Service contract
+                    </span>
+                  )}
+                  {f.province_specific && (
+                    <span className="badge info" style={{ height: '1.125rem', fontSize: '0.5625rem', padding: '0 0.375rem' }}>
+                      {f.province_specific}
+                    </span>
+                  )}
+                </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontWeight: 800, fontSize: '1.125rem', fontVariantNumeric: 'tabular-nums' }}>{fmtR(s.amount)}</div>
+                <div style={{ fontWeight: 800, fontSize: '1.125rem', fontVariantNumeric: 'tabular-nums' }}>{fmtR(f.amount)}</div>
                 <div className="caption">/ year</div>
               </div>
               <div className="row" style={{ gap: '0.625rem' }}>
-                <div className={`match-circle${s.match < 80 ? ' med' : ''}`}>{s.match}</div>
+                <div className={`match-circle${f.score < 80 ? ' med' : ''}`}>{f.score}</div>
                 <button
-                  className={`btn ${s.match >= 80 ? 'btn-primary' : 'btn-outline'} btn-sm`}
+                  className={`btn ${f.score >= 80 ? 'btn-primary' : 'btn-outline'} btn-sm`}
                   onClick={() => navigate?.('scholarships')}
                 >
                   Apply
@@ -309,7 +300,81 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
             </div>
           ))}
         </div>
+        {matchedOpps.length > PIPELINE_LIMIT && (
+          <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={() => setShowAll(s => !s)}
+            >
+              {showAll
+                ? 'Show less'
+                : `Show ${matchedOpps.length - PIPELINE_LIMIT} more opportunities`}
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Application priority timeline */}
+      {matchedOpps.filter(f => f.type !== 'loan' && f.deadline && f.deadline !== 'Rolling').length > 0 && (() => {
+        const prioritised = matchedOpps
+          .filter(f => f.type !== 'loan' && f.deadline && f.deadline !== 'Rolling')
+          .slice(0, 5);
+        return (
+          <div className="card" style={{ marginTop: '1.25rem' }}>
+            <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+              <div>
+                <div className="eyebrow"><span className="dot" />Application calendar</div>
+                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Apply in this order</h3>
+                <p className="caption" style={{ marginTop: '0.25rem' }}>
+                  Ranked by deadline proximity × amount. Submit earliest-closing first to avoid missing windows.
+                </p>
+              </div>
+              <span className="badge warning">{prioritised.length} with fixed deadlines</span>
+            </div>
+            <div className="stack">
+              {prioritised.map((f, i) => {
+                const isFirst = i === 0;
+                return (
+                  <div
+                    key={f.id}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '24px 1fr auto',
+                      gap: '0.75rem',
+                      alignItems: 'center',
+                      padding: '0.625rem 0',
+                      borderBottom: '1px solid hsl(var(--border))',
+                    }}
+                  >
+                    <span style={{
+                      width: 24, height: 24, borderRadius: 999, flexShrink: 0,
+                      background: isFirst ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                      color: isFirst ? 'hsl(var(--primary-fg))' : 'hsl(var(--muted-fg))',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontWeight: 800, fontSize: '0.6875rem',
+                    }}>
+                      {i + 1}
+                    </span>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{f.name}</div>
+                      <div className="caption" style={{ marginTop: '0.125rem' }}>
+                        Closes {f.deadline} · {fmtR(f.amount)}/yr
+                        {f.service_contract ? ' · service contract' : ''}
+                      </div>
+                    </div>
+                    <span className={`badge ${f.score >= 80 ? 'success' : 'warning'}`} style={{ fontSize: '0.625rem' }}>
+                      {f.score}% match
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="caption" style={{ marginTop: '0.75rem', fontSize: '0.6875rem' }}>
+              After applying to each, log it on the Applications page to track status.
+            </div>
+          </div>
+        );
+      })()}
 
       {/* 4-year projection + AI commentary */}
       <div className="grid-2 stack-3" style={{ marginTop: '1.25rem' }}>
@@ -336,8 +401,8 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
         </div>
 
         <div className="card">
-          <div className="eyebrow"><span className="dot" />AI commentary</div>
-          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Strategy notes</h3>
+          <div className="eyebrow"><span className="dot" />Strategy notes</div>
+          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>AI commentary</h3>
           <div className="stack-2" style={{ marginTop: '0.875rem' }}>
             {topScholar && (
               <div className="insight">
@@ -345,7 +410,8 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
                   Apply to {topScholar.name} first
                 </div>
                 <p className="body-text" style={{ fontSize: '0.8125rem' }}>
-                  Closes {topScholar.deadline}, highest amount ({fmtR(topScholar.amount)}) and you match {topScholar.match}% of criteria.
+                  {topScholar.deadline && topScholar.deadline !== 'Rolling' ? `Closes ${topScholar.deadline}, ` : ''}
+                  Highest amount ({fmtR(topScholar.amount)}) and {topScholar.score}% match.
                   {gap === 0 ? ' Combined with your other funding, this fully covers your degree.' : ' If awarded, decline lower-value bursaries.'}
                 </p>
                 <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.5rem' }}>Strategic priority</div>
@@ -360,6 +426,18 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
                   {serviceScholar.name}&apos;s {fmtR(serviceScholar.amount)} bursary requires a post-graduation service period — limits mobility. Stack only if committed to the sector.
                 </p>
                 <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.5rem' }}>Risk note</div>
+              </div>
+            )}
+            {matchedOpps.filter(f => f.type === 'loan').length > 0 && (
+              <div className="insight">
+                <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
+                  Student loans as last resort
+                </div>
+                <p className="body-text" style={{ fontSize: '0.8125rem' }}>
+                  {matchedOpps.filter(f => f.type === 'loan').length} loan products available from {fmtR(matchedOpps.filter(f => f.type === 'loan').sort((a,b) => a.amount - b.amount)[0]?.amount ?? 0)}.
+                  Exhaust bursaries and scholarships first — loan repayments begin 6 months after graduation.
+                </p>
+                <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.5rem' }}>Financial risk</div>
               </div>
             )}
           </div>

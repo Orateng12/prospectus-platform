@@ -216,9 +216,11 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
 .topbar {
   display: flex; flex-wrap: wrap; gap: 0.75rem;
   align-items: center; justify-content: space-between;
-  background: hsl(var(--card)); border: 1px solid hsl(var(--border));
+  background: hsl(var(--card) / 0.92); border: 1px solid hsl(var(--border));
   border-radius: var(--r-xl); padding: 0.875rem 1.125rem;
   margin-bottom: 1.5rem;
+  position: sticky; top: 1.5rem; z-index: 45;
+  backdrop-filter: blur(12px);
 }
 .topbar-left .greet {
   font-weight: 700; font-size: 1.125rem; letter-spacing: -0.015em; margin-top: 0.125rem;
@@ -243,12 +245,12 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
 @media (max-width: 900px) {
   .hamburger { display: flex; }
   .topbar-search { display: none; }
-  .topbar { padding: 0.75rem 1rem; margin-bottom: 1rem; }
+  .topbar { padding: 0.75rem 1rem; margin-bottom: 1rem; top: 1rem; }
   .topbar-left .greet { font-size: 1rem; }
 }
 
 @media (max-width: 480px) {
-  .topbar { border-radius: var(--r-lg); gap: 0.5rem; }
+  .topbar { border-radius: var(--r-lg); gap: 0.5rem; top: 0.875rem; }
   .topbar-right .btn-outline:not(.hamburger) { display: none; }
 }
 
@@ -705,6 +707,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
 }
 .img-tile.sm { aspect-ratio: 1/1; width: 48px; height: 48px; border-radius: 10px; font-size: 1rem; }
 .img-tile .glyph { font-size: clamp(1.5rem, 4vw, 2.5rem); z-index: 1; text-shadow: 0 2px 12px rgba(0,0,0,0.25); }
+.img-tile img { z-index: 1; }
 .img-tile::after { content:''; position: absolute; inset: 0; background: linear-gradient(135deg, transparent 30%, rgba(0,0,0,0.18) 100%); }
 /* Career tiles */
 .img-tile.swe     { background: linear-gradient(135deg, hsl(212 72% 37%), hsl(218 88% 13%)); }
@@ -716,13 +719,41 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
 .img-tile.civil   { background: linear-gradient(135deg, hsl(22 80% 50%), hsl(35 85% 30%)); }
 .img-tile.med     { background: linear-gradient(135deg, hsl(0 72% 45%), hsl(0 80% 26%)); }
 .img-tile.default-career { background: linear-gradient(135deg, hsl(var(--primary)), hsl(215 35% 18%)); }
-/* University tiles */
-.img-tile.uct  { background: linear-gradient(135deg, hsl(0 72% 45%), hsl(15 70% 30%)); }
-.img-tile.wits { background: linear-gradient(135deg, hsl(212 72% 37%), hsl(218 88% 20%)); }
-.img-tile.sun  { background: linear-gradient(135deg, hsl(35 85% 50%), hsl(28 75% 30%)); }
-.img-tile.up   { background: linear-gradient(135deg, hsl(60 70% 40%), hsl(35 85% 30%)); }
-.img-tile.ukzn { background: linear-gradient(135deg, hsl(152 55% 40%), hsl(215 35% 18%)); }
-.img-tile.cput { background: linear-gradient(135deg, hsl(262 70% 50%), hsl(295 60% 30%)); }
+/* University tiles — brand colours */
+.img-tile.uct     { background: linear-gradient(135deg, #C11C25, #8B0000); }
+.img-tile.wits    { background: linear-gradient(135deg, #003D7C, #001F5B); }
+.img-tile.sun     { background: linear-gradient(135deg, #7B003C, #4A0025); }
+.img-tile.up      { background: linear-gradient(135deg, #003F87, #002456); }
+.img-tile.ukzn    { background: linear-gradient(135deg, #006633, #003D1F); }
+.img-tile.uj      { background: linear-gradient(135deg, #E8401C, #9B2810); }
+.img-tile.uwc     { background: linear-gradient(135deg, #003580, #001F5B); }
+.img-tile.ru      { background: linear-gradient(135deg, #BA0C2F, #7A0820); }
+.img-tile.unisa   { background: linear-gradient(135deg, #00539B, #002F6C); }
+.img-tile.ufs     { background: linear-gradient(135deg, #003C7E, #001E4A); }
+.img-tile.nwu     { background: linear-gradient(135deg, #003468, #001A3A); }
+.img-tile.ufh     { background: linear-gradient(135deg, #006B32, #003D1C); }
+.img-tile.ul      { background: linear-gradient(135deg, #B5001A, #750011); }
+.img-tile.unizulu { background: linear-gradient(135deg, #005A9C, #003366); }
+.img-tile.nmu     { background: linear-gradient(135deg, #F47920, #A85210); }
+.img-tile.ump     { background: linear-gradient(135deg, #2E7D32, #1B5E20); }
+.img-tile.spu     { background: linear-gradient(135deg, #1A6B8A, #0D4A63); }
+.img-tile.univen  { background: linear-gradient(135deg, #1E7A3E, #0F4D26); }
+.img-tile.wsu     { background: linear-gradient(135deg, #003366, #001A40); }
+.img-tile.smu     { background: linear-gradient(135deg, #006B3C, #003D22); }
+.img-tile.cput    { background: linear-gradient(135deg, #4B0082, #2D0050); }
+.img-tile.tut     { background: linear-gradient(135deg, #C41E3A, #831428); }
+.img-tile.dut     { background: linear-gradient(135deg, #1E3A5F, #0D1F3C); }
+.img-tile.vut     { background: linear-gradient(135deg, #005B8E, #003357); }
+.img-tile.cut     { background: linear-gradient(135deg, #E87722, #9B4A0F); }
+.img-tile.mut     { background: linear-gradient(135deg, #006B8A, #003D52); }
+.img-tile.eec     { background: linear-gradient(135deg, #F5A623, #C47A10); }
+.img-tile.sctvet  { background: linear-gradient(135deg, #4CAF50, #2E7D32); }
+.img-tile.elg     { background: linear-gradient(135deg, #2196F3, #0D47A1); }
+.img-tile.wbc     { background: linear-gradient(135deg, #795548, #4E342E); }
+.img-tile.nlc     { background: linear-gradient(135deg, #009688, #00695C); }
+.img-tile.iie-vc  { background: linear-gradient(135deg, #D32F2F, #B71C1C); }
+.img-tile.afda    { background: linear-gradient(135deg, #424242, #212121); }
+.img-tile.stadio  { background: linear-gradient(135deg, #1565C0, #0D47A1); }
 .img-tile.default-uni { background: linear-gradient(135deg, hsl(var(--primary)), hsl(215 35% 18%)); }
 
 /* ─── Careers ────────────────────────────────────────────── */
@@ -2375,6 +2406,25 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
 @media (max-width: 400px) {
   .nsfas-monthly-head { font-size: 0.9375rem !important; }
 }
+
+/* ─── Phase 8: cross-page intelligence layer ─────────────────────────────── */
+
+/* Career path rows in ProgrammePage — clickable ghost button */
+.btn-ghost-row {
+  background: none;
+  border: none;
+  text-align: left;
+  border-radius: 6px;
+  transition: background 120ms;
+}
+.btn-ghost-row:hover { background: hsl(var(--muted) / 0.5); }
+
+/* Simulator post-save cascade card animation */
+@keyframes cascadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.cascade-card { animation: cascadeIn 220ms var(--ease-out-strong, ease-out); }
 
 /* ─── Onboarding shell ───────────────────────────────────── */
 .onboarding-shell {

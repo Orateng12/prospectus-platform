@@ -51,18 +51,33 @@ function buildInsightText(psychProfile: PsychProfileData, capabilityData: Capabi
   const sorted = [...riasecKeys].sort((a, b) => (psychProfile[b] as number) - (psychProfile[a] as number));
   const dominant  = RIASEC_DESCRIPTORS[sorted[0]];
   const secondary = RIASEC_DESCRIPTORS[sorted[1]];
+  const domScore   = (psychProfile[sorted[0]] as number) ?? 0;
+  const secScore   = (psychProfile[sorted[1]] as number) ?? 0;
 
   let capPhrase = '';
+  let capAction = '';
   if (capabilityData) {
     const ranked = [...CAP_LABELS].sort((a, b) => (capabilityData[b[0]] as number) - (capabilityData[a[0]] as number));
-    capPhrase = ` and high ${ranked[0][1]} + ${ranked[1][1]} capability scores`;
+    const top2 = ranked.slice(0, 2);
+    const bottom = ranked[ranked.length - 1];
+    capPhrase = ` paired with strong ${top2[0][1].toLowerCase()} and ${top2[1][1].toLowerCase()} capability`;
+    capAction = ` Lifting ${bottom[1].toLowerCase()} (currently your lowest dimension) by 10 points would widen your top match score by an estimated 5–8%.`;
   }
 
+  const dominanceNote = domScore >= 75
+    ? `Your ${dominant.label} score (${domScore}) is distinctly high`
+    : `Your ${dominant.label} tendency (${domScore}) shapes your strongest fits`;
+
   return (
-    `Based on your ${dominant.label} RIASEC profile${capPhrase}, the sharpest career cluster for you is ` +
-    `${dominant.cluster} — spanning ${dominant.examples}. ` +
-    `Your secondary ${secondary.label} tendency also opens doors in ${secondary.cluster}. ` +
-    `All pathways are growing in SA and build directly on your strongest academic subjects.`
+    `${dominanceNote}${capPhrase}. ` +
+    `The sharpest career cluster for you is ${dominant.cluster} — spanning ${dominant.examples}. ` +
+    `Your secondary ${secondary.label} streak (${secScore}) means you can bridge into ${secondary.cluster} without a full pivot — hybrid roles like ${
+      sorted[0] === 'investigative' && sorted[1] === 'enterprising' ? 'product management or VC analyst'
+      : sorted[0] === 'realistic' && sorted[1] === 'investigative' ? 'R&D engineering or data systems'
+      : sorted[0] === 'social' && sorted[1] === 'enterprising' ? 'EdTech or health startups'
+      : sorted[0] === 'enterprising' && sorted[1] === 'conventional' ? 'corporate finance or strategy consulting'
+      : `${secondary.examples.split(',')[0].trim()}`
+    } often suit this combination well in SA.${capAction}`
   );
 }
 
@@ -90,6 +105,18 @@ function careerTileClass(name: string): string {
   return 'default-career';
 }
 
+const CAREER_ICON: Record<string, string> = {
+  swe:            '⌨',
+  data:           '∑',
+  actuary:        'π',
+  quant:          '⬡',
+  ml:             '◉',
+  pm:             '◈',
+  civil:          '△',
+  med:            '⚕',
+  'default-career':'✦',
+};
+
 // ────────────────────────────────────────────────────────────────────────────
 
 export default function CareersPage({
@@ -106,6 +133,7 @@ export default function CareersPage({
   const allCareers = propCareers && propCareers.length > 0 ? propCareers : CAREERS;
   const [activeTab, setActiveTab] = useState<Tab>(initialTab ?? 'fit');
   const [query, setQuery] = useState('');
+  const [visibleCount, setVisibleCount] = useState(9);
 
   const withLiveMatch = useMemo(() => allCareers.map(c => ({
     ...c,
@@ -163,23 +191,55 @@ export default function CareersPage({
       </div>
 
       <div className="tabs" style={{ marginBottom: '1.25rem' }}>
-        <button className={`tab ${activeTab === 'fit' ? 'active' : ''}`} onClick={() => setActiveTab('fit')}>
+        <button className={`tab ${activeTab === 'fit' ? 'active' : ''}`} onClick={() => { setActiveTab('fit'); setVisibleCount(9); }}>
           Best fit ({allCareers.length})
         </button>
-        <button className={`tab ${activeTab === 'demand' ? 'active' : ''}`} onClick={() => setActiveTab('demand')}>
+        <button className={`tab ${activeTab === 'demand' ? 'active' : ''}`} onClick={() => { setActiveTab('demand'); setVisibleCount(9); }}>
           High demand ({highDemandCount})
         </button>
-        <button className={`tab ${activeTab === 'growth' ? 'active' : ''}`} onClick={() => setActiveTab('growth')}>
+        <button className={`tab ${activeTab === 'growth' ? 'active' : ''}`} onClick={() => { setActiveTab('growth'); setVisibleCount(9); }}>
           High growth
         </button>
-        <button className={`tab ${activeTab === 'salary' ? 'active' : ''}`} onClick={() => setActiveTab('salary')}>
+        <button className={`tab ${activeTab === 'salary' ? 'active' : ''}`} onClick={() => { setActiveTab('salary'); setVisibleCount(9); }}>
           Top salary
         </button>
-        <button className={`tab ${activeTab === 'discover' ? 'active' : ''}`} onClick={() => setActiveTab('discover')}>
+        <button className={`tab ${activeTab === 'discover' ? 'active' : ''}`} onClick={() => { setActiveTab('discover'); setVisibleCount(9); }}>
           For You
           <span className="badge brand" style={{ height: '1rem', fontSize: '0.5625rem', padding: '0 0.375rem', marginLeft: '0.375rem' }}>AI</span>
         </button>
       </div>
+
+      {/* Recommended strip — shown on all non-discover tabs when APS is available */}
+      {activeTab !== 'discover' && userAps !== undefined && userAps > 0 && displayed.length > 0 && (
+        <div className="card" style={{ marginBottom: '1.25rem' }}>
+          <div className="row-between" style={{ marginBottom: '0.75rem' }}>
+            <div className="eyebrow"><span className="dot" />Top 3 matches for your profile</div>
+          </div>
+          <div className="grid-3" style={{ gap: '0.75rem' }}>
+            {displayed.slice(0, 3).map(c => (
+              <button
+                key={c.name}
+                className="card compact"
+                style={{ textAlign: 'left', cursor: 'pointer', padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}
+                onClick={() => onOpenDetail?.(c)}
+              >
+                <div className="row-between">
+                  <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{c.name}</div>
+                  <span className={`badge ${c.demand === 'High' ? 'success' : 'warning'}`} style={{ height: '1.25rem', fontSize: '0.5625rem' }}>
+                    {c.demand}
+                  </span>
+                </div>
+                <div className="meter sm"><i style={{ width: `${c.match}%` }} /></div>
+                <div className="row-between">
+                  <span className="caption">{c.match}% match</span>
+                  <span className="caption" style={{ color: 'hsl(var(--success))' }}>{c.growth}</span>
+                </div>
+                <div className="caption" style={{ color: 'hsl(var(--muted-fg))' }}>{fmtR(c.salary)}/mo</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {activeTab === 'discover' ? (
         <div className="page-anim">
@@ -200,12 +260,26 @@ export default function CareersPage({
             </div>
             {!query && (
               <div className="row" style={{ marginTop: '0.875rem', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {['Software Engineer', 'BSc Data Science', 'NSFAS bursary', 'UCT programmes', 'High demand careers'].map(s => (
-                  <button key={s} className="badge" style={{ cursor: 'pointer', height: '1.75rem', fontSize: '0.75rem' }}
-                    onClick={() => setQuery(s)}>
-                    {s}
-                  </button>
-                ))}
+                {(() => {
+                  const chips: string[] = [];
+                  if (psychProfile) {
+                    const riasecKeys: RiasecKey[] = ['realistic', 'investigative', 'artistic', 'social', 'enterprising', 'conventional'];
+                    const top = [...riasecKeys].sort((a, b) => ((psychProfile[b] as number) ?? 0) - ((psychProfile[a] as number) ?? 0))[0];
+                    if (top === 'investigative') chips.push('Data Scientist', 'Actuary');
+                    else if (top === 'realistic') chips.push('Mechanical Engineer', 'Civil Engineer');
+                    else if (top === 'artistic') chips.push('UX Designer', 'Architect');
+                    else if (top === 'social') chips.push('Teacher', 'Nurse', 'Social Worker');
+                    else if (top === 'enterprising') chips.push('Entrepreneur', 'Product Manager');
+                    else chips.push('Accountant', 'Financial Advisor');
+                  }
+                  chips.push('High demand careers', 'Remote-friendly');
+                  return [...new Set(chips)].slice(0, 5).map(s => (
+                    <button key={s} className="badge" style={{ cursor: 'pointer', height: '1.75rem', fontSize: '0.75rem' }}
+                      onClick={() => setQuery(s)}>
+                      {s}
+                    </button>
+                  ));
+                })()}
               </div>
             )}
           </div>
@@ -281,12 +355,20 @@ export default function CareersPage({
                   <div className="sec"><h3>Careers</h3><span className="caption">{filteredCareers.length} results</span></div>
                   <div className="stack">
                     {filteredCareers.map(c => (
-                      <div key={c.name} className="card compact" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('fit')}>
+                      <div key={c.name} className="card compact" style={{ cursor: 'pointer' }} onClick={() => onOpenDetail?.(c)}>
                         <div className="row-between">
                           <div style={{ fontWeight: 700 }}>{c.name}</div>
-                          <span className={`badge ${c.demand === 'High' ? 'success' : 'warning'}`}>{c.demand} demand</span>
+                          <div className="row" style={{ gap: '0.375rem' }}>
+                            {c.scarce_skill && <span className="badge accent" style={{ height: '1.125rem', fontSize: '0.5625rem' }}>Scarce skill</span>}
+                            <span className={`badge ${c.demand === 'High' ? 'success' : 'warning'}`}>{c.demand} demand</span>
+                          </div>
                         </div>
                         <div className="caption" style={{ marginTop: '0.25rem' }}>{fmtR(c.salary)}/mo · {c.growth} growth</div>
+                        <div className="row" style={{ gap: '0.25rem', marginTop: '0.375rem', flexWrap: 'wrap' }}>
+                          {c.tags.slice(0, 3).map(t => (
+                            <span key={t} className="career-tag" style={{ fontSize: '0.625rem' }}>{t}</span>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -303,10 +385,10 @@ export default function CareersPage({
       ) : (
         <>
           <div className="grid-3">
-            {displayed.map(c => (
+            {displayed.slice(0, visibleCount).map(c => (
               <div className="career-card" key={c.name}>
                 <div className={`img-tile ${careerTileClass(c.name)}`} aria-hidden="true">
-                  <span className="glyph">{c.name.split(' ').slice(0,2).map(w=>w[0]).join('')}</span>
+                  <span className="glyph">{CAREER_ICON[careerTileClass(c.name)] ?? '✦'}</span>
                 </div>
                 <div className="row-between">
                   <div className="row" style={{ gap: '0.5rem' }}>
@@ -380,27 +462,63 @@ export default function CareersPage({
               </div>
             ))}
           </div>
-
-          <div className="card stack-3" style={{ marginTop: '1.25rem' }}>
-            <div className="row-between">
-              <div>
-                <div className="eyebrow"><span className="dot" />AI commentary</div>
-                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Reading your top 3</h3>
+          {visibleCount < displayed.length && (
+            <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+              <button
+                className="btn btn-outline"
+                onClick={() => setVisibleCount(v => Math.min(v + 9, displayed.length))}
+              >
+                Show {Math.min(9, displayed.length - visibleCount)} more careers
+              </button>
+              <div className="caption" style={{ marginTop: '0.5rem', color: 'hsl(var(--muted-fg))' }}>
+                Showing {Math.min(visibleCount, displayed.length)} of {displayed.length}
               </div>
             </div>
-            <p className="body-text" style={{ margin: 0, fontSize: '0.875rem' }}>
-              {displayed[0] && displayed[1] && displayed[2]
-                ? <>
-                    <strong>{displayed[0].name}</strong>, <strong>{displayed[1].name}</strong> and{' '}
-                    <strong>{displayed[2].name}</strong> lead your ranking.{' '}
-                    {displayed.filter(c => c.demand === 'High').length > 0
-                      ? `${displayed.filter(c => c.demand === 'High').length} of your top careers have high market demand in South Africa.`
-                      : 'Explore the High demand tab to filter for fastest-growing roles.'}
-                  </>
-                : 'Complete your profile to unlock personalised career commentary.'
-              }
-            </p>
-          </div>
+          )}
+
+          {(() => {
+            if (!displayed[0] || !displayed[1] || !displayed[2]) return null;
+            const top3 = displayed.slice(0, 3);
+            const minSal = Math.min(...top3.map(c => c.salary));
+            const maxSal = Math.max(...top3.map(c => c.salary));
+            const highDemandTop = top3.filter(c => c.demand === 'High').length;
+            const scarceTop = top3.filter(c => c.scarce_skill).length;
+            const growthLeader = [...top3].sort((a, b) => parseGrowth(b.growth) - parseGrowth(a.growth))[0];
+            const salaryVsGradAvg = minSal > 22000;
+            return (
+              <div className="card" style={{ marginTop: '1.25rem' }}>
+                <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+                  <div>
+                    <div className="eyebrow"><span className="dot" />AI commentary</div>
+                    <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Reading your top 3</h3>
+                  </div>
+                  <div className="row" style={{ gap: '0.375rem' }}>
+                    {scarceTop > 0 && <span className="badge accent">{scarceTop} scarce skill{scarceTop > 1 ? 's' : ''}</span>}
+                    {highDemandTop > 0 && <span className="badge success">{highDemandTop} high demand</span>}
+                  </div>
+                </div>
+                <p className="body-text" style={{ margin: 0, fontSize: '0.875rem', lineHeight: 1.65 }}>
+                  <strong>{top3[0].name}</strong>, <strong>{top3[1].name}</strong> and{' '}
+                  <strong>{top3[2].name}</strong> lead your ranking.{' '}
+                  {minSal === maxSal
+                    ? `All three pay ${fmtR(minSal)}/mo median`
+                    : `Your salary range across the top 3 is ${fmtR(minSal)}–${fmtR(maxSal)}/mo median`}
+                  {salaryVsGradAvg ? ', well above the SA graduate average of ~R22,000/mo' : ''}.{' '}
+                  <strong>{growthLeader.name}</strong> leads on growth at{' '}
+                  <span style={{ color: 'hsl(var(--success))' }}>{growthLeader.growth}</span> over 10 years.{' '}
+                  {highDemandTop === 3
+                    ? 'All 3 have high employer demand — strong labour-market positioning.'
+                    : highDemandTop > 0
+                    ? `${highDemandTop} of 3 have high employer demand. Check the High demand tab to compare alternatives.`
+                    : 'Switch to the High demand tab to find roles with stronger current hiring in SA.'}
+                </p>
+                <div className="row" style={{ marginTop: '0.875rem' }}>
+                  <button className="btn btn-outline btn-sm" onClick={() => setActiveTab('discover')}>Explore For You →</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => navigate?.('intelligence')}>Full intelligence →</button>
+                </div>
+              </div>
+            );
+          })()}
         </>
       )}
     </div>

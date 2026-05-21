@@ -17,6 +17,7 @@ interface IntelligencePageProps {
   psychProfile?: PsychProfileData | null;
   subjects?: Subject[];
   userAps?: number;
+  onOpenCareer?: (careerName: string) => void;
 }
 
 const DB_TO_CAP: Array<[keyof CapabilityData, string]> = [
@@ -233,14 +234,15 @@ function buildSubScoreNarratives(
 }
 
 const FALLBACK_PROBS = [
-  { name: 'Software Engineer', score: 88, salary: undefined as number | undefined, growth: '+22%' },
-  { name: 'Data Analyst',      score: 82, salary: undefined as number | undefined, growth: '+18%' },
-  { name: 'Actuary',           score: 76, salary: undefined as number | undefined, growth: '+9%'  },
-  { name: 'Civil Engineer',    score: 58, salary: undefined as number | undefined, growth: '+5%'  },
-  { name: 'Doctor',            score: 41, salary: undefined as number | undefined, growth: '+7%'  },
+  { name: 'Software Engineer', score: 88, salary: undefined as number | undefined, growth: '+22%', demand: 'High' as const },
+  { name: 'Data Analyst',      score: 82, salary: undefined as number | undefined, growth: '+18%', demand: 'High' as const },
+  { name: 'Actuary',           score: 76, salary: undefined as number | undefined, growth: '+9%',  demand: 'Med'  as const },
+  { name: 'Civil Engineer',    score: 58, salary: undefined as number | undefined, growth: '+5%',  demand: 'Med'  as const },
+  { name: 'Doctor',            score: 41, salary: undefined as number | undefined, growth: '+7%',  demand: 'High' as const },
 ];
 
-export default function IntelligencePage({ navigate, strategicScore, capabilityData, programmes = [], careers = [], psychProfile, subjects = [], userAps = 0, householdIncome }: IntelligencePageProps & { householdIncome?: number }) {
+export default function IntelligencePage({ navigate, strategicScore, capabilityData, programmes = [], careers = [], psychProfile, subjects = [], userAps = 0, householdIncome, onOpenCareer }: IntelligencePageProps & { householdIncome?: number }) {
+  const futureYear = new Date().getFullYear() + 5;
   const [expandedScore, setExpandedScore] = useState<string | null>(null);
   const score = strategicScore?.overall ?? 74;
   const prev  = strategicScore?.previous_score;
@@ -288,6 +290,7 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
         score:  scoreCareerMatch(c.name, psychProfile, capabilityData, userAps),
         salary: c.salary,
         growth: c.growth,
+        demand: c.demand,
       }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
@@ -463,6 +466,78 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
         ))}
       </div>
 
+      {/* APS What-if panel */}
+      {programmes.length > 0 && (() => {
+        const currentEligible = programmes.filter(p => p.aps <= userAps).length;
+        const scenarios = [1, 2, 3].map(delta => {
+          const newAps = userAps + delta;
+          const newEligible = programmes.filter(p => p.aps <= newAps).length;
+          const newUnlocked = newEligible - currentEligible;
+          const highFitUnlocked = programmes.filter(p => p.aps > userAps && p.aps <= newAps && p.fit >= 70).length;
+          const lowestSub = [...subjects].filter(s => s.id !== 'lo').sort((a, b) => a.mark - b.mark)[0];
+          const markNeeded = lowestSub
+            ? (lowestSub.mark < 50 ? 50 : lowestSub.mark < 60 ? 60 : lowestSub.mark < 70 ? 70 : 80)
+            : null;
+          return { delta, newAps, newUnlocked, highFitUnlocked, markNeeded, subjectName: lowestSub?.name };
+        });
+        const nearMissProgs = programmes
+          .filter(p => p.aps > userAps && p.aps <= userAps + 3)
+          .sort((a, b) => a.aps - b.aps)
+          .slice(0, 3);
+        return (
+          <div className="card" style={{ marginTop: '1.25rem' }}>
+            <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+              <div>
+                <div className="eyebrow"><span className="dot" />Scenario explorer</div>
+                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>What would +1, +2, +3 APS unlock?</h3>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate('simulator')}>Open Simulator →</button>
+            </div>
+            <div className="grid-3" style={{ gap: '0.75rem', marginBottom: '1rem' }}>
+              {scenarios.map(sc => (
+                <div key={sc.delta} className="card compact" style={{ padding: '0.875rem', borderColor: sc.delta === 1 ? 'hsl(var(--success) / 0.4)' : undefined }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <span className="eyebrow" style={{ fontSize: '0.6875rem' }}>APS {sc.newAps}</span>
+                    <span className="badge success" style={{ fontSize: '0.65rem', padding: '0 4px', height: '1.1rem' }}>+{sc.delta}</span>
+                  </div>
+                  <div style={{ fontWeight: 900, fontSize: '1.5rem', lineHeight: 1, marginTop: '0.375rem', fontVariantNumeric: 'tabular-nums', color: sc.newUnlocked > 0 ? 'hsl(var(--success))' : 'hsl(var(--muted-fg))' }}>
+                    +{sc.newUnlocked}
+                  </div>
+                  <div className="caption" style={{ marginTop: '0.125rem' }}>
+                    programme{sc.newUnlocked !== 1 ? 's' : ''} unlocked
+                    {sc.highFitUnlocked > 0 ? ` · ${sc.highFitUnlocked} high-fit` : ''}
+                  </div>
+                  {sc.markNeeded && sc.subjectName && (
+                    <div className="caption" style={{ marginTop: '0.375rem', fontSize: '0.7rem', color: 'hsl(var(--muted-fg))' }}>
+                      Raise {sc.subjectName} → {sc.markNeeded}%
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            {nearMissProgs.length > 0 && (
+              <div>
+                <div className="caption" style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Near-miss programmes (within 3 APS points):</div>
+                <div className="stack-2">
+                  {nearMissProgs.map(p => (
+                    <div key={p.id} className="row-between" style={{ fontSize: '0.8125rem', padding: '0.5rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                      <div>
+                        <span style={{ fontWeight: 600 }}>{p.name}</span>
+                        <span className="caption" style={{ marginLeft: '0.5rem' }}>{p.uni.split(' ').slice(0, 3).join(' ')}</span>
+                      </div>
+                      <div className="row" style={{ gap: '0.5rem' }}>
+                        <span className="badge destructive" style={{ fontSize: '0.65rem' }}>Need APS {p.aps}</span>
+                        <span className="caption">Gap: {p.aps - userAps}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Lower 2×2 */}
       <div className="grid-2" style={{ marginTop: '1.25rem' }}>
         <div className="card">
@@ -475,13 +550,20 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
           </div>
           <div className="stack-2">
             {careerProbs.map(({ name, score }) => (
-              <div key={name} className="progress-row">
-                <span className="label">{name}</span>
-                <div className={`meter ${score >= 80 ? 'success' : score >= 65 ? 'primary' : 'accent'}`}>
+              <button
+                key={name}
+                className="progress-row"
+                style={{ background: 'none', border: 'none', padding: 0, cursor: onOpenCareer ? 'pointer' : 'default', textAlign: 'left', width: '100%' }}
+                onClick={() => onOpenCareer?.(name)}
+                title={onOpenCareer ? `Open ${name} detail` : undefined}
+              >
+                <span className="label" style={{ flex: 1 }}>{name}</span>
+                <div className={`meter ${score >= 80 ? 'success' : score >= 65 ? 'primary' : 'accent'}`} style={{ flex: 3 }}>
                   <i style={{ width: `${score}%` }} />
                 </div>
                 <span className="val">{score}</span>
-              </div>
+                {onOpenCareer && <span className="caption" style={{ marginLeft: '0.375rem', color: 'hsl(var(--muted-fg))' }}>→</span>}
+              </button>
             ))}
             {!psychProfile && (
               <div className="caption" style={{ marginTop: '0.375rem', color: 'hsl(var(--warning))' }}>
@@ -515,28 +597,48 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
         </div>
 
         <div className="card">
-          <div className="eyebrow"><span className="dot" />Future-You · 2031</div>
-          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>If you stay on the highest-fit path</h3>
-          <div className="stack-2" style={{ marginTop: '0.875rem' }}>
-            <div className="stat-pair">
-              <div className="l">Likely role</div>
-              <div className="v">{topCareer ? topCareer.name : 'Data Scientist'}</div>
-            </div>
-            <div className="stat-pair">
-              <div className="l">Median salary</div>
-              <div className="v">
-                {topCareer?.salary ? `${fmtR(topCareer.salary)} / mo` : 'R\u00A041,200 / mo'}
+          <div className="eyebrow"><span className="dot" />Future-You · {futureYear}</div>
+          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>5-year salary trajectory on the highest-fit path</h3>
+          {(() => {
+            const medianSalary = topCareer?.salary ?? 41200;
+            const growthPct = topCareer?.growth
+              ? parseFloat(topCareer.growth.replace(/[^0-9.-]/g, '')) / 100
+              : 0.18;
+            const stages = [
+              { label: 'Graduate entry', yr: 1, salary: Math.round(medianSalary * 0.72) },
+              { label: 'Junior role',    yr: 2, salary: Math.round(medianSalary * 0.88) },
+              { label: 'Mid-level',      yr: 3, salary: Math.round(medianSalary * 1.0) },
+              { label: 'Senior / Spec.', yr: 5, salary: Math.round(medianSalary * (1 + growthPct * 2)) },
+            ];
+            const maxSalary = stages[stages.length - 1].salary;
+            return (
+              <div className="stack-2" style={{ marginTop: '0.875rem' }}>
+                {stages.map(s => (
+                  <div key={s.label}>
+                    <div className="row-between" style={{ marginBottom: '0.25rem' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.8125rem' }}>Yr {s.yr} · {s.label}</span>
+                      <span style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums', fontSize: '0.875rem' }}>{fmtR(s.salary)}/mo</span>
+                    </div>
+                    <div className="meter success">
+                      <i style={{ width: `${Math.round((s.salary / maxSalary) * 100)}%` }} />
+                    </div>
+                  </div>
+                ))}
+                <div className="stat-pair" style={{ marginTop: '0.25rem' }}>
+                  <div className="l">Career</div>
+                  <div className="v">{topCareer ? topCareer.name : 'Data Scientist'}</div>
+                </div>
+                <div className="stat-pair">
+                  <div className="l">Market growth</div>
+                  <div className="v">{topCareer?.growth ?? '+18%'}/yr · {topCareer?.demand ?? 'High'} demand</div>
+                </div>
               </div>
-            </div>
-            <div className="stat-pair">
-              <div className="l">Industry growth</div>
-              <div className="v">{topCareer?.growth ? `${topCareer.growth} / yr` : '+18% / yr'}</div>
-            </div>
-          </div>
+            );
+          })()}
           <div className="caption" style={{ marginTop: '0.75rem' }}>
             {psychProfile
-              ? `Derived from your RIASEC profile + capability graph. Match score: ${topCareer?.score ?? '—'}/100.`
-              : 'Based on labour-market data + your capability graph + 12 generated scenarios.'}
+              ? `Derived from RIASEC profile + capability graph. Match: ${topCareer?.score ?? '—'}/100. SA salary medians.`
+              : 'SA market salary trajectory. Complete your profile to personalise to your top career.'}
           </div>
         </div>
 

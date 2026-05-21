@@ -9,10 +9,13 @@ export async function refreshDocumentUrl(
   if (!auth.ok) return { error: auth.error };
   const { supabase } = auth;
 
-  // Fetch the storage_path for this doc
+  const { user } = auth;
+
+  // Fetch the storage_path for this doc — scoped to the authenticated user
   const { data: doc, error: fetchError } = await supabase
     .from('user_documents')
     .select('storage_path')
+    .eq('user_id', user.id)
     .eq('doc_type', docType)
     .single();
 

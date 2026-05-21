@@ -212,6 +212,14 @@ export default function CareerComparePage({ compareItems, onClear, navigate, psy
                     <p className="body-text" style={{ fontSize: '0.75rem', margin: 0, lineHeight: 1.5 }}>{c.why}</p>
                   )),
                 },
+                {
+                  label: 'Scarce skill',
+                  cells: careers.map(c => (
+                    c.scarce_skill
+                      ? <span className="badge accent" style={{ fontSize: '0.625rem' }}>Yes</span>
+                      : <span className="caption">No</span>
+                  )),
+                },
               ]}
             />
           )}
@@ -265,6 +273,15 @@ export default function CareerComparePage({ compareItems, onClear, navigate, psy
                   label: 'Demand',
                   cells: progs.map(p => (
                     <span className={`badge ${p.demand === 'High' ? 'success' : p.demand === 'Low' ? 'destructive' : 'warning'}`}>{p.demand}</span>
+                  )),
+                },
+                {
+                  label: 'Total cost',
+                  cells: progs.map(p => (
+                    <div>
+                      <span style={{ fontWeight: 700 }}>{fmtR(p.fees * p.dur)}</span>
+                      <div className="caption" style={{ fontSize: '0.6875rem' }}>{p.dur} yr × {fmtR(p.fees)}</div>
+                    </div>
                   )),
                 },
               ]}
@@ -349,14 +366,77 @@ export default function CareerComparePage({ compareItems, onClear, navigate, psy
             />
           )}
 
-          {/* AI commentary */}
+          {/* Dynamic verdict */}
           <div className="card">
-            <div className="eyebrow"><span className="dot" />How to read this comparison</div>
-            <p className="body-text" style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
-              Match and fit scores are composite: academic readiness × capability alignment × market signal.
-              Salaries and fees are SA medians. Acceptance rates reflect the most recent published cohort data.
-              Use the Simulator to see how improving a subject mark shifts your position relative to these options.
-            </p>
+            <div className="eyebrow"><span className="dot" />Comparison verdict</div>
+            <div className="stack" style={{ marginTop: '0.75rem', gap: '0.75rem' }}>
+              {careers.length > 1 && (() => {
+                const top = [...careers].sort((a, b) => b.match - a.match)[0];
+                const highestSalary = [...careers].sort((a, b) => b.salary - a.salary)[0];
+                const growthLeader = [...careers].sort((a, b) => parseFloat(b.growth) - parseFloat(a.growth))[0];
+                const scarceCount = careers.filter(c => c.scarce_skill).length;
+                return (
+                  <div style={{ fontSize: '0.875rem', lineHeight: 1.65 }}>
+                    <strong>Careers:</strong>{' '}
+                    <strong>{top.name}</strong> has your highest match score ({top.match}/100).{' '}
+                    {highestSalary.name !== top.name
+                      ? <><strong>{highestSalary.name}</strong> leads on salary at {fmtR(highestSalary.salary)}/mo.</>
+                      : <><strong>{top.name}</strong> also leads on salary at {fmtR(top.salary)}/mo.</>
+                    }{' '}
+                    {growthLeader.name !== highestSalary.name
+                      ? <><strong>{growthLeader.name}</strong> has the strongest 10-year growth trajectory ({growthLeader.growth}).</>
+                      : null
+                    }{' '}
+                    {scarceCount > 0 && <>{scarceCount} of {careers.length} {scarceCount === 1 ? 'is' : 'are'} a government-designated scarce skill — bursary priority is higher.</>}
+                  </div>
+                );
+              })()}
+              {progs.length > 1 && (() => {
+                const cheapest = [...progs].sort((a, b) => a.fees - b.fees)[0];
+                const bestFit  = [...progs].sort((a, b) => b.fit  - a.fit)[0];
+                const totalCosts = progs.map(p => ({ name: p.name, total: p.fees * p.dur }));
+                const cheapestTotal = totalCosts.sort((a, b) => a.total - b.total)[0];
+                return (
+                  <div style={{ fontSize: '0.875rem', lineHeight: 1.65 }}>
+                    <strong>Programmes:</strong>{' '}
+                    <strong>{bestFit.name}</strong> has the highest fit score ({bestFit.fit}/100).{' '}
+                    <strong>{cheapest.name}</strong> is the most affordable at {fmtR(cheapest.fees)}/yr
+                    {cheapestTotal.name !== cheapest.name
+                      ? `, though ${cheapestTotal.name} has the lowest total cost over its full duration (${fmtR(cheapestTotal.total)}).`
+                      : ` (${fmtR(cheapestTotal.total)} total over ${progs.find(p => p.name === cheapest.name)?.dur ?? '?'} years).`
+                    }
+                  </div>
+                );
+              })()}
+              {unis.length > 1 && (() => {
+                const topRanked = [...unis].sort((a, b) => a.rank - b.rank)[0];
+                const mostAffordable = [...unis].sort((a, b) => a.fees - b.fees)[0];
+                const mostOpen = [...unis].sort((a, b) => b.accept - a.accept)[0];
+                return (
+                  <div style={{ fontSize: '0.875rem', lineHeight: 1.65 }}>
+                    <strong>Universities:</strong>{' '}
+                    <strong>{topRanked.name ?? topRanked.short}</strong> ranks highest nationally (#{topRanked.rank}).{' '}
+                    <strong>{mostAffordable.short}</strong> is the most affordable at {fmtR(mostAffordable.fees)}/yr.{' '}
+                    <strong>{mostOpen.short}</strong> has the highest acceptance rate ({mostOpen.accept}%).
+                  </div>
+                );
+              })()}
+              {scholars.length > 1 && (() => {
+                const largest = [...scholars].sort((a, b) => b.amount - a.amount)[0];
+                const mostCompetitive = [...scholars].sort((a, b) => a.match - b.match)[0];
+                return (
+                  <div style={{ fontSize: '0.875rem', lineHeight: 1.65 }}>
+                    <strong>Scholarships:</strong>{' '}
+                    <strong>{largest.name}</strong> offers the highest value ({fmtR(largest.amount)}/yr).{' '}
+                    <strong>{mostCompetitive.name}</strong> is the most competitive based on your current profile — focus preparation there first.
+                  </div>
+                );
+              })()}
+              <div className="caption" style={{ paddingTop: '0.5rem', borderTop: '1px solid hsl(var(--border))' }}>
+                Match and fit scores are composite: academic readiness × capability alignment × market signal.
+                Use the Simulator to see how improving a subject mark shifts your position.
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -1,7 +1,8 @@
 'use client';
 
-import type { Route, Subject, Programme, DbApplication, StrategicScoreData, PsychProfileData, CapabilityData, Deadline } from '@/lib/types';
-import { PROGRAMMES, APPS, DEADLINES } from '@/lib/data';
+import { useState } from 'react';
+import type { Route, Subject, Programme, DbApplication, StrategicScoreData, PsychProfileData, CapabilityData, Deadline, Career, DbCustomDeadline, DbDocument } from '@/lib/types';
+import { PROGRAMMES, DEADLINES } from '@/lib/data';
 import { calcAPS, fmtR, apsPoints } from '@/lib/utils';
 import AiInsightCard from '@/components/AiInsightCard';
 
@@ -27,7 +28,8 @@ function buildFocusItems(
   userAps: number,
   savedProgrammeIds: string[],
   householdIncome?: number,
-  capabilityData?: import('@/lib/types').CapabilityData | null,
+  capabilityData?: CapabilityData | null,
+  documents?: DbDocument[],
 ): Array<{ icon: string; text: string; detail?: string; urgency: 'high' | 'med' | 'low'; route: Route }> {
   const items: Array<{ icon: string; text: string; detail?: string; urgency: 'high' | 'med' | 'low'; route: Route }> = [];
   const today = new Date();
@@ -86,6 +88,17 @@ function buildFocusItems(
     });
   }
 
+  // 3b. Documents missing — applications exist but no docs uploaded
+  if (applications.length > 0 && documents !== undefined && documents.length === 0 && items.length < 3) {
+    items.push({
+      icon: '📎',
+      text: 'No documents uploaded yet',
+      detail: 'Universities require ID, matric certificate, and proof of residence. Upload now to avoid last-minute delays.',
+      urgency: 'med',
+      route: 'documents',
+    });
+  }
+
   // 4. NSFAS eligibility — prompt to apply if income qualifies
   const nsfasEligible = householdIncome === undefined || householdIncome <= 350_000;
   if (nsfasEligible && applications.length === 0 && items.length < 3) {
@@ -98,9 +111,33 @@ function buildFocusItems(
     });
   }
 
-  // 5. Saved programmes reminder
+  // 5. Funding gap for saved programmes (above NSFAS threshold)
   const savedCount = savedProgrammeIds.length;
-  if (savedCount > 0 && items.length < 3) {
+  const aboveNsfas = householdIncome !== undefined && householdIncome > 350_000;
+  if (savedCount > 0 && aboveNsfas && householdIncome! <= 600_000 && items.length < 3) {
+    const savedProgs = programmes.filter(p => savedProgrammeIds.includes(p.id));
+    const bursary = computeBursary(userAps);
+    const topGap = savedProgs
+      .map(p => ({ p, gap: Math.max(0, Math.round(p.fees * 1.8) - bursary - 18_000) }))
+      .sort((a, b) => b.gap - a.gap)[0];
+    if (topGap && topGap.gap > 20_000) {
+      items.push({
+        icon: '💳',
+        text: `${fmtR(topGap.gap)} funding gap on ${topGap.p.name.split(' ').slice(0, 3).join(' ')}`,
+        detail: `Above NSFAS threshold — merit bursaries and targeted scholarships needed to close this gap.`,
+        urgency: 'med',
+        route: 'scholarships',
+      });
+    } else if (savedCount > 0 && items.length < 3) {
+      items.push({
+        icon: '★',
+        text: `${savedCount} saved programme${savedCount !== 1 ? 's' : ''} — verify deadlines`,
+        detail: 'Application windows close at different times. Check each saved programme now.',
+        urgency: 'low',
+        route: 'programmes',
+      });
+    }
+  } else if (savedCount > 0 && items.length < 3) {
     items.push({
       icon: '★',
       text: `${savedCount} saved programme${savedCount !== 1 ? 's' : ''} — verify deadlines`,
@@ -130,11 +167,16 @@ interface HomePageProps {
   savedProgrammeIds?: string[];
   psychProfile?: PsychProfileData | null;
   capabilityData?: CapabilityData | null;
+  careers?: Career[];
+  liveCareerMatches?: Record<string, number>;
+  customDeadlines?: DbCustomDeadline[];
+  documents?: DbDocument[];
+  onOpenCareer?: (name: string) => void;
 }
 
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-function buildDeadlines(applications: DbApplication[]): Deadline[] {
+function buildDeadlines(applications: DbApplication[], customDeadlines: DbCustomDeadline[] = []): Deadline[] {
   const now = Date.now();
   const appDeadlines: (Deadline & { ts: number })[] = applications
     .filter(a => a.deadline)
@@ -156,15 +198,31 @@ function buildDeadlines(applications: DbApplication[]): Deadline[] {
     })
     .sort((a, b) => a.ts - b.ts);
 
-  // Fill remaining slots with static deadlines (future ones only)
-  const staticFuture = DEADLINES.filter(d => {
-    const year = new Date().getFullYear();
-    const ts = new Date(`${d.d} ${d.m} ${year}`).getTime();
-    return ts >= now;
+  const customItems: (Deadline & { ts: number })[] = customDeadlines.map(c => {
+    const date = new Date(c.date);
+    const ts = date.getTime();
+    const daysLeft = Math.ceil((ts - now) / 86_400_000);
+    const isPast = daysLeft < 0;
+    const isUrgent = daysLeft >= 0 && daysLeft <= 7;
+    return {
+      ts,
+      d: date.getDate(),
+      m: MONTH_ABBR[date.getMonth()],
+      t: c.title,
+      sub: isPast ? 'Deadline passed' : daysLeft === 0 ? 'Today' : `${daysLeft} day${daysLeft === 1 ? '' : 's'}`,
+      tag: isPast ? 'destructive' : isUrgent ? 'warning' : '',
+      tagL: isPast ? 'Overdue' : isUrgent ? 'Soon' : 'Open',
+    };
   });
 
-  const merged = [...appDeadlines, ...staticFuture];
-  return merged.slice(0, 3);
+  // Fill remaining slots with static deadlines (future ones only)
+  const year = new Date().getFullYear();
+  const staticFuture: (Deadline & { ts: number })[] = DEADLINES
+    .map(d => ({ ...d, ts: new Date(`${d.d} ${d.m} ${year}`).getTime() }))
+    .filter(d => d.ts >= now);
+
+  const merged = [...appDeadlines, ...customItems, ...staticFuture].sort((a, b) => a.ts - b.ts);
+  return merged.slice(0, 10);
 }
 
 function statusToBadge(status: string): string {
@@ -192,7 +250,8 @@ function statusToStages(status: string): string[] {
   return ['done', 'active', '', ''];
 }
 
-export default function HomePage({ subjects, navigate, programmes, applications = [], strategicScore, householdIncome, savedProgrammeIds = [], psychProfile, capabilityData }: HomePageProps) {
+export default function HomePage({ subjects, navigate, programmes, applications = [], strategicScore, householdIncome, savedProgrammeIds = [], psychProfile, capabilityData, careers, liveCareerMatches, customDeadlines, documents, onOpenCareer }: HomePageProps) {
+  const [showAllDeadlines, setShowAllDeadlines] = useState(false);
   const aps = calcAPS(subjects);
   const allProgs = programmes ?? PROGRAMMES;
   const eligible = allProgs.filter(p => p.aps <= aps);
@@ -207,7 +266,15 @@ export default function HomePage({ subjects, navigate, programmes, applications 
   const fundingSourceCount = (nsfasAmt > 0 ? 1 : 0) + (bursaryAmt > 0 ? 1 : 0) + 1;
   const fundingEligible = householdIncome === undefined || householdIncome <= 600_000;
 
-  const rawFocuses = buildFocusItems(applications, subjects, allProgs, aps, savedProgrammeIds, householdIncome, capabilityData);
+  // Top career recommendations (only when APS is set and matches are available)
+  const topCareers = liveCareerMatches && careers && aps > 0
+    ? [...careers]
+        .map(c => ({ ...c, score: liveCareerMatches[c.name] ?? c.match }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3)
+    : [];
+
+  const rawFocuses = buildFocusItems(applications, subjects, allProgs, aps, savedProgrammeIds, householdIncome, capabilityData, documents);
   // Pad to 3 items with a fallback if needed
   const focusFallbacks: typeof rawFocuses = [
     { icon: '📚', text: 'Re-rank programmes after subject update', urgency: 'low', route: 'simulator' },
@@ -216,7 +283,7 @@ export default function HomePage({ subjects, navigate, programmes, applications 
   ];
   const focuses = [...rawFocuses, ...focusFallbacks].slice(0, 3);
 
-  const deadlineItems = buildDeadlines(applications);
+  const deadlineItems = buildDeadlines(applications, customDeadlines);
 
   return (
     <div className="page-anim">
@@ -284,6 +351,44 @@ export default function HomePage({ subjects, navigate, programmes, applications 
       <div className="home-grid stack-3">
         {/* Left column */}
         <div className="stack-3">
+          {/* Career recommendations strip — shown once APS is entered */}
+          {topCareers.length > 0 && (
+            <div className="card">
+              <div className="row-between" style={{ marginBottom: '0.75rem' }}>
+                <div>
+                  <div className="eyebrow"><span className="dot" />Recommended for you</div>
+                  <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Your top career matches</h3>
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => navigate('careers')}>Explore all →</button>
+              </div>
+              <div className="grid-3" style={{ gap: '0.625rem' }}>
+                {topCareers.map(c => (
+                  <button
+                    key={c.name}
+                    className="card compact"
+                    style={{ textAlign: 'left', cursor: 'pointer', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}
+                    onClick={() => onOpenCareer ? onOpenCareer(c.name) : navigate('careers')}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: '0.8125rem', lineHeight: 1.3 }}>{c.name}</div>
+                    <div className="meter sm" style={{ width: '100%', height: 4 }}>
+                      <i style={{ width: `${c.score}%` }} />
+                    </div>
+                    <div className="row-between">
+                      <span className="caption">{c.score}% match</span>
+                      <span className={`badge ${c.demand === 'High' ? 'success' : 'warning'}`} style={{ height: '1.125rem', fontSize: '0.5625rem' }}>
+                        {c.demand}
+                      </span>
+                    </div>
+                    <div className="row-between">
+                      <span className="caption" style={{ color: 'hsl(var(--muted-fg))' }}>{fmtR(c.salary)}/mo</span>
+                      <span className="caption" style={{ color: 'hsl(var(--success))', fontWeight: 600 }}>{c.growth}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Focus */}
           <div className="card">
             <div className="row-between" style={{ marginBottom: '0.875rem' }}>
@@ -309,7 +414,7 @@ export default function HomePage({ subjects, navigate, programmes, applications 
                     className={`btn ${x.urgency === 'high' ? 'btn-primary' : i === 0 ? 'btn-primary' : 'btn-outline'} btn-sm`}
                     onClick={() => navigate(x.route)}
                   >
-                    Open
+                    {x.urgency === 'high' ? 'Act now →' : i === 0 ? 'Open →' : 'View →'}
                   </button>
                 </div>
               ))}
@@ -318,18 +423,32 @@ export default function HomePage({ subjects, navigate, programmes, applications 
 
           {/* Pipeline */}
           {(() => {
-            const hasRealApps = applications.length > 0;
-            const accepted = hasRealApps ? applications.filter(a => ['accepted','offer'].includes(a.status.toLowerCase())).length : 1;
-            const pending   = hasRealApps ? applications.filter(a => ['pending','submitted'].includes(a.status.toLowerCase())).length : 1;
-            const review    = hasRealApps ? applications.filter(a => !['accepted','offer','pending','submitted','rejected','declined'].includes(a.status.toLowerCase())).length : 1;
-            const rejected  = hasRealApps ? applications.filter(a => ['rejected','declined'].includes(a.status.toLowerCase())).length : 1;
-            const count     = hasRealApps ? applications.length : APPS.length;
+            const hasApps = applications.length > 0;
+            if (!hasApps) {
+              return (
+                <div className="card" style={{ textAlign: 'center', padding: '2rem 1.5rem' }}>
+                  <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>📋</div>
+                  <div style={{ fontWeight: 700 }}>No applications yet</div>
+                  <p className="caption" style={{ marginTop: '0.375rem', maxWidth: '22rem', margin: '0.375rem auto 0' }}>
+                    Explore programmes that match your APS, then track your applications here.
+                  </p>
+                  <div className="row" style={{ justifyContent: 'center', gap: '0.5rem', marginTop: '1rem' }}>
+                    <button className="btn btn-primary btn-sm" onClick={() => navigate('programmes')}>Explore programmes →</button>
+                    <button className="btn btn-outline btn-sm" onClick={() => navigate('applications')}>Add manually →</button>
+                  </div>
+                </div>
+              );
+            }
+            const accepted = applications.filter(a => ['accepted','offer'].includes(a.status.toLowerCase())).length;
+            const pending   = applications.filter(a => ['pending','submitted'].includes(a.status.toLowerCase())).length;
+            const review    = applications.filter(a => !['accepted','offer','pending','submitted','rejected','declined'].includes(a.status.toLowerCase())).length;
+            const rejected  = applications.filter(a => ['rejected','declined'].includes(a.status.toLowerCase())).length;
             return (
               <div className="card">
                 <div className="row-between" style={{ marginBottom: '0.875rem' }}>
                   <div>
                     <div className="eyebrow"><span className="dot" />Application pipeline</div>
-                    <h3 className="subheading" style={{ marginTop: '0.25rem', cursor: 'pointer' }} onClick={() => navigate('applications')}>{count} active →</h3>
+                    <h3 className="subheading" style={{ marginTop: '0.25rem', cursor: 'pointer' }} onClick={() => navigate('applications')}>{applications.length} active →</h3>
                   </div>
                   <div className="row">
                     {accepted > 0 && <span className="badge success">{accepted} accepted</span>}
@@ -339,7 +458,7 @@ export default function HomePage({ subjects, navigate, programmes, applications 
                   </div>
                 </div>
                 <div className="stack">
-                  {hasRealApps ? applications.map(a => (
+                  {applications.map(a => (
                     <div className="pipe-row" key={a.id}>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{a.institution_name} · {a.programme_name}</div>
@@ -355,19 +474,6 @@ export default function HomePage({ subjects, navigate, programmes, applications 
                       </div>
                       <span className={`badge ${statusToBadge(a.status)}`}>{statusToLabel(a.status)}</span>
                     </div>
-                  )) : APPS.map(a => (
-                    <div className="pipe-row" key={a.uni}>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{a.uni}</div>
-                        <div className="caption" style={{ marginTop: 2 }}>{a.meta}</div>
-                      </div>
-                      <div className="pipe-stages">
-                        {a.stages.map((s, i) => (
-                          <span key={i} className={`stage${s ? ` ${s}` : ''}`} />
-                        ))}
-                      </div>
-                      <span className={`badge ${a.status}`}>{a.label}</span>
-                    </div>
                   ))}
                 </div>
               </div>
@@ -379,14 +485,14 @@ export default function HomePage({ subjects, navigate, programmes, applications 
             <div className="row-between" style={{ marginBottom: '0.875rem' }}>
               <div>
                 <div className="eyebrow"><span className="dot" />Top matched programmes</div>
-                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Personalised by capability + market fit</h3>
+                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Highest fit scores you qualify for now</h3>
               </div>
               <button className="btn btn-ghost btn-sm" onClick={() => navigate('programmes')}>
                 All {eligible.length} →
               </button>
             </div>
             <div className="stack">
-              {eligible.slice(0, 4).map(p => (
+              {[...eligible].sort((a, b) => b.fit - a.fit).slice(0, 4).map(p => (
                 <button
                   key={p.id}
                   className="prog-row"
@@ -409,6 +515,56 @@ export default function HomePage({ subjects, navigate, programmes, applications 
               ))}
             </div>
           </div>
+
+          {/* Near-miss programmes */}
+          {(() => {
+            const nearMiss = [...allProgs]
+              .filter(p => p.aps > aps && p.aps <= aps + 4)
+              .sort((a, b) => (a.aps - aps) - (b.aps - aps) || b.fit - a.fit)
+              .slice(0, 3);
+            if (nearMiss.length === 0) return null;
+            return (
+              <div className="card">
+                <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+                  <div>
+                    <div className="eyebrow"><span className="dot" />Within reach</div>
+                    <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
+                      Programmes unlocked by raising 1–4 APS points
+                    </h3>
+                  </div>
+                  <button className="btn btn-ghost btn-sm" onClick={() => navigate('simulator')}>Simulate →</button>
+                </div>
+                <div className="stack">
+                  {nearMiss.map(p => {
+                    const gap = p.aps - aps;
+                    return (
+                      <button
+                        key={p.id}
+                        className="prog-row"
+                        onClick={() => navigate('programmes', p.id)}
+                        style={{ opacity: 0.9 }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.name}</div>
+                          <div className="caption" style={{ marginTop: 2 }}>
+                            {p.uni} · APS {p.aps} · {fmtR(p.fees)} / yr
+                          </div>
+                        </div>
+                        <span className="badge warning">+{gap} APS</span>
+                        <div className="fit">
+                          <span className="n">{p.fit}</span>
+                          <span className="caption">fit</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="caption" style={{ marginTop: '0.625rem', paddingTop: '0.625rem', borderTop: '1px solid hsl(var(--border))' }}>
+                  Use the APS Simulator to see exactly which subject marks need to move.
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Right column */}
@@ -458,10 +614,15 @@ export default function HomePage({ subjects, navigate, programmes, applications 
 
           {/* Deadlines */}
           <div className="card">
-            <div className="eyebrow"><span className="dot" />Deadlines</div>
-            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Next 14 days</h3>
-            <div className="stack" style={{ marginTop: '0.875rem' }}>
-              {deadlineItems.map(d => (
+            <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+              <div>
+                <div className="eyebrow"><span className="dot" />Deadlines</div>
+                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Upcoming dates</h3>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate('deadlines')}>View all →</button>
+            </div>
+            <div className="stack">
+              {(showAllDeadlines ? deadlineItems : deadlineItems.slice(0, 3)).map(d => (
                 <div className="deadline" key={d.t}>
                   <div className="dl-date">
                     <span className="d">{d.d}</span>
@@ -475,6 +636,15 @@ export default function HomePage({ subjects, navigate, programmes, applications 
                 </div>
               ))}
             </div>
+            {deadlineItems.length > 3 && (
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ width: '100%', marginTop: '0.625rem' }}
+                onClick={() => setShowAllDeadlines(s => !s)}
+              >
+                {showAllDeadlines ? 'Show less' : `Show ${deadlineItems.length - 3} more deadlines`}
+              </button>
+            )}
           </div>
 
           <AiInsightCard

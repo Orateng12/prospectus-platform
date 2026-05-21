@@ -1,10 +1,39 @@
+'use client';
+
+import { useState } from 'react';
 import { PROVINCES } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
+import type { Route } from '@/lib/types';
 
-export default function MapPage() {
+const PROVINCE_NAME_TO_ID: Record<string, string> = {
+  'Gauteng':       'gp',
+  'Western Cape':  'wc',
+  'KwaZulu-Natal': 'kzn',
+  'Eastern Cape':  'ec',
+  'Limpopo':       'lp',
+  'Mpumalanga':    'mp',
+  'North West':    'nw',
+  'Northern Cape': 'nc',
+  'Free State':    'fs',
+};
+
+interface MapPageProps {
+  navigate?: (r: Route) => void;
+  userProvince?: string;
+}
+
+export default function MapPage({ navigate, userProvince }: MapPageProps) {
+  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
   const totalProgs = PROVINCES.reduce((s, p) => s + p.n, 0);
   const sortedByN   = [...PROVINCES].sort((a, b) => b.n - a.n);
   const sortedByFee = [...PROVINCES].sort((a, b) => b.fees - a.fees);
+
+  const homeId = userProvince ? (PROVINCE_NAME_TO_ID[userProvince] ?? null) : null;
+  const homeProv = homeId ? PROVINCES.find(p => p.id === homeId) : PROVINCES.find(p => p.you);
+  const spotlightIds = homeId && !['gp', 'wc', 'kzn'].includes(homeId)
+    ? [homeId, 'gp', 'wc']
+    : ['gp', 'wc', 'kzn'];
+  const spotlightProvs = spotlightIds.map(id => PROVINCES.find(p => p.id === id)).filter(Boolean) as typeof PROVINCES;
 
   return (
     <div className="page-anim">
@@ -20,9 +49,9 @@ export default function MapPage() {
             </p>
           </div>
           <div className="row">
-            <button className="btn btn-outline">Filters</button>
-            <button className="btn btn-outline">Layer: Programmes</button>
-            <button className="btn btn-primary">Plan visits</button>
+            {homeProv && <span className="badge success">Home: {homeProv.name}</span>}
+            <button className="btn btn-outline btn-sm" onClick={() => navigate?.('unis')}>View universities →</button>
+            <button className="btn btn-primary btn-sm" onClick={() => navigate?.('programmes')}>Browse programmes →</button>
           </div>
         </div>
       </div>
@@ -62,21 +91,33 @@ export default function MapPage() {
               {/* Province bubbles */}
               {PROVINCES.map(p => {
                 const r = 16 + Math.sqrt(p.n) * 4;
+                const isSelected = selectedProvince === p.id;
                 return (
-                  <g key={p.id} style={{ cursor: 'pointer' }}>
+                  <g
+                    key={p.id}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setSelectedProvince(isSelected ? null : p.id)}
+                    role="button"
+                    aria-label={`${p.name} — ${p.n} programmes`}
+                  >
                     <circle
                       cx={p.x}
                       cy={p.y}
-                      r={r}
+                      r={r + (isSelected ? 4 : 0)}
                       className="za-bubble"
-                      style={p.you ? { fill: 'hsl(var(--accent))' } : undefined}
+                      style={{
+                        fill: isSelected ? 'hsl(var(--primary))' : (homeId ? p.id === homeId : p.you) ? 'hsl(var(--accent))' : undefined,
+                        stroke: isSelected ? 'hsl(var(--primary))' : undefined,
+                        strokeWidth: isSelected ? 3 : undefined,
+                        transition: 'r 0.15s, fill 0.15s',
+                      }}
                     />
-                    <text x={p.x} y={p.y - 4} className="za-label">{p.n}</text>
+                    <text x={p.x} y={p.y - 4} className="za-label" style={{ fill: isSelected ? 'white' : undefined }}>{p.n}</text>
                     <text
                       x={p.x}
                       y={p.y + 8}
                       className="za-label"
-                      style={{ fontSize: 9, fontWeight: 600, opacity: 0.85 }}
+                      style={{ fontSize: 9, fontWeight: 600, opacity: 0.85, fill: isSelected ? 'white' : undefined }}
                     >
                       {p.id.toUpperCase()}
                     </text>
@@ -84,19 +125,29 @@ export default function MapPage() {
                 );
               })}
 
-              {/* Home ring around Limpopo */}
-              <g transform="translate(560, 120)">
-                <circle
-                  r={44}
-                  fill="none"
-                  stroke="hsl(var(--accent))"
-                  strokeWidth={1.5}
-                  strokeDasharray="4 4"
-                  opacity={0.5}
-                />
-              </g>
+              {homeProv && (
+                <g transform={`translate(${(homeProv as any).x}, ${(homeProv as any).y})`}>
+                  <circle r={44} fill="none" stroke="hsl(var(--accent))" strokeWidth={1.5} strokeDasharray="4 4" opacity={0.5} />
+                </g>
+              )}
             </svg>
           </div>
+          {selectedProvince && (() => {
+            const p = PROVINCES.find(x => x.id === selectedProvince);
+            if (!p) return null;
+            return (
+              <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid hsl(var(--border))', background: 'hsl(var(--muted) / 0.4)' }}>
+                <div className="row-between">
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{p.name}</div>
+                    <div className="caption" style={{ marginTop: '0.125rem' }}>{p.n} programmes · Avg {fmtR(p.fees)}/yr</div>
+                  </div>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setSelectedProvince(null)}>✕</button>
+                </div>
+                <p className="body-text" style={{ marginTop: '0.5rem', fontSize: '0.8125rem', lineHeight: 1.55 }}>{p.intel}</p>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Side panels */}
@@ -121,7 +172,7 @@ export default function MapPage() {
                 >
                   <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>
                     {p.name}
-                    {p.you && (
+                    {(homeId ? p.id === homeId : p.you) && (
                       <span className="badge success" style={{ height: '1rem', fontSize: '0.5625rem', padding: '0 0.3125rem', marginLeft: '0.25rem' }}>
                         Home
                       </span>
@@ -162,9 +213,9 @@ export default function MapPage() {
 
       {/* Province spotlight cards */}
       <div className="grid-3" style={{ marginTop: '1.25rem' }}>
-        {PROVINCES.filter(p => ['gp', 'wc', 'kzn'].includes(p.id)).map(p => (
-          <div className="card" key={p.id}>
-            <div className="eyebrow"><span className="dot" />{p.name}</div>
+        {spotlightProvs.map(p => (
+          <div className="card" key={p.id} style={(homeId ? p.id === homeId : p.you) ? { borderColor: 'hsl(var(--accent) / 0.5)' } : undefined}>
+            <div className="eyebrow"><span className="dot" />{p.name}{(homeId ? p.id === homeId : p.you) && <span className="badge success" style={{ marginLeft: '0.5rem', fontSize: '0.5625rem', height: '1.125rem' }}>Your province</span>}</div>
             <div className="row-between" style={{ marginTop: '0.375rem' }}>
               <h3 className="subheading">{p.n} programmes</h3>
               <div style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
@@ -172,7 +223,7 @@ export default function MapPage() {
               </div>
             </div>
             <p className="body-text" style={{ fontSize: '0.8125rem', marginTop: '0.625rem' }}>{p.intel}</p>
-            <button className="btn btn-outline btn-sm" style={{ marginTop: '0.875rem' }}>
+            <button className="btn btn-outline btn-sm" style={{ marginTop: '0.875rem' }} onClick={() => navigate?.('programmes')}>
               Browse programmes →
             </button>
           </div>

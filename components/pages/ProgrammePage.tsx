@@ -3,10 +3,10 @@
 import { useState, useMemo, useTransition } from 'react';
 import type { Route, Subject, Programme, PsychProfileData, CapabilityData } from '@/lib/types';
 import { PROGRAMMES } from '@/lib/data';
-import { calcAPS, fmtR } from '@/lib/utils';
+import { calcAPS, fmtR, uniToneClass, uniLogoPath } from '@/lib/utils';
 import { scoreCareerMatch } from '@/lib/scoring';
 import { toggleSavedProgramme } from '@/app/actions/toggleSavedProgramme';
-import { saveApplication } from '@/app/actions/saveApplication';
+import AddApplicationModal from '@/components/AddApplicationModal';
 
 interface ProgrammePageProps {
   selectedProg: string;
@@ -17,6 +17,8 @@ interface ProgrammePageProps {
   psychProfile?: PsychProfileData | null;
   capabilityData?: CapabilityData | null;
   userAps?: number;
+  householdIncome?: number;
+  onOpenCareer?: (name: string) => void;
 }
 
 type BadgeVariant = 'success' | 'warning' | 'accent';
@@ -96,16 +98,32 @@ function getCareerCluster(programmeName: string): ClusterCareer[] {
   ];
 }
 
-function uniToneClass(uni: string): string {
-  const u = uni.toLowerCase();
-  if (u.includes('cape town') || u === 'uct') return 'uct';
-  if (u.includes('witwatersrand') || u.includes('wits')) return 'wits';
-  if (u.includes('stellenbosch') || u === 'sun') return 'sun';
-  if (u.includes('pretoria') || u === 'up') return 'up';
-  if (u.includes('ukzn') || u.includes('kwazulu')) return 'ukzn';
-  if (u.includes('cape peninsula') || u.includes('cput')) return 'cput';
-  return 'default-uni';
+const PROGRAMME_EMPLOYERS: Record<string, string[]> = {
+  cs:      ['Takealot', 'Standard Bank', 'Naspers / Prosus', 'Google ZA', 'Investec'],
+  data:    ['Discovery Health', 'Absa', 'Old Mutual', 'DataProphet', 'BCX'],
+  actuar:  ['Old Mutual', 'Sanlam', 'Momentum', 'Discovery', 'PwC Actuarial'],
+  eng:     ['Sasol', 'Eskom', 'Anglo American', 'Murray & Roberts', 'Aurecon'],
+  health:  ['Netcare', 'MediClinic', 'Life Healthcare', 'NHLS', 'Groote Schuur'],
+  finance: ['KPMG', 'Deloitte', 'Rand Merchant Bank', 'Investec', 'Standard Bank'],
+  law:     ['Bowmans', 'ENSafrica', 'Werksmans', 'DLA Piper ZA', 'Legal Aid SA'],
+  edu:     ['WCED', 'GDE', 'IEB schools', 'Curro', 'Spark Schools'],
+  default: ['Discovery', 'Standard Bank', 'Naspers / Prosus', 'Allan Gray', 'Old Mutual'],
+};
+
+function getProgrammeEmployers(programmeName: string): string[] {
+  const n = programmeName.toLowerCase();
+  if (n.includes('computer science') || n.includes('software') || n.includes('ict') || n.includes('information technology')) return PROGRAMME_EMPLOYERS.cs;
+  if (n.includes('data science') || n.includes('data analytics') || n.includes('statistics')) return PROGRAMME_EMPLOYERS.data;
+  if (n.includes('actuarial')) return PROGRAMME_EMPLOYERS.actuar;
+  if (n.includes('engineering') || n.includes('mech') || n.includes('civil') || n.includes('electrical') || n.includes('chemical')) return PROGRAMME_EMPLOYERS.eng;
+  if (n.includes('medicine') || n.includes('mbchb') || n.includes('nursing') || n.includes('pharmacy') || n.includes('health')) return PROGRAMME_EMPLOYERS.health;
+  if (n.includes('finance') || n.includes('accounting') || n.includes('bcom') || n.includes('economics')) return PROGRAMME_EMPLOYERS.finance;
+  if (n.includes('law') || n.includes('llb')) return PROGRAMME_EMPLOYERS.law;
+  if (n.includes('education') || n.includes('teaching') || n.includes('pgce')) return PROGRAMME_EMPLOYERS.edu;
+  return PROGRAMME_EMPLOYERS.default;
 }
+
+
 
 const PATHWAY_LABELS: Record<string, string> = {
   direct:     'Direct entry',
@@ -116,10 +134,12 @@ const PATHWAY_LABELS: Record<string, string> = {
 
 /* ─── Detail view ─────────────────────────────────────────────── */
 function ProgDetail({
-  p, aps, navigate, onBack, isSaved, onToggleSave, onApply, applyState, psychProfile, capabilityData,
+  p, aps, subjects, navigate, onBack, isSaved, onToggleSave, onApply, applyState, psychProfile, capabilityData,
+  householdIncome, onOpenCareer,
 }: {
   p: Programme;
   aps: number;
+  subjects: Subject[];
   navigate: (r: Route) => void;
   onBack: () => void;
   isSaved: boolean;
@@ -128,19 +148,46 @@ function ProgDetail({
   applyState: 'idle' | 'pending' | 'done' | 'exists';
   psychProfile?: PsychProfileData | null;
   capabilityData?: CapabilityData | null;
+  householdIncome?: number;
+  onOpenCareer?: (name: string) => void;
 }) {
-  const structure = [
-    { y: 'Year 1', t: 'Foundations',    d: 'Core theory, introduction to the discipline, one minor' },
-    { y: 'Year 2', t: 'Core modules',   d: 'Specialisation subjects, practical applications, two electives' },
-    { y: 'Year 3', t: 'Specialisation', d: 'Capstone project + advanced electives in chosen track' },
+  const durYears = p.dur ?? 3;
+  const YEAR_LABELS = ['Year 1', 'Year 2', 'Year 3', 'Year 4'];
+  const YEAR_TITLES = ['Foundations', 'Core modules', 'Specialisation', 'Honours / Professional'];
+  const YEAR_DESCS = [
+    'Core theory, introduction to the discipline, introductory mathematics and communication modules',
+    'Specialisation subjects, practical applications, two electives in your chosen track',
+    `Capstone project + advanced electives in chosen track${durYears > 3 ? '; preparation for professional practice' : ''}`,
+    'Honours year / professional practice component; industry placement or research thesis',
   ];
+  const structure = Array.from({ length: Math.min(durYears, 4) }, (_, i) => ({
+    y: YEAR_LABELS[i],
+    t: YEAR_TITLES[i],
+    d: YEAR_DESCS[i],
+  }));
 
-  const requirements = [
-    { name: 'Mathematics / Maths Literacy', req: p.aps >= 35 ? 60 : 50, mark: 78 },
-    { name: 'English Home / First Add. Lang.', req: 50, mark: 62 },
-    { name: 'Relevant NSC subject',           req: 50, mark: 71 },
-    { name: 'NBT / institutional test',       req: 55, mark: null as number | null },
-  ];
+  // Build subject requirements from programme data where available
+  const subjectMarks = Object.fromEntries(subjects.map(s => [s.name.toLowerCase(), s.mark]));
+  const requiredFromProg = (p.requiredSubjects ?? []).map(req => {
+    const matchedMark = Object.entries(subjectMarks).find(([n]) => n.includes(req.toLowerCase()))?.[1] ?? null;
+    return {
+      name: req,
+      req: p.aps >= 38 ? 60 : 50,
+      mark: matchedMark,
+    };
+  });
+  const requirements = requiredFromProg.length > 0
+    ? [
+        ...requiredFromProg,
+        { name: 'English Home / First Add. Lang.', req: 50, mark: subjectMarks['english home language'] ?? subjectMarks['english first additional'] ?? null },
+        { name: 'NBT / institutional test', req: 55, mark: null as number | null },
+      ]
+    : [
+        { name: 'Mathematics / Maths Literacy', req: p.aps >= 35 ? 60 : 50, mark: subjectMarks['mathematics'] ?? subjectMarks['mathematical literacy'] ?? null },
+        { name: 'English Home / First Add. Lang.', req: 50, mark: subjectMarks['english home language'] ?? subjectMarks['english first additional'] ?? null },
+        { name: 'Relevant NSC subject', req: 50, mark: null as number | null },
+        { name: 'NBT / institutional test', req: 55, mark: null as number | null },
+      ];
 
   const cluster = getCareerCluster(p.name);
   const careerPaths = cluster.map(({ name, badgeClass }) => {
@@ -201,19 +248,35 @@ function ProgDetail({
       <div className="prog-hero">
         <div>
           <h3 className="subheading">
-            Why this is a {p.fit >= 80 ? 'strong' : 'moderate'} match
+            Why this is a {p.fit >= 80 ? 'strong' : p.fit >= 60 ? 'moderate' : 'stretch'} match
           </h3>
           <p className="body-text" style={{ marginTop: '0.5rem' }}>
-            {p.fit >= 80
-              ? <>Your Analytical and Numerical capability scores sit well above the median for
-                  graduates of this programme. APS of <strong>{aps}</strong> exceeds the{' '}
-                  <strong>{p.aps}</strong> requirement by {aps - p.aps} points.
-                  Labour market signal is <strong>{p.demand.toLowerCase()}</strong> demand.</>
-              : <>Your APS of <strong>{aps}</strong>{' '}
-                  {aps >= p.aps ? 'meets the requirement of' : 'falls short of'}{' '}
-                  <strong>{p.aps}</strong>. Capability fit is mixed — verbal score may need lifting via
-                  the foundation pathway. Worth a conversation with the faculty.</>
-            }
+            {(() => {
+              const surplus = aps - p.aps;
+              const apsNote = surplus >= 5
+                ? <>APS <strong>{aps}</strong> is well above the {p.aps} entry threshold — a strong academic signal for this programme.</>
+                : surplus >= 0
+                ? <>APS <strong>{aps}</strong> meets the {p.aps} requirement.</>
+                : <>APS <strong>{aps}</strong> falls {Math.abs(surplus)} point{Math.abs(surplus) !== 1 ? 's' : ''} short of the {p.aps} requirement — the foundation pathway or extended programme may apply.</>;
+
+              if (capabilityData) {
+                const capPairs: [string, number][] = [
+                  ['Analytical', capabilityData.analytical_thinking],
+                  ['Technical', capabilityData.technical_aptitude],
+                  ['Creative', capabilityData.creative_thinking],
+                  ['Communication', capabilityData.communication_skills],
+                  ['Leadership', capabilityData.leadership_potential],
+                  ['Academic', capabilityData.academic_readiness],
+                ];
+                const sorted = [...capPairs].sort((a, b) => b[1] - a[1]);
+                const top2 = sorted.slice(0, 2);
+                const bottom = sorted[sorted.length - 1];
+                const capStrength = top2[0][1] >= 75 ? 'above average' : 'solid';
+                return <>{apsNote} Your {top2[0][0]} ({top2[0][1]}) and {top2[1][0]} ({top2[1][1]}) capabilities are {capStrength} for this pathway.{bottom[1] < 55 ? <> {bottom[0]} ({bottom[1]}) is your main growth area — this programme typically develops it in Year 2.</> : ''} Labour market demand is <strong>{p.demand.toLowerCase()}</strong>.</>;
+              }
+
+              return <>{apsNote} Labour market demand is <strong>{p.demand.toLowerCase()}</strong>. Complete the capability assessment to see a personalised fit breakdown.</>;
+            })()}
           </p>
 
           <div className="grid-4" style={{ marginTop: '1rem' }}>
@@ -297,34 +360,52 @@ function ProgDetail({
             })()}
           </div>
 
-          <div className="card compact" style={{ marginTop: '1rem' }}>
-            <div className="eyebrow"><span className="dot" />Funding likelihood</div>
-            <div className="row" style={{ alignItems: 'baseline', marginTop: '0.375rem', gap: '0.375rem' }}>
-              <span style={{ fontWeight: 900, fontSize: '2rem', letterSpacing: '-0.04em' }}>High</span>
-              <span className="caption">87%</span>
-            </div>
-            <div className="caption" style={{ marginTop: '0.375rem' }}>
-              NSFAS-eligible · 4 bursaries match · Allan Gray Orbis 92%
-            </div>
-            <button
-              className="btn btn-outline btn-sm"
-              onClick={() => navigate('funding')}
-              style={{ width: '100%', marginTop: '0.625rem' }}
-            >
-              Open funding strategy →
-            </button>
-          </div>
+          {(() => {
+            const nsfasEligible = householdIncome === undefined || householdIncome <= 350_000;
+            const fundingLabel = nsfasEligible ? 'High' : householdIncome! <= 600_000 ? 'Medium' : 'Low';
+            const fundingPct   = nsfasEligible ? 88 : householdIncome! <= 600_000 ? 52 : 22;
+            const fundingCls   = nsfasEligible ? 'success' : householdIncome! <= 600_000 ? 'warning' : 'destructive';
+            return (
+              <div className="card compact" style={{ marginTop: '1rem' }}>
+                <div className="eyebrow"><span className="dot" />Funding likelihood</div>
+                <div className="row" style={{ alignItems: 'baseline', marginTop: '0.375rem', gap: '0.375rem' }}>
+                  <span style={{ fontWeight: 900, fontSize: '2rem', letterSpacing: '-0.04em' }}>{fundingLabel}</span>
+                  <span className={`badge ${fundingCls}`}>{fundingPct}%</span>
+                </div>
+                <div className="caption" style={{ marginTop: '0.375rem' }}>
+                  {nsfasEligible ? 'NSFAS-eligible · ' : ''}{fundingPct >= 80 ? '4 bursaries match' : '2 bursaries may match'}
+                </div>
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={() => navigate('funding')}
+                  style={{ width: '100%', marginTop: '0.625rem' }}
+                >
+                  Open funding strategy →
+                </button>
+              </div>
+            );
+          })()}
 
           <div className="card compact" style={{ marginTop: '1rem' }}>
             <div className="eyebrow"><span className="dot" />Career path</div>
             <div className="stack" style={{ marginTop: '0.625rem' }}>
               {careerPaths.map(({ name, cls, label }) => (
-                <div key={name} className="row-between" style={{ fontSize: '0.8125rem' }}>
+                <button
+                  key={name}
+                  className="row-between btn-ghost-row"
+                  onClick={() => onOpenCareer?.(name)}
+                  style={{ width: '100%', cursor: onOpenCareer ? 'pointer' : 'default', fontSize: '0.8125rem', padding: '0.25rem 0' }}
+                >
                   <span>{name}</span>
                   <span className={`badge ${cls}`}>{label}</span>
-                </div>
+                </button>
               ))}
             </div>
+            {!psychProfile && (
+              <div className="caption" style={{ marginTop: '0.5rem', fontSize: '0.6875rem' }}>
+                Complete assessment for live match %
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -332,7 +413,7 @@ function ProgDetail({
       <div className="grid-2">
         <div className="card">
           <div className="eyebrow"><span className="dot" />Programme structure</div>
-          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>3 years · 360 credits</h3>
+          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>{durYears} year{durYears !== 1 ? 's' : ''} · {durYears * 120} credits (NQF {durYears >= 4 ? 8 : durYears >= 3 ? 7 : 6})</h3>
           <div className="stack-2" style={{ marginTop: '0.875rem' }}>
             {structure.map(s => (
               <div key={s.y} style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '1rem', padding: '0.625rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
@@ -346,53 +427,96 @@ function ProgDetail({
           </div>
         </div>
 
-        <div className="card">
-          <div className="eyebrow"><span className="dot" />Outcomes</div>
-          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Where graduates land</h3>
-          <div className="stack-2" style={{ marginTop: '0.875rem' }}>
-            <div>
-              <div className="row-between" style={{ fontSize: '0.8125rem' }}>
-                <span>Industry employment</span><span style={{ fontWeight: 800 }}>81%</span>
+        {(() => {
+          const empPct   = p.demand === 'High' ? 89 : p.demand === 'Med' ? 76 : 58;
+          const pname    = p.name.toLowerCase();
+          const pgPct    = (pname.includes('science') || pname.includes('research') || pname.includes('law') || pname.includes('mbchb') || pname.includes('medicine')) ? 31
+            : (pname.includes('engineering') || pname.includes('accounting') || pname.includes('commerce')) ? 19 : 11;
+          const selfPct  = 100 - empPct - pgPct;
+          const empColor = empPct >= 85 ? 'success' : empPct >= 70 ? 'primary' : 'accent';
+          const medSal   = p.salary;
+          const top5Sal  = Math.round(medSal * 1.6);
+          return (
+            <div className="card">
+              <div className="eyebrow"><span className="dot" />Outcomes</div>
+              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Where graduates land</h3>
+              <div className="stack-2" style={{ marginTop: '0.875rem' }}>
+                <div>
+                  <div className="row-between" style={{ fontSize: '0.8125rem' }}>
+                    <span>Industry employment</span>
+                    <span style={{ fontWeight: 800 }}>{empPct}%</span>
+                  </div>
+                  <div className={`meter ${empColor}`} style={{ marginTop: '0.25rem' }}><i style={{ width: `${empPct}%` }} /></div>
+                  <div className="caption" style={{ marginTop: '0.25rem' }}>Within 6 months of graduation · demand is <strong>{p.demand.toLowerCase()}</strong></div>
+                </div>
+                <div>
+                  <div className="row-between" style={{ fontSize: '0.8125rem' }}>
+                    <span>Postgraduate study</span>
+                    <span style={{ fontWeight: 800 }}>{pgPct}%</span>
+                  </div>
+                  <div className="meter primary" style={{ marginTop: '0.25rem' }}><i style={{ width: `${pgPct}%` }} /></div>
+                  <div className="caption" style={{ marginTop: '0.25rem' }}>Honours / Masters / Professional registration</div>
+                </div>
+                {selfPct > 0 && (
+                  <div>
+                    <div className="row-between" style={{ fontSize: '0.8125rem' }}>
+                      <span>Entrepreneurial / other</span>
+                      <span style={{ fontWeight: 800 }}>{selfPct}%</span>
+                    </div>
+                    <div className="meter accent" style={{ marginTop: '0.25rem' }}><i style={{ width: `${selfPct}%` }} /></div>
+                  </div>
+                )}
+                <div>
+                  <div className="row-between" style={{ fontSize: '0.8125rem' }}>
+                    <span>Salary range (grad → top 20%)</span>
+                  </div>
+                  <div className="row" style={{ marginTop: '0.375rem', gap: '0.5rem', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums', fontSize: '0.875rem' }}>{fmtR(medSal)}</span>
+                    <span className="caption">→</span>
+                    <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', fontSize: '0.875rem', color: 'hsl(var(--success))' }}>{fmtR(top5Sal)}</span>
+                    <span className="caption">/mo</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="row-between" style={{ fontSize: '0.8125rem' }}>
+                    <span>Top employers</span><span className="caption">Last 3 cohorts</span>
+                  </div>
+                  <div className="row" style={{ marginTop: '0.375rem', flexWrap: 'wrap' }}>
+                    {getProgrammeEmployers(p.name).slice(0, 5).map(e => (
+                      <span key={e} className="badge">{e}</span>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <div className="meter success" style={{ marginTop: '0.25rem' }}><i style={{ width: '81%' }} /></div>
-              <div className="caption" style={{ marginTop: '0.25rem' }}>Within 6 months of graduation</div>
             </div>
-            <div>
-              <div className="row-between" style={{ fontSize: '0.8125rem' }}>
-                <span>Postgraduate study</span><span style={{ fontWeight: 800 }}>14%</span>
-              </div>
-              <div className="meter primary" style={{ marginTop: '0.25rem' }}><i style={{ width: '14%' }} /></div>
-            </div>
-            <div>
-              <div className="row-between" style={{ fontSize: '0.8125rem' }}>
-                <span>Top employers</span><span className="caption">Last 3 cohorts</span>
-              </div>
-              <div className="row" style={{ marginTop: '0.375rem' }}>
-                {['Discovery', 'Standard Bank', 'Naspers / Prosus', 'Google ZA', 'Allan Gray'].map(e => (
-                  <span key={e} className="badge">{e}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+          );
+        })()}
       </div>
     </div>
   );
 }
 
 /* ─── Programme List ──────────────────────────────────────────── */
+function subjectGapBadges(prog: Programme, subjectNames: string[], aps: number) {
+  const apsGap = prog.aps - aps;
+  const missing = (prog.requiredSubjects ?? []).filter(r => !subjectNames.some(s => s.toLowerCase().includes(r.toLowerCase())));
+  return { apsGap, missing };
+}
+
 export default function ProgrammePage({
   selectedProg, subjects, navigate, programmes, savedProgrammeIds = [],
-  psychProfile, capabilityData, userAps,
+  psychProfile, capabilityData, userAps, householdIncome, onOpenCareer,
 }: ProgrammePageProps) {
   const allProgs = programmes ?? PROGRAMMES;
   const aps = calcAPS(subjects);
+  const subjectNames = subjects.map(s => s.name);
 
   const initialProg = allProgs.find(p => p.id === selectedProg) ?? null;
   const [selected, setSelected] = useState<Programme | null>(initialProg);
   const [activeTab, setActiveTab] = useState<'fit' | 'aps' | 'fees' | 'saved'>('fit');
   const [eligibleOnly, setEligibleOnly] = useState(false);
   const [search, setSearch] = useState('');
+  const [visibleCount, setVisibleCount] = useState(8);
 
   // Local saved state (optimistic — starts from server-fetched ids)
   const [savedIds, setSavedIds] = useState<Set<string>>(() => new Set(savedProgrammeIds));
@@ -400,7 +524,7 @@ export default function ProgrammePage({
 
   // Apply state per-programme
   const [applyStates, setApplyStates] = useState<Record<string, 'idle' | 'pending' | 'done' | 'exists'>>({});
-  const [applyTransition, startApplyTransition] = useTransition();
+  const [applyTarget, setApplyTarget] = useState<Programme | null>(null);
 
   function handleToggleSave(progId: string) {
     const currently = savedIds.has(progId);
@@ -424,15 +548,7 @@ export default function ProgrammePage({
   }
 
   function handleApply(prog: Programme) {
-    setApplyStates(s => ({ ...s, [prog.id]: 'pending' }));
-    startApplyTransition(async () => {
-      const result = await saveApplication(prog.id, prog.name, prog.uni);
-      if ('error' in result) {
-        setApplyStates(s => ({ ...s, [prog.id]: 'idle' }));
-      } else {
-        setApplyStates(s => ({ ...s, [prog.id]: 'done' }));
-      }
-    });
+    setApplyTarget(prog);
   }
 
   const sorted = useMemo(() => {
@@ -452,18 +568,35 @@ export default function ProgrammePage({
 
   if (selected) {
     return (
-      <ProgDetail
-        p={selected}
-        aps={userAps ?? aps}
-        navigate={navigate}
-        onBack={() => setSelected(null)}
-        isSaved={savedIds.has(selected.id)}
-        onToggleSave={() => handleToggleSave(selected.id)}
-        onApply={() => handleApply(selected)}
-        applyState={applyStates[selected.id] ?? 'idle'}
-        psychProfile={psychProfile}
-        capabilityData={capabilityData}
-      />
+      <>
+        {applyTarget && (
+          <AddApplicationModal
+            programmes={allProgs}
+            preselectedProg={applyTarget}
+            onClose={() => setApplyTarget(null)}
+            onAdded={(prog) => {
+              setApplyStates(s => ({ ...s, [prog.id]: 'done' }));
+              setApplyTarget(null);
+              navigate('applications');
+            }}
+          />
+        )}
+        <ProgDetail
+          p={selected}
+          aps={userAps ?? aps}
+          subjects={subjects}
+          navigate={navigate}
+          onBack={() => setSelected(null)}
+          isSaved={savedIds.has(selected.id)}
+          onToggleSave={() => handleToggleSave(selected.id)}
+          onApply={() => handleApply(selected)}
+          applyState={applyStates[selected.id] ?? 'idle'}
+          psychProfile={psychProfile}
+          capabilityData={capabilityData}
+          householdIncome={householdIncome}
+          onOpenCareer={onOpenCareer}
+        />
+      </>
     );
   }
 
@@ -488,7 +621,7 @@ export default function ProgrammePage({
           <div className="row">
             <button
               className={`btn ${eligibleOnly ? 'btn-primary' : 'btn-outline'}`}
-              onClick={() => setEligibleOnly(v => !v)}
+              onClick={() => { setEligibleOnly(v => !v); setVisibleCount(8); }}
             >
               {eligibleOnly ? '✓ Eligible only' : 'Eligible only'}
             </button>
@@ -496,24 +629,68 @@ export default function ProgrammePage({
               className="input"
               placeholder="Search…"
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => { setSearch(e.target.value); setVisibleCount(8); }}
               style={{ minWidth: 0, width: 180 }}
             />
           </div>
         </div>
       </div>
 
+      {/* Best-fit recommendation strip — only when APS is known and there are eligible programmes */}
+      {(userAps ?? aps) > 0 && (() => {
+        const effectiveAps = userAps ?? aps;
+        const topFit = [...allProgs]
+          .filter(p => p.aps <= effectiveAps)
+          .sort((a, b) => b.fit - a.fit)
+          .slice(0, 3);
+        if (topFit.length === 0) return null;
+        return (
+          <div className="card" style={{ marginBottom: '1.25rem' }}>
+            <div className="row-between" style={{ marginBottom: '0.75rem' }}>
+              <div className="eyebrow"><span className="dot" />Best fit for your APS ({effectiveAps})</div>
+            </div>
+            <div className="grid-3" style={{ gap: '0.75rem' }}>
+              {topFit.map(p => {
+                const { apsGap, missing } = subjectGapBadges(p, subjectNames, effectiveAps);
+                return (
+                  <button
+                    key={p.id}
+                    className="card compact"
+                    style={{ textAlign: 'left', cursor: 'pointer', padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}
+                    onClick={() => setSelected(p)}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: '0.8125rem', lineHeight: 1.3 }}>{p.name}</div>
+                    <div className="caption" style={{ color: 'hsl(var(--muted-fg))' }}>{p.uni}</div>
+                    <div className="meter sm"><i style={{ width: `${p.fit}%` }} /></div>
+                    <div className="row-between">
+                      <span className="caption">{p.fit}% fit</span>
+                      <span className={`badge ${apsGap <= 0 ? 'success' : 'destructive'}`} style={{ height: '1.125rem', fontSize: '0.5625rem' }}>
+                        {apsGap <= 0 ? `APS ✓ +${Math.abs(apsGap)}` : `+${apsGap} APS`}
+                      </span>
+                    </div>
+                    {missing.length > 0 && (
+                      <div className="caption" style={{ color: 'hsl(var(--warning))', fontSize: '0.6875rem' }}>⚠ Needs: {missing.join(', ')}</div>
+                    )}
+                    <div className="caption">{fmtR(p.fees)}/yr</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="tabs" style={{ marginBottom: '1.25rem' }}>
-        <button className={`tab ${activeTab === 'fit'  ? 'active' : ''}`} onClick={() => setActiveTab('fit')}>
+        <button className={`tab ${activeTab === 'fit'  ? 'active' : ''}`} onClick={() => { setActiveTab('fit'); setVisibleCount(8); }}>
           Best fit ({eligibleCount})
         </button>
-        <button className={`tab ${activeTab === 'aps'  ? 'active' : ''}`} onClick={() => setActiveTab('aps')}>
+        <button className={`tab ${activeTab === 'aps'  ? 'active' : ''}`} onClick={() => { setActiveTab('aps'); setVisibleCount(8); }}>
           Lowest APS first
         </button>
-        <button className={`tab ${activeTab === 'fees' ? 'active' : ''}`} onClick={() => setActiveTab('fees')}>
+        <button className={`tab ${activeTab === 'fees' ? 'active' : ''}`} onClick={() => { setActiveTab('fees'); setVisibleCount(8); }}>
           Lowest fees first
         </button>
-        <button className={`tab ${activeTab === 'saved' ? 'active' : ''}`} onClick={() => setActiveTab('saved')}>
+        <button className={`tab ${activeTab === 'saved' ? 'active' : ''}`} onClick={() => { setActiveTab('saved'); setVisibleCount(8); }}>
           Saved ({savedIds.size})
         </button>
       </div>
@@ -535,14 +712,21 @@ export default function ProgrammePage({
           )}
         </div>
       ) : (
+        <>
         <div className="grid-3">
-          {sorted.map((p, i) => {
+          {sorted.slice(0, visibleCount).map((p, i) => {
             const eligible = p.aps <= aps;
             const isSaved = savedIds.has(p.id);
             return (
               <div className="career-card" key={p.id} onClick={() => setSelected(p)}>
                 <div className={`img-tile ${uniToneClass(p.uni)}`} aria-hidden="true">
-                  <span className="glyph">{p.name.split(' ').slice(0, 2).map(w => w[0]).join('')}</span>
+                  <img
+                    src={uniLogoPath(p.uni)}
+                    alt=""
+                    width={60} height={60}
+                    style={{ objectFit: 'contain', opacity: 0.9 }}
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  />
                 </div>
                 <div className="row-between">
                   <div className="row" style={{ gap: '0.5rem' }}>
@@ -584,10 +768,20 @@ export default function ProgrammePage({
                   </div>
                 </div>
 
-                <div className="row" style={{ gap: '0.25rem' }}>
+                <div className="row" style={{ gap: '0.25rem', flexWrap: 'wrap' }}>
                   {eligible && <span className="career-tag" style={{ background: 'hsl(var(--success) / 0.1)', color: 'hsl(var(--success))' }}>Eligible</span>}
                   <span className="career-tag">{p.dur} yr{p.dur !== 1 ? 's' : ''}</span>
                   {p.fees < 40000 && <span className="career-tag">Affordable</span>}
+                  {(() => {
+                    const { apsGap, missing } = subjectGapBadges(p, subjectNames, aps);
+                    return (
+                      <>
+                        {apsGap > 0 && <span className="career-tag" style={{ background: 'hsl(var(--destructive) / 0.08)', color: 'hsl(var(--destructive))' }}>+{apsGap} APS needed</span>}
+                        {apsGap <= 0 && <span className="career-tag" style={{ background: 'hsl(var(--success) / 0.08)', color: 'hsl(var(--success))' }}>APS ✓ +{Math.abs(apsGap)}</span>}
+                        {missing.map(s => <span key={s} className="career-tag" style={{ background: 'hsl(var(--warning) / 0.1)', color: 'hsl(var(--warning))' }}>⚠ {s}</span>)}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 <div className="row" style={{ gap: '0.375rem', marginTop: 'auto' }}>
@@ -611,6 +805,20 @@ export default function ProgrammePage({
             );
           })}
         </div>
+        {visibleCount < sorted.length && (
+          <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+            <button
+              className="btn btn-outline"
+              onClick={() => setVisibleCount(v => Math.min(v + 8, sorted.length))}
+            >
+              Show {Math.min(8, sorted.length - visibleCount)} more programmes
+            </button>
+            <div className="caption" style={{ marginTop: '0.5rem', color: 'hsl(var(--muted-fg))' }}>
+              Showing {Math.min(visibleCount, sorted.length)} of {sorted.length}
+            </div>
+          </div>
+        )}
+        </>
       )}
     </div>
   );
