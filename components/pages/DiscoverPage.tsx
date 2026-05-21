@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Route, PsychProfileData, CapabilityData } from '@/lib/types';
-import { chat, ROUTE_LABELS } from '@/app/actions/chat';
-import type { ChatTurn } from '@/app/actions/chat';
+import { chat } from '@/app/actions/chat';
+import { ROUTE_LABELS } from '@/lib/chat';
+import type { ChatTurn } from '@/lib/chat';
 
 interface DiscoverPageProps {
   navigate: (r: Route) => void;

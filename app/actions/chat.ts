@@ -2,18 +2,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { requireAuth } from '@/lib/supabase/requireAuth';
-
-export interface ChatTurn { role: 'user' | 'assistant'; content: string; }
-
-const ROUTE_LABELS: Record<string, string> = {
-  programmes:  'Programme Explorer',
-  careers:     'Careers',
-  scholarships: 'Scholarships',
-  simulator:   'APS Simulator',
-  funding:     'Funding Strategy',
-  nsfas:       'NSFAS Guide',
-  deadlines:   'Deadlines',
-};
+import { ROUTE_LABELS, type ChatTurn } from '@/lib/chat';
 
 export async function chat(
   history: ChatTurn[],
@@ -93,5 +82,3 @@ ${profileLines}`;
 
   return { text, routes: [...found] };
 }
-
-export { ROUTE_LABELS };
