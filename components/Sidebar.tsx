@@ -121,16 +121,22 @@ export default function Sidebar({ route, navigate, userName = 'Student', userPro
       ))}
 
       <div className="user-strip" style={{ marginTop: 'auto' }}>
-        <div className="avatar">{initial}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontWeight: 600, fontSize: '0.8125rem',
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>
-            {userName}
+        <button
+          className={`nav${route === 'profile' ? ' active' : ''}`}
+          onClick={() => navigate('profile')}
+          style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '0.625rem', padding: '0.375rem 0.5rem', textAlign: 'left' }}
+        >
+          <div className="avatar">{initial}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontWeight: 600, fontSize: '0.8125rem',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>
+              {userName}
+            </div>
+            <div className="caption" style={{ fontSize: '0.6875rem' }}>{caption}</div>
           </div>
-          <div className="caption" style={{ fontSize: '0.6875rem' }}>{caption}</div>
-        </div>
+        </button>
         <form action={signOut}>
           <button
             type="submit"
