@@ -319,6 +319,7 @@ export default function Dashboard({
             programmes={initialProgrammes}
             userAps={displayAps}
             householdIncome={householdIncome}
+            navigate={navigate}
           />
         );
       case 'documents':
@@ -391,6 +392,8 @@ export default function Dashboard({
             capabilityData={displayCap}
             careers={careers ?? STATIC_CAREERS}
             liveCareerMatches={emptyMode ? {} : liveCareerMatches}
+            customDeadlines={emptyMode ? [] : customDeadlines}
+            documents={emptyMode ? [] : documents}
           />
         );
     }

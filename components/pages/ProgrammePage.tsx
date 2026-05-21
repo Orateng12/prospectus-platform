@@ -6,7 +6,7 @@ import { PROGRAMMES } from '@/lib/data';
 import { calcAPS, fmtR } from '@/lib/utils';
 import { scoreCareerMatch } from '@/lib/scoring';
 import { toggleSavedProgramme } from '@/app/actions/toggleSavedProgramme';
-import { saveApplication } from '@/app/actions/saveApplication';
+import AddApplicationModal from '@/components/AddApplicationModal';
 
 interface ProgrammePageProps {
   selectedProg: string;
@@ -430,7 +430,7 @@ export default function ProgrammePage({
 
   // Apply state per-programme
   const [applyStates, setApplyStates] = useState<Record<string, 'idle' | 'pending' | 'done' | 'exists'>>({});
-  const [applyTransition, startApplyTransition] = useTransition();
+  const [applyTarget, setApplyTarget] = useState<Programme | null>(null);
 
   function handleToggleSave(progId: string) {
     const currently = savedIds.has(progId);
@@ -454,15 +454,7 @@ export default function ProgrammePage({
   }
 
   function handleApply(prog: Programme) {
-    setApplyStates(s => ({ ...s, [prog.id]: 'pending' }));
-    startApplyTransition(async () => {
-      const result = await saveApplication(prog.id, prog.name, prog.uni);
-      if ('error' in result) {
-        setApplyStates(s => ({ ...s, [prog.id]: 'idle' }));
-      } else {
-        setApplyStates(s => ({ ...s, [prog.id]: 'done' }));
-      }
-    });
+    setApplyTarget(prog);
   }
 
   const sorted = useMemo(() => {
@@ -482,20 +474,34 @@ export default function ProgrammePage({
 
   if (selected) {
     return (
-      <ProgDetail
-        p={selected}
-        aps={userAps ?? aps}
-        navigate={navigate}
-        onBack={() => setSelected(null)}
-        isSaved={savedIds.has(selected.id)}
-        onToggleSave={() => handleToggleSave(selected.id)}
-        onApply={() => handleApply(selected)}
-        applyState={applyStates[selected.id] ?? 'idle'}
-        psychProfile={psychProfile}
-        capabilityData={capabilityData}
-        householdIncome={householdIncome}
-        onOpenCareer={onOpenCareer}
-      />
+      <>
+        {applyTarget && (
+          <AddApplicationModal
+            programmes={allProgs}
+            preselectedProg={applyTarget}
+            onClose={() => setApplyTarget(null)}
+            onAdded={(prog) => {
+              setApplyStates(s => ({ ...s, [prog.id]: 'done' }));
+              setApplyTarget(null);
+              navigate('applications');
+            }}
+          />
+        )}
+        <ProgDetail
+          p={selected}
+          aps={userAps ?? aps}
+          navigate={navigate}
+          onBack={() => setSelected(null)}
+          isSaved={savedIds.has(selected.id)}
+          onToggleSave={() => handleToggleSave(selected.id)}
+          onApply={() => handleApply(selected)}
+          applyState={applyStates[selected.id] ?? 'idle'}
+          psychProfile={psychProfile}
+          capabilityData={capabilityData}
+          householdIncome={householdIncome}
+          onOpenCareer={onOpenCareer}
+        />
+      </>
     );
   }
 

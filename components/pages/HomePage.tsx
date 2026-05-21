@@ -1,6 +1,6 @@
 'use client';
 
-import type { Route, Subject, Programme, DbApplication, StrategicScoreData, PsychProfileData, CapabilityData, Deadline, Career } from '@/lib/types';
+import type { Route, Subject, Programme, DbApplication, StrategicScoreData, PsychProfileData, CapabilityData, Deadline, Career, DbCustomDeadline, DbDocument } from '@/lib/types';
 import { PROGRAMMES, DEADLINES } from '@/lib/data';
 import { calcAPS, fmtR, apsPoints } from '@/lib/utils';
 import AiInsightCard from '@/components/AiInsightCard';
@@ -27,7 +27,8 @@ function buildFocusItems(
   userAps: number,
   savedProgrammeIds: string[],
   householdIncome?: number,
-  capabilityData?: import('@/lib/types').CapabilityData | null,
+  capabilityData?: CapabilityData | null,
+  documents?: DbDocument[],
 ): Array<{ icon: string; text: string; detail?: string; urgency: 'high' | 'med' | 'low'; route: Route }> {
   const items: Array<{ icon: string; text: string; detail?: string; urgency: 'high' | 'med' | 'low'; route: Route }> = [];
   const today = new Date();
@@ -83,6 +84,17 @@ function buildFocusItems(
       detail: `Your score (${commScore}/100) is below the threshold for Product Manager, Marketing, and HR roles. Fixable through practice.`,
       urgency: 'med',
       route: 'skills',
+    });
+  }
+
+  // 3b. Documents missing — applications exist but no docs uploaded
+  if (applications.length > 0 && documents !== undefined && documents.length === 0 && items.length < 3) {
+    items.push({
+      icon: '📎',
+      text: 'No documents uploaded yet',
+      detail: 'Universities require ID, matric certificate, and proof of residence. Upload now to avoid last-minute delays.',
+      urgency: 'med',
+      route: 'documents',
     });
   }
 
@@ -156,11 +168,13 @@ interface HomePageProps {
   capabilityData?: CapabilityData | null;
   careers?: Career[];
   liveCareerMatches?: Record<string, number>;
+  customDeadlines?: DbCustomDeadline[];
+  documents?: DbDocument[];
 }
 
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-function buildDeadlines(applications: DbApplication[]): Deadline[] {
+function buildDeadlines(applications: DbApplication[], customDeadlines: DbCustomDeadline[] = []): Deadline[] {
   const now = Date.now();
   const appDeadlines: (Deadline & { ts: number })[] = applications
     .filter(a => a.deadline)
@@ -182,14 +196,30 @@ function buildDeadlines(applications: DbApplication[]): Deadline[] {
     })
     .sort((a, b) => a.ts - b.ts);
 
-  // Fill remaining slots with static deadlines (future ones only)
-  const staticFuture = DEADLINES.filter(d => {
-    const year = new Date().getFullYear();
-    const ts = new Date(`${d.d} ${d.m} ${year}`).getTime();
-    return ts >= now;
+  const customItems: (Deadline & { ts: number })[] = customDeadlines.map(c => {
+    const date = new Date(c.date);
+    const ts = date.getTime();
+    const daysLeft = Math.ceil((ts - now) / 86_400_000);
+    const isPast = daysLeft < 0;
+    const isUrgent = daysLeft >= 0 && daysLeft <= 7;
+    return {
+      ts,
+      d: date.getDate(),
+      m: MONTH_ABBR[date.getMonth()],
+      t: c.title,
+      sub: isPast ? 'Deadline passed' : daysLeft === 0 ? 'Today' : `${daysLeft} day${daysLeft === 1 ? '' : 's'}`,
+      tag: isPast ? 'destructive' : isUrgent ? 'warning' : '',
+      tagL: isPast ? 'Overdue' : isUrgent ? 'Soon' : 'Open',
+    };
   });
 
-  const merged = [...appDeadlines, ...staticFuture];
+  // Fill remaining slots with static deadlines (future ones only)
+  const year = new Date().getFullYear();
+  const staticFuture: (Deadline & { ts: number })[] = DEADLINES
+    .map(d => ({ ...d, ts: new Date(`${d.d} ${d.m} ${year}`).getTime() }))
+    .filter(d => d.ts >= now);
+
+  const merged = [...appDeadlines, ...customItems, ...staticFuture].sort((a, b) => a.ts - b.ts);
   return merged.slice(0, 3);
 }
 
@@ -218,7 +248,7 @@ function statusToStages(status: string): string[] {
   return ['done', 'active', '', ''];
 }
 
-export default function HomePage({ subjects, navigate, programmes, applications = [], strategicScore, householdIncome, savedProgrammeIds = [], psychProfile, capabilityData, careers, liveCareerMatches }: HomePageProps) {
+export default function HomePage({ subjects, navigate, programmes, applications = [], strategicScore, householdIncome, savedProgrammeIds = [], psychProfile, capabilityData, careers, liveCareerMatches, customDeadlines, documents }: HomePageProps) {
   const aps = calcAPS(subjects);
   const allProgs = programmes ?? PROGRAMMES;
   const eligible = allProgs.filter(p => p.aps <= aps);
@@ -241,7 +271,7 @@ export default function HomePage({ subjects, navigate, programmes, applications 
         .slice(0, 3)
     : [];
 
-  const rawFocuses = buildFocusItems(applications, subjects, allProgs, aps, savedProgrammeIds, householdIncome, capabilityData);
+  const rawFocuses = buildFocusItems(applications, subjects, allProgs, aps, savedProgrammeIds, householdIncome, capabilityData, documents);
   // Pad to 3 items with a fallback if needed
   const focusFallbacks: typeof rawFocuses = [
     { icon: '📚', text: 'Re-rank programmes after subject update', urgency: 'low', route: 'simulator' },
@@ -250,7 +280,7 @@ export default function HomePage({ subjects, navigate, programmes, applications 
   ];
   const focuses = [...rawFocuses, ...focusFallbacks].slice(0, 3);
 
-  const deadlineItems = buildDeadlines(applications);
+  const deadlineItems = buildDeadlines(applications, customDeadlines);
 
   return (
     <div className="page-anim">

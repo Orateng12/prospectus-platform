@@ -177,6 +177,71 @@ export default function NSFASPage({ householdIncome = 220000, programmes, userAp
         </div>
       </div>
 
+      {eligibleProgs.length > 0 && (() => {
+        const sel = eligibleProgs.find(p => p.id === selectedProgId);
+        if (!sel) return null;
+        const yearCost = Math.round(sel.fees * 1.8);
+        const meritBursary = (userAps ?? 0) >= 42 ? 165_000 : (userAps ?? 0) >= 38 ? 95_000 : (userAps ?? 0) >= 32 ? 42_000 : 18_000;
+        const scholarStipend = 18_000;
+        const totalFunding = estimatedAward + (eligible ? 0 : meritBursary + scholarStipend);
+        const nsfasTotal = eligible ? estimatedAward : 0;
+        const bursaryTotal = eligible ? 0 : meritBursary;
+        const stipendTotal = eligible ? 0 : scholarStipend;
+        const combinedFunding = nsfasTotal + bursaryTotal + stipendTotal;
+        const gap = yearCost - combinedFunding;
+        const coveragePct = Math.min(100, Math.round((combinedFunding / yearCost) * 100));
+        const rows = eligible
+          ? [
+              { l: 'NSFAS award', v: fmtR(estimatedAward), c: 'success' },
+              { l: 'Estimated year 1 cost', v: fmtR(yearCost), c: '' },
+              { l: gap > 0 ? 'Funding gap' : 'Surplus', v: `${gap > 0 ? '-' : '+'}${fmtR(Math.abs(gap))}`, c: gap > 0 ? 'destructive' : 'success' },
+            ]
+          : [
+              { l: 'Merit bursary (est.)', v: fmtR(meritBursary), c: 'warning' },
+              { l: 'Scholar stipend', v: fmtR(scholarStipend), c: '' },
+              { l: 'Estimated year 1 cost', v: fmtR(yearCost), c: '' },
+              { l: 'Funding gap', v: `-${fmtR(Math.max(0, gap))}`, c: 'destructive' },
+            ];
+
+        return (
+          <div className="card" style={{ marginTop: '1.25rem', borderColor: gap > 0 ? 'hsl(var(--destructive) / 0.3)' : 'hsl(var(--success) / 0.3)' }}>
+            <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+              <div>
+                <div className="eyebrow"><span className="dot" />Funding gap analysis</div>
+                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
+                  {sel.name} at {sel.uni.split(' ').slice(0, 3).join(' ')}
+                </h3>
+              </div>
+              <span className={`badge ${gap > 0 ? 'destructive' : 'success'}`}>
+                {gap > 0 ? `${fmtR(gap)} gap` : 'Fully covered'}
+              </span>
+            </div>
+            <div style={{ marginBottom: '0.875rem' }}>
+              <div className="row-between" style={{ marginBottom: '0.375rem' }}>
+                <span className="caption" style={{ fontSize: '0.75rem' }}>Coverage {coveragePct}%</span>
+                <span className="caption" style={{ fontSize: '0.75rem' }}>{fmtR(combinedFunding)} of {fmtR(yearCost)}</span>
+              </div>
+              <div className="meter">
+                <i style={{ width: `${coveragePct}%`, background: gap > 0 ? 'hsl(var(--warning))' : 'hsl(var(--success))' }} />
+              </div>
+            </div>
+            <div className="stack">
+              {rows.map(row => (
+                <div key={row.l} className="row-between" style={{ fontSize: '0.8125rem', padding: '0.375rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                  <span className="caption">{row.l}</span>
+                  <span style={{ fontWeight: 700, color: row.c ? `hsl(var(--${row.c}))` : undefined }}>{row.v}</span>
+                </div>
+              ))}
+            </div>
+            {gap > 0 && (
+              <p className="caption" style={{ marginTop: '0.75rem', fontSize: '0.8125rem', lineHeight: 1.5 }}>
+                A {fmtR(gap)} gap remains after {eligible ? 'NSFAS' : 'merit bursaries'}. Apply to a targeted scholarship or part-time work to close this.
+              </p>
+            )}
+          </div>
+        );
+      })()}
+
       <div className="grid-3" style={{ marginTop: '1.25rem' }}>
         {[
           { title: 'NSFAS Bursary', desc: 'For SASSA beneficiaries and students from households earning under R122,000/year. Covers tuition, accommodation, meals, books, transport.', icon: 'N' },
