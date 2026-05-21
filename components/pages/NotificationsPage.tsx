@@ -40,9 +40,17 @@ export default function NotificationsPage({ notifications, navigate }: Notificat
     () => new Set(notifications.filter(n => n.read).map(n => n.id))
   );
   const [marking, setMarking] = useState(false);
+  const [filterType, setFilterType] = useState('all');
 
-  const unread = notifications.filter(n => !localRead.has(n.id));
-  const read   = notifications.filter(n =>  localRead.has(n.id));
+  const typeCounts = notifications.reduce<Record<string, number>>((acc, n) => {
+    const t = n.type.toLowerCase();
+    acc[t] = (acc[t] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const filtered = filterType === 'all' ? notifications : notifications.filter(n => n.type.toLowerCase() === filterType);
+  const unread = filtered.filter(n => !localRead.has(n.id));
+  const read   = filtered.filter(n =>  localRead.has(n.id));
 
   async function markOne(id: string) {
     setLocalRead(prev => new Set([...prev, id]));
@@ -84,13 +92,53 @@ export default function NotificationsPage({ notifications, navigate }: Notificat
         </div>
       </div>
 
-      {notifications.length === 0 && (
+      {Object.keys(typeCounts).length > 1 && (
+        <div className="tabs" style={{ marginBottom: '1.25rem' }}>
+          {(['all', ...Object.keys(typeCounts)]).map(t => (
+            <button
+              key={t}
+              className={`tab${filterType === t ? ' active' : ''}`}
+              onClick={() => setFilterType(t)}
+            >
+              {t === 'all'
+                ? `All · ${notifications.length}`
+                : `${t.charAt(0).toUpperCase() + t.slice(1)} · ${typeCounts[t]}`}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {filtered.length === 0 && (
         <div className="card" style={{ textAlign: 'center', padding: '3rem 2rem' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>✓</div>
-          <div style={{ fontWeight: 700, fontSize: '1rem' }}>You're all caught up</div>
-          <div className="caption" style={{ marginTop: '0.375rem' }}>
-            No notifications yet. We'll let you know about deadlines, eligibility updates, and application changes.
-          </div>
+          {notifications.length === 0 ? (
+            <>
+              <div style={{ fontWeight: 700, fontSize: '1.0625rem', marginBottom: '0.5rem' }}>You&apos;re all caught up</div>
+              <div className="caption" style={{ maxWidth: '28rem', margin: '0 auto 1.5rem' }}>
+                No notifications yet. We&apos;ll alert you when any of the following events occur.
+              </div>
+              <div className="grid-3" style={{ gap: '0.75rem', textAlign: 'left' }}>
+                {[
+                  { cls: 'warning',  label: 'Deadline alerts',     sub: 'Notified 7 and 21 days before each closing date' },
+                  { cls: 'success',  label: 'Eligibility updates',  sub: 'New scholarships or programmes matching your APS' },
+                  { cls: 'info',     label: 'Application status',   sub: 'Provisional offers, awaiting decisions, and outcomes' },
+                ].map(x => (
+                  <div className="card compact" key={x.label} style={{ borderLeft: `3px solid hsl(var(--${x.cls}))`, textAlign: 'left' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.25rem' }}>{x.label}</div>
+                    <div className="caption" style={{ fontSize: '0.75rem' }}>{x.sub}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontWeight: 600, fontSize: '0.9375rem', marginBottom: '0.375rem' }}>
+                No {filterType} notifications
+              </div>
+              <button className="btn btn-ghost btn-sm" style={{ marginTop: '0.25rem' }} onClick={() => setFilterType('all')}>
+                Show all →
+              </button>
+            </>
+          )}
         </div>
       )}
 

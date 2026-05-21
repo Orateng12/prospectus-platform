@@ -34,6 +34,17 @@ const DOC_CATALOG: DocMeta[] = [
 
 const CATEGORIES = [...new Set(DOC_CATALOG.map(d => d.category))];
 
+const INST_REQUIRED: Record<string, string[]> = {
+  uct:     ['id', 'matric', 'results', 'photo'],
+  wits:    ['id', 'matric', 'results', 'photo', 'aps'],
+  nsfas:   ['id', 'matric', 'residence', 'income'],
+  uj:      ['id', 'matric', 'results'],
+  up:      ['id', 'matric', 'results'],
+  sun:     ['id', 'matric', 'results'],
+  ukzn:    ['id', 'matric', 'aps'],
+  default: ['id', 'matric'],
+};
+
 function fmtBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
@@ -186,6 +197,58 @@ export default function DocumentsPage({ navigate, documents = [], applications =
           </div>
         ))}
       </div>
+
+      {applications.length > 0 && (() => {
+        const seenKeys = new Set<string>();
+        const rows = applications.flatMap(app => {
+          const nameL = app.institution_name.toLowerCase();
+          let key = 'default';
+          for (const [k, aliases] of Object.entries(INST_ALIASES)) {
+            if (aliases.some(a => nameL.includes(a))) { key = k; break; }
+          }
+          if (seenKeys.has(key)) return [];
+          seenKeys.add(key);
+          const required = INST_REQUIRED[key] ?? INST_REQUIRED.default;
+          const missingDocs = required.filter(dt => !uploadedMap[dt]);
+          return [{
+            name: app.institution_name,
+            key,
+            required,
+            uploadedCount: required.length - missingDocs.length,
+            missingNames: missingDocs.map(dt => DOC_CATALOG.find(d => d.type === dt)?.name ?? dt),
+          }];
+        });
+        if (rows.length === 0) return null;
+        return (
+          <div className="card" style={{ marginBottom: '1.25rem' }}>
+            <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Application readiness</div>
+            <div className="stack">
+              {rows.map(r => {
+                const pct = r.required.length > 0 ? Math.round((r.uploadedCount / r.required.length) * 100) : 100;
+                const ready = r.missingNames.length === 0;
+                return (
+                  <div key={r.key} style={{ padding: '0.625rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                    <div className="row-between" style={{ marginBottom: '0.375rem' }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{r.name}</div>
+                      <span className={`badge ${ready ? 'success' : 'warning'}`} style={{ fontSize: '0.5625rem' }}>
+                        {ready ? 'Ready' : `${r.uploadedCount}/${r.required.length} docs`}
+                      </span>
+                    </div>
+                    <div className={`meter ${ready ? 'success' : 'warning'}`} style={{ marginBottom: '0.25rem' }}>
+                      <i style={{ width: `${pct}%` }} />
+                    </div>
+                    {!ready && (
+                      <div className="caption" style={{ fontSize: '0.6875rem', color: 'hsl(var(--warning))' }}>
+                        Still needed: {r.missingNames.join(', ')}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="stack-3">
         {CATEGORIES.map(cat => {

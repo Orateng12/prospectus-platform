@@ -19,38 +19,81 @@ function urgencyGroup(tag: string): 'urgent' | 'soon' | 'upcoming' {
   return 'upcoming';
 }
 
-function buildChecklist(daysLeft: number): string[] {
-  if (daysLeft > 30) {
+type DeadlineKind = 'application' | 'funding' | 'custom';
+
+function buildChecklist(daysLeft: number, kind: DeadlineKind): string[] {
+  if (kind === 'application') {
+    if (daysLeft > 30) return [
+      'Download and read the institution\'s official application guide for the current cycle',
+      'Gather certified ID, NSC certificate or latest results, and proof of residence',
+      'Request official academic transcripts from your school (allow 5–10 working days)',
+      'Draft your motivation letter (500–750 words) explaining your chosen programme',
+      'Confirm your APS meets the minimum — check the institution\'s website for the exact cut-off',
+    ];
+    if (daysLeft > 14) return [
+      'Complete the online application form — save your progress regularly',
+      'Attach all supporting documents and verify each against the institution\'s checklist',
+      'Have your completed motivation letter proofread by a teacher or trusted adult',
+      'Make certified copies of every document before submitting originals',
+      'Confirm the application fee has been paid (if applicable) — keep proof of payment',
+    ];
+    if (daysLeft > 7) return [
+      'Do a final read-through of your application — check spelling and factual accuracy',
+      'Confirm all attachments are in the correct format (PDF preferred, under 5 MB each)',
+      'Set aside 2 uninterrupted hours to submit without rushing',
+      'Screenshot the confirmation screen and download the submission receipt',
+    ];
     return [
-      'Verify full eligibility criteria on the provider website',
-      'Request certified academic transcripts (allow 5–10 working days)',
-      'Obtain certified copy of ID and matric certificate',
-      'Draft your motivation letter (500–750 words)',
-      'Identify and brief 2 academic or character referees',
+      'Submit your application TODAY — universities rarely accept late submissions',
+      'If the portal is down, email the admissions office with your full application attached',
+      'Screenshot every step of the submission process as proof',
+      'Note your application reference number for all future correspondence',
     ];
   }
-  if (daysLeft > 14) {
+
+  if (kind === 'funding') {
+    if (daysLeft > 30) return [
+      'Verify eligibility criteria on the funding provider\'s official website — requirements change yearly',
+      'Prepare certified copies of ID, NSC results, and proof of household income for all earners',
+      'Draft your motivation letter (600–800 words): field of study, career goal, and why you deserve this award',
+      'Approach 2 referees (teachers or community leaders) and brief them on the scholarship criteria',
+      'Check whether an employer or SETA letter is required (for SETA bursaries)',
+    ];
+    if (daysLeft > 14) return [
+      'Collect signed reference letters from both of your referees',
+      'Complete the application form and double-check every field against the requirements',
+      'Attach all supporting documents in the correct format (PDF, certified copies)',
+      'Confirm your banking details are correct — awards are paid directly to your account',
+      'Check the portal again for any new required documents added since you started',
+    ];
+    if (daysLeft > 7) return [
+      'Proofread your motivation letter one final time — grammar errors are often a disqualifier',
+      'Ensure all document file names are descriptive (e.g. Surname_ID.pdf, not scan001.pdf)',
+      'Set aside 3 uninterrupted hours to complete and submit the application',
+      'Screenshot the confirmation and save the reference number',
+    ];
     return [
-      'Complete the online application form (save progress regularly)',
-      'Attach all supporting documents — verify against the checklist',
-      'Request signed reference letters from your referees now',
-      'Make certified copies of every document',
-      'Review eligibility criteria one final time before submitting',
+      'Submit your funding application IMMEDIATELY — funding portals close precisely at midnight',
+      'If the portal is unresponsive, email the provider with the full application attached and request confirmation',
+      'Screenshot or print every page of the completed submission as evidence',
+      'Note the reference number and provider email for follow-up correspondence',
     ];
   }
-  if (daysLeft > 7) {
-    return [
-      'Finalise and proofread your motivation letter',
-      'Confirm all attachments are in correct format (PDF, certified)',
-      'Set aside 2 uninterrupted hours to complete submission',
-      'Screenshot and save the confirmation screen',
-    ];
-  }
+
+  // custom deadline
+  if (daysLeft > 14) return [
+    'Review the requirements for this deadline and confirm you have everything needed',
+    'Set a calendar reminder for 3 days before the deadline as a final check',
+    'Identify who you need to contact or coordinate with to meet this deadline',
+  ];
+  if (daysLeft > 3) return [
+    'Complete any outstanding tasks related to this deadline',
+    'Confirm any required approvals or sign-offs are in place',
+    'Prepare to submit or hand over on time',
+  ];
   return [
-    'Submit your application TODAY — do not delay',
-    'Screenshot the confirmation screen immediately',
-    'Note your reference number for all future correspondence',
-    'Email the provider directly if the portal has technical issues',
+    'This deadline is very close — prioritise it above other tasks today',
+    'Complete it and record the outcome for your own reference',
   ];
 }
 
@@ -64,6 +107,7 @@ type DisplayDeadline = {
   tagL: string;
   isCustom?: boolean;
   daysLeft: number;
+  kind: DeadlineKind;
 };
 
 export default function DeadlinesPage({
@@ -101,7 +145,7 @@ export default function DeadlinesPage({
         m:    date.toLocaleDateString('en-ZA', { month: 'short' }),
         t:    `${a.institution_name} — ${a.programme_name}`,
         sub:  `${daysLeft > 0 ? `${daysLeft} days` : 'Today'} · application deadline`,
-        tag, tagL, daysLeft,
+        tag, tagL, daysLeft, kind: 'application' as DeadlineKind,
       };
     });
 
@@ -118,7 +162,7 @@ export default function DeadlinesPage({
         m:   date.toLocaleDateString('en-ZA', { month: 'short' }),
         t:   f.name,
         sub: `${daysLeft} days · ${f.eligibility.split('·')[0].trim()}`,
-        tag, tagL, daysLeft,
+        tag, tagL, daysLeft, kind: 'funding' as DeadlineKind,
         _ts: date.getTime(),
       }];
     })
@@ -136,7 +180,7 @@ export default function DeadlinesPage({
       m:    date.toLocaleDateString('en-ZA', { month: 'short' }),
       t:    c.title,
       sub:  `${daysLeft > 0 ? `${daysLeft} days` : 'Today'} · custom deadline`,
-      tag, tagL, daysLeft,
+      tag, tagL, daysLeft, kind: 'custom' as DeadlineKind,
       isCustom: true,
     };
   });
@@ -185,7 +229,7 @@ export default function DeadlinesPage({
         {items.map(d => {
           const key = d.id ?? d.t;
           const isExpanded = expandedId === key;
-          const checklist = buildChecklist(d.daysLeft);
+          const checklist = buildChecklist(d.daysLeft, d.kind);
           return (
             <div key={key}>
               <div className="deadline" style={{ alignItems: 'flex-start' }}>
@@ -219,8 +263,9 @@ export default function DeadlinesPage({
                     className="btn btn-ghost btn-sm"
                     style={{ padding: '0 0.5rem' }}
                     onClick={() => {
-                      if (d.tag === 'destructive') navigate?.('documents');
-                      else navigate?.('scholarships');
+                      if (d.kind === 'application') navigate?.('applications');
+                      else if (d.kind === 'funding') navigate?.('scholarships');
+                      else navigate?.('documents');
                     }}
                     title="Open related page"
                   >→</button>
