@@ -41,6 +41,8 @@ interface CmdkResult {
   title: string;
   sub: string;
   route?: Route;
+  progId?: string;
+  careerName?: string;
 }
 
 const ALL_CMDK: CmdkResult[] = [
@@ -60,15 +62,17 @@ const ALL_CMDK: CmdkResult[] = [
   { id: 'p-applications', section: 'Pages', icon: '📝', title: 'Applications',          sub: '4 active · 1 accepted',             route: 'applications' },
   { id: 'p-deadlines',    section: 'Pages', icon: '📅', title: 'Deadlines',             sub: 'Upcoming · urgent · open',          route: 'deadlines' },
   { id: 'p-profile',      section: 'Pages', icon: '👤', title: 'Profile',               sub: 'Personal · academic · capability',  route: 'profile' },
-  // All programmes (searchable)
+  // All programmes (searchable — navigates directly to programme detail)
   ...PROGRAMMES.map(p => ({
-    id: `prog-${p.id}`, section: 'Programmes', icon: 'P',
-    title: p.name, sub: `${p.uni} · APS ${p.aps} · ${p.demand} demand`, route: 'programmes' as Route,
+    id: `prog-${p.id}`, section: 'Programmes', icon: '🎓',
+    title: p.name, sub: `${p.uni} · APS ${p.aps} · ${p.demand} demand`,
+    route: 'programmes' as Route, progId: p.id,
   })),
-  // All careers (searchable)
+  // All careers (searchable — navigates directly to career detail)
   ...CAREERS.map(c => ({
-    id: `car-${c.name}`, section: 'Careers', icon: 'C',
-    title: c.name, sub: `${c.growth} growth · ${c.demand} demand · ${fmtR(c.salary)}/mo`, route: 'careers' as Route,
+    id: `car-${c.name}`, section: 'Careers', icon: '📊',
+    title: c.name, sub: `${c.growth} growth · ${c.demand} demand · ${fmtR(c.salary)}/mo`,
+    route: 'careers' as Route, careerName: c.name,
   })),
 ];
 
@@ -79,7 +83,8 @@ interface TopbarProps {
   userEmail?: string;
   aps?: number;
   apsDelta?: number;
-  navigate?: (r: Route) => void;
+  navigate?: (r: Route, prog?: string) => void;
+  onOpenCareer?: (name: string) => void;
   onSearch?: (query: string) => void;
   onMenuClick?: () => void;
   unreadNotificationCount?: number;
@@ -93,6 +98,7 @@ export default function Topbar({
   aps = 42,
   apsDelta = 0,
   navigate,
+  onOpenCareer,
   onSearch,
   onMenuClick,
   unreadNotificationCount = 0,
@@ -160,7 +166,13 @@ export default function Topbar({
 
   function handleCmdkSelect(r: CmdkResult) {
     setCmdkOpen(false);
-    if (r.route && navigate) navigate(r.route);
+    if (r.careerName && onOpenCareer) {
+      onOpenCareer(r.careerName);
+    } else if (r.progId && navigate) {
+      navigate('programmes', r.progId);
+    } else if (r.route && navigate) {
+      navigate(r.route);
+    }
   }
 
   function handleProfileNav(r: Route) {

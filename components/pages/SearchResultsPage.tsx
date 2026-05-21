@@ -11,11 +11,14 @@ interface SearchResult {
   title: string;
   sub: string;
   route: Route;
+  progId?: string;
+  careerName?: string;
 }
 
 interface SearchResultsPageProps {
   query: string;
-  navigate: (r: Route) => void;
+  navigate: (r: Route, prog?: string) => void;
+  onOpenCareer?: (name: string) => void;
 }
 
 const STATIC_RESULTS: SearchResult[] = [
@@ -47,24 +50,26 @@ const STATIC_RESULTS: SearchResult[] = [
   { id: 'a-compare',   section: 'Actions', icon: '⇄', title: 'Compare UCT vs Wits CS',                   sub: 'Open compare →', route: 'compare' },
 ];
 
-export default function SearchResultsPage({ query, navigate }: SearchResultsPageProps) {
+export default function SearchResultsPage({ query, navigate, onOpenCareer }: SearchResultsPageProps) {
   const results = useMemo(() => {
     const progResults: SearchResult[] = PROGRAMMES.map(p => ({
       id: `prog-${p.id}`,
       section: 'Programmes',
-      icon: 'P',
+      icon: '🎓',
       title: p.name,
-      sub: `${p.uni} · APS ${p.aps} · fit ${p.fit}`,
+      sub: `${p.uni} · APS ${p.aps} · ${p.fit}% fit · ${p.dur} yr${p.dur !== 1 ? 's' : ''}`,
       route: 'programmes' as Route,
+      progId: p.id,
     }));
 
     const careerResults: SearchResult[] = CAREERS.map(c => ({
       id: `car-${c.name}`,
       section: 'Careers',
-      icon: 'C',
+      icon: '📊',
       title: c.name,
-      sub: `Match ${c.match} · ${c.growth} growth · ${c.demand} demand`,
+      sub: `${c.match}% match · ${c.growth} growth · ${c.demand} demand`,
       route: 'careers' as Route,
+      careerName: c.name,
     }));
 
     const all = [...STATIC_RESULTS, ...progResults, ...careerResults];
@@ -121,7 +126,15 @@ export default function SearchResultsPage({ query, navigate }: SearchResultsPage
                     key={r.id}
                     className="cmdk-row"
                     style={{ borderRadius: 'var(--r-lg)', cursor: 'pointer' }}
-                    onClick={() => navigate(r.route)}
+                    onClick={() => {
+                      if (r.careerName && onOpenCareer) {
+                        onOpenCareer(r.careerName);
+                      } else if (r.progId) {
+                        navigate('programmes', r.progId);
+                      } else {
+                        navigate(r.route);
+                      }
+                    }}
                   >
                     <div className="ico">{r.icon}</div>
                     <div className="body">

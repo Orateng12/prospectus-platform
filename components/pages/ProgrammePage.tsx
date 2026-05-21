@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useTransition } from 'react';
-import type { Route, Subject, Programme, PsychProfileData, CapabilityData } from '@/lib/types';
+import type { Route, Subject, Programme, CompareItem, PsychProfileData, CapabilityData } from '@/lib/types';
 import { PROGRAMMES } from '@/lib/data';
 import { calcAPS, fmtR, uniToneClass, uniLogoPath } from '@/lib/utils';
 import { scoreCareerMatch } from '@/lib/scoring';
@@ -14,6 +14,8 @@ interface ProgrammePageProps {
   navigate: (r: Route) => void;
   programmes?: Programme[];
   savedProgrammeIds?: string[];
+  compareItems?: CompareItem[];
+  onToggleCompare?: (item: CompareItem) => void;
   psychProfile?: PsychProfileData | null;
   capabilityData?: CapabilityData | null;
   userAps?: number;
@@ -505,6 +507,7 @@ function subjectGapBadges(prog: Programme, subjectNames: string[], aps: number) 
 
 export default function ProgrammePage({
   selectedProg, subjects, navigate, programmes, savedProgrammeIds = [],
+  compareItems = [], onToggleCompare,
   psychProfile, capabilityData, userAps, householdIncome, onOpenCareer,
 }: ProgrammePageProps) {
   const allProgs = programmes ?? PROGRAMMES;
@@ -619,6 +622,11 @@ export default function ProgrammePage({
             </p>
           </div>
           <div className="row">
+            {compareItems.filter(c => c.kind === 'prog').length > 0 && (
+              <button className="btn btn-outline btn-sm" onClick={() => navigate('compare')}>
+                ⇄ {compareItems.filter(c => c.kind === 'prog').length} in compare
+              </button>
+            )}
             <button
               className={`btn ${eligibleOnly ? 'btn-primary' : 'btn-outline'}`}
               onClick={() => { setEligibleOnly(v => !v); setVisibleCount(8); }}
@@ -787,15 +795,23 @@ export default function ProgrammePage({
                 <div className="row" style={{ gap: '0.375rem', marginTop: 'auto' }}>
                   <button
                     className={`btn btn-sm ${isSaved ? 'btn-primary' : 'btn-outline'}`}
-                    style={{ flex: 1 }}
                     disabled={saveTransition}
                     onClick={e => { e.stopPropagation(); handleToggleSave(p.id); }}
+                    title={isSaved ? 'Saved' : 'Save programme'}
                   >
-                    {isSaved ? '★' : '☆'} Save
+                    {isSaved ? '★' : '☆'}
                   </button>
+                  {onToggleCompare && (
+                    <button
+                      className={`btn btn-sm ${compareItems.some(c => c.id === p.id) ? 'btn-primary' : 'btn-outline'}`}
+                      onClick={e => { e.stopPropagation(); onToggleCompare({ id: p.id, kind: 'prog', name: p.name }); }}
+                    >
+                      {compareItems.some(c => c.id === p.id) ? '✓ Added' : 'Compare'}
+                    </button>
+                  )}
                   <button
                     className="btn btn-primary btn-sm"
-                    style={{ flex: 1 }}
+                    style={{ flex: onToggleCompare ? undefined : 1 }}
                     onClick={e => { e.stopPropagation(); setSelected(p); }}
                   >
                     View detail

@@ -216,6 +216,8 @@ export default function Dashboard({
             navigate={navigate}
             programmes={initialProgrammes}
             savedProgrammeIds={displaySavedIds}
+            compareItems={compareItems}
+            onToggleCompare={toggleCompare}
             psychProfile={displayPsych}
             capabilityData={displayCap}
             userAps={displayAps}
@@ -394,7 +396,16 @@ export default function Dashboard({
       case 'notifications':
         return <NotificationsPage navigate={navigate} notifications={emptyMode ? [] : notifications} />;
       case 'search':
-        return <SearchResultsPage query={searchQuery} navigate={navigate} />;
+        return (
+          <SearchResultsPage
+            query={searchQuery}
+            navigate={navigate}
+            onOpenCareer={(name) => {
+              const c = (careers ?? STATIC_CAREERS).find(x => x.name === name);
+              if (c) navigateToDetail('career-detail', c);
+            }}
+          />
+        );
       default:
         return (
           <HomePage
@@ -445,6 +456,10 @@ export default function Dashboard({
           aps={aps}
           apsDelta={apsDelta}
           navigate={navigate}
+          onOpenCareer={(name) => {
+            const c = (careers ?? STATIC_CAREERS).find(x => x.name === name);
+            if (c) navigateToDetail('career-detail', c);
+          }}
           onSearch={(q) => { setSearchQuery(q); navigate('search'); }}
           onMenuClick={() => setSidebarOpen(true)}
           unreadNotificationCount={unreadNotificationCount}
