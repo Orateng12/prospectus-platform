@@ -245,14 +245,23 @@ export const CAPS: Capability[] = [
 ];
 
 export const CAREERS: Career[] = [
-  { rank: 1, name: 'Software Engineer',        match: 88, salary: 38500, growth: '+22%', demand: 'High', tags: ['STEM','Remote-friendly','Tech'],   why: 'Strong analytical (86) + numerical (88), top fit for your maths trajectory.' },
-  { rank: 2, name: 'Data Scientist',           match: 85, salary: 41200, growth: '+18%', demand: 'High', tags: ['STEM','Hybrid','Analytics'],       why: 'Capability mix maps perfectly; growth sector in SA finance + telco.' },
-  { rank: 3, name: 'Actuary',                  match: 82, salary: 45200, growth: '+9%',  demand: 'Med',  tags: ['Finance','Office','Accredited'],   why: 'High pay, your maths and stats fit, but long accreditation path.' },
-  { rank: 4, name: 'Quantitative Analyst',     match: 78, salary: 48000, growth: '+12%', demand: 'Med',  tags: ['Finance','Hybrid'],                why: 'Premier salary band; competitive entry, niche to JSE-listed banks.' },
-  { rank: 5, name: 'ML Engineer',              match: 76, salary: 42800, growth: '+25%', demand: 'High', tags: ['STEM','Remote'],                   why: 'Fastest-growing role; needs stronger CS foundation than maths.' },
-  { rank: 6, name: 'Product Manager (Tech)',   match: 71, salary: 38000, growth: '+14%', demand: 'High', tags: ['Tech','Hybrid'],                   why: 'Verbal score (54) is a gap here; coachable through electives.' },
-  { rank: 7, name: 'Civil Engineer',           match: 58, salary: 32400, growth: '+5%',  demand: 'Med',  tags: ['STEM','On-site'],                  why: 'Spatial fit OK; lower demand growth than software.' },
-  { rank: 8, name: 'Doctor (MBChB)',           match: 41, salary: 52000, growth: '+7%',  demand: 'High', tags: ['STEM','Public'],                   why: 'High pay but APS, biology and verbal scores all need lifting.' },
+  { rank: 1,  name: 'Software Engineer',      match: 88, salary: 38500, growth: '+22%', demand: 'High', tags: ['STEM','Remote-friendly','Tech'],     why: 'Strong analytical + numerical fit; fastest-hiring sector in SA tech.',           scarce_skill: true  },
+  { rank: 2,  name: 'Data Scientist',         match: 85, salary: 41200, growth: '+18%', demand: 'High', tags: ['STEM','Hybrid','Analytics'],         why: 'Capability mix maps well; growth sector in SA finance and telco.',               scarce_skill: true  },
+  { rank: 3,  name: 'Actuary',                match: 82, salary: 45200, growth: '+9%',  demand: 'Med',  tags: ['Finance','Office','Accredited'],     why: 'High pay; maths and stats fit; long accreditation path via ASSA.',              scarce_skill: true  },
+  { rank: 4,  name: 'Quantitative Analyst',   match: 78, salary: 48000, growth: '+12%', demand: 'Med',  tags: ['Finance','Hybrid'],                  why: 'Premier salary band; competitive entry; niche to JSE-listed banks.',            scarce_skill: false },
+  { rank: 5,  name: 'ML Engineer',            match: 76, salary: 42800, growth: '+25%', demand: 'High', tags: ['STEM','Remote'],                     why: 'Fastest-growing role globally; needs stronger CS foundation than pure maths.',  scarce_skill: true  },
+  { rank: 6,  name: 'Product Manager (Tech)', match: 71, salary: 38000, growth: '+14%', demand: 'High', tags: ['Tech','Hybrid'],                     why: 'Verbal score is the main gap here; coachable through electives.',               scarce_skill: false },
+  { rank: 7,  name: 'Civil Engineer',         match: 58, salary: 32400, growth: '+5%',  demand: 'Med',  tags: ['STEM','On-site'],                    why: 'Spatial fit OK; lower demand growth than software but scarce in infrastructure.',scarce_skill: true  },
+  { rank: 8,  name: 'Doctor (MBChB)',         match: 41, salary: 52000, growth: '+7%',  demand: 'High', tags: ['STEM','Public'],                     why: 'High pay but APS, biology and verbal scores all need lifting.',                 scarce_skill: true  },
+  { rank: 9,  name: 'Data Analyst',           match: 80, salary: 28500, growth: '+20%', demand: 'High', tags: ['Analytics','Hybrid','Entry-level'],   why: 'Lower barrier than Data Scientist; strong entry point into the data economy.',  scarce_skill: false },
+  { rank: 10, name: 'Mechanical Engineer',    match: 62, salary: 33800, growth: '+6%',  demand: 'Med',  tags: ['STEM','On-site','Manufacturing'],     why: 'Solid demand in mining and manufacturing; spatial reasoning is key.',           scarce_skill: true  },
+  { rank: 11, name: 'Product Manager',        match: 68, salary: 36000, growth: '+12%', demand: 'High', tags: ['Business','Hybrid','Leadership'],     why: 'Broad role crossing tech and business; needs communication strength.',          scarce_skill: false },
+  { rank: 12, name: 'Lawyer',                 match: 55, salary: 34500, growth: '+4%',  demand: 'Med',  tags: ['Law','Office','Verbal'],              why: 'Strong verbal and social dimension required; long degree path (LLB + articles).', scarce_skill: false },
+  { rank: 13, name: 'Accountant',             match: 72, salary: 31000, growth: '+8%',  demand: 'High', tags: ['Finance','Office','Accredited'],      why: 'High hiring volume across every industry; SAICA CA path is most valued.',       scarce_skill: false },
+  { rank: 14, name: 'Financial Advisor',      match: 65, salary: 26000, growth: '+7%',  demand: 'Med',  tags: ['Finance','Client-facing'],            why: 'Commission-based growth potential; interpersonal strength matters most.',        scarce_skill: false },
+  { rank: 15, name: 'Teacher',                match: 60, salary: 21500, growth: '+3%',  demand: 'High', tags: ['Education','Public','Social'],        why: 'Maths and science teachers are scarce skills; Funza Lushaka bursary available.',scarce_skill: true  },
+  { rank: 16, name: 'Entrepreneur',           match: 70, salary: 35000, growth: '+15%', demand: 'High', tags: ['Business','Risk','Leadership'],       why: 'Enterprising RIASEC type; best combined with domain expertise.',                scarce_skill: false },
+  { rank: 17, name: 'Nurse',                  match: 58, salary: 22000, growth: '+9%',  demand: 'High', tags: ['Health','Public','Social'],           why: 'Scarce skill; social drive required; NSFAS and HWSETA bursaries available.',    scarce_skill: true  },
 ];
 
 export const BIG5: BigFiveTrait[] = [
