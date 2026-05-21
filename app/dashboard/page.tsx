@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { requireAuth } from '@/lib/supabase/requireAuth';
 import { SUBJECTS, PROGRAMMES, CAREERS, FUNDING_OPPORTUNITIES } from '@/lib/data';
+import { getCatalogueData } from '@/lib/catalogue';
 import { computeStrategicScore } from '@/lib/scoring';
 import Dashboard from '@/components/Dashboard';
 import type {
@@ -21,6 +22,13 @@ function fitScore(userAps: number, minAps: number): number {
   if (minAps <= 0) return 80;
   if (userAps >= minAps) return Math.min(100, Math.round(80 + ((userAps - minAps) / minAps) * 20));
   return Math.max(10, Math.round((userAps / minAps) * 80));
+}
+
+function normaliseCompetition(c?: string | null): Programme['demand'] {
+  const s = (c ?? '').toLowerCase();
+  if (s === 'high') return 'High';
+  if (s === 'low')  return 'Low';
+  return 'Med';
 }
 
 function normaliseDemand(d?: string): Career['demand'] {
@@ -58,74 +66,66 @@ export default async function Page() {
   if (!auth.ok) redirect('/login');
   const { user, supabase } = auth;
 
-  const [profileResult, progResult, psychResult, capResult, scoreResult, appsResult, careersResult, savedResult, scholarshipAppsResult, documentsResult, notificationsResult, customDeadlinesResult, fundingResult] = await Promise.all([
-    supabase
-      .from('user_profiles')
-      .select('aps_score, subject_marks, first_name, last_name, province, household_income, matric_year')
-      .eq('id', user.id)
-      .single(),
-    supabase
-      .from('programmes')
-      .select('id, name, min_aps, duration_years, tuition_fee_min, tuition_fee_max, qualification_type, nqf_level, is_active, institutions ( name )')
-      .eq('is_active', true)
-      .order('min_aps', { ascending: true })
-      .limit(500),
-    supabase
-      .from('psychological_profiles')
-      .select('openness, conscientiousness, extraversion, agreeableness, neuroticism, realistic, investigative, artistic, social, enterprising, conventional, primary_motivation, work_style_preference')
-      .eq('user_id', user.id)
-      .maybeSingle(),
-    supabase
-      .from('capability_graphs')
-      .select('analytical_thinking, creative_thinking, leadership_potential, communication_skills, technical_aptitude, entrepreneurial_drive, risk_tolerance_score, perseverance, academic_readiness, career_readiness')
-      .eq('user_id', user.id)
-      .maybeSingle(),
-    supabase
-      .from('strategic_score_records')
-      .select('overall, academic_readiness, career_demand_alignment, financial_feasibility, global_mobility_potential, personality_career_fit, skill_readiness, previous_score, trend')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from('student_applications')
-      .select('id, status, applied_at, deadline, outcome, notes, programmes ( name, institutions ( name ) )')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(20),
-    supabase
-      .from('careers')
-      .select('id, title, description, demand_level, salary_percentile_50, salary_entry_min, salary_mid_max, employment_rate, job_posting_trend, skills_needed, scarce_skill, category')
-      .order('demand_level', { ascending: false })
-      .limit(42),
-    supabase
-      .from('saved_programmes')
-      .select('programme_id')
-      .eq('user_id', user.id),
-    supabase
-      .from('scholarship_applications')
-      .select('scholarship_name')
-      .eq('user_id', user.id),
-    supabase
-      .from('user_documents')
-      .select('doc_type, file_name, storage_path, file_size, mime_type, uploaded_at')
-      .eq('user_id', user.id),
-    supabase
-      .from('notifications')
-      .select('id, type, title, message, link, read, priority, created_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(50),
-    supabase
-      .from('custom_deadlines')
-      .select('id, title, date')
-      .eq('user_id', user.id)
-      .order('date', { ascending: true }),
-    supabase
-      .from('funding_opportunities')
-      .select('id, name, amount, type, provider_type, eligibility, deadline, income_threshold, min_aps, study_fields, service_contract, disability_specific, province_specific, application_url, last_verified_at')
-      .eq('is_active', true)
-      .order('amount', { ascending: false }),
+  // User-specific queries and shared catalogue run in parallel.
+  // getCatalogueData() is globally cached (1 h TTL) so it's nearly free after first render.
+  const [
+    [profileResult, psychResult, capResult, scoreResult, appsResult, savedResult, scholarshipAppsResult, documentsResult, notificationsResult, customDeadlinesResult],
+    { progRows, careerRows, fundingRows },
+  ] = await Promise.all([
+    Promise.all([
+      supabase
+        .from('user_profiles')
+        .select('aps_score, subject_marks, first_name, last_name, province, household_income, matric_year')
+        .eq('id', user.id)
+        .single(),
+      supabase
+        .from('psychological_profiles')
+        .select('openness, conscientiousness, extraversion, agreeableness, neuroticism, realistic, investigative, artistic, social, enterprising, conventional, primary_motivation, work_style_preference')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('capability_graphs')
+        .select('analytical_thinking, creative_thinking, leadership_potential, communication_skills, technical_aptitude, entrepreneurial_drive, risk_tolerance_score, perseverance, academic_readiness, career_readiness')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('strategic_score_records')
+        .select('overall, academic_readiness, career_demand_alignment, financial_feasibility, global_mobility_potential, personality_career_fit, skill_readiness, previous_score, trend')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('student_applications')
+        .select('id, status, applied_at, deadline, outcome, notes, programmes ( name, institutions ( name ) )')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20),
+      supabase
+        .from('saved_programmes')
+        .select('programme_id')
+        .eq('user_id', user.id),
+      supabase
+        .from('scholarship_applications')
+        .select('scholarship_name')
+        .eq('user_id', user.id),
+      supabase
+        .from('user_documents')
+        .select('doc_type, file_name, storage_path, file_size, mime_type, uploaded_at')
+        .eq('user_id', user.id),
+      supabase
+        .from('notifications')
+        .select('id, type, title, message, link, read, priority, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50),
+      supabase
+        .from('custom_deadlines')
+        .select('id, title, date')
+        .eq('user_id', user.id)
+        .order('date', { ascending: true }),
+    ]),
+    getCatalogueData(),
   ]);
 
   const profile = profileResult.data;
@@ -150,24 +150,21 @@ export default async function Page() {
     }
   }
 
-  // Programmes
+  // Programmes — from shared catalogue cache (no row limit)
   let programmes: Programme[] = PROGRAMMES;
-  if (progResult.data && progResult.data.length > 0) {
-    programmes = progResult.data.map(p => {
-      const inst = (p.institutions as unknown) as { name: string } | null;
-      return {
-        id: p.id,
-        name: p.name,
-        uni: inst?.name ?? 'Unknown',
-        aps: p.min_aps ?? 0,
-        fees: p.tuition_fee_min ?? p.tuition_fee_max ?? 45_000,
-        dur: p.duration_years ?? 3,
-        fit: fitScore(userAps, p.min_aps ?? 0),
-        pathway: pathwayFromQualType(p.qualification_type, p.nqf_level),
-        salary: 35_000,
-        demand: 'Med' as const,
-      };
-    });
+  if (progRows.length > 0) {
+    programmes = progRows.map(p => ({
+      id: p.id,
+      name: p.name,
+      uni: p.institutions?.name ?? 'Unknown',
+      aps: p.min_aps ?? 0,
+      fees: p.tuition_fee_min ?? p.tuition_fee_max ?? 45_000,
+      dur: p.duration_years ?? 3,
+      fit: fitScore(userAps, p.min_aps ?? 0),
+      pathway: pathwayFromQualType(p.qualification_type, p.nqf_level),
+      salary: 35_000,
+      demand: normaliseCompetition(p.competition_level),
+    }));
   }
 
   // Psychological profile
@@ -256,16 +253,10 @@ export default async function Page() {
   // Custom deadlines
   const customDeadlines: DbCustomDeadline[] = (customDeadlinesResult.data ?? []) as DbCustomDeadline[];
 
-  // Funding opportunities — fall back to static if DB is empty
+  // Funding opportunities — from shared catalogue cache, fall back to static if empty
   let fundingOpportunities: FundingOpportunity[] = FUNDING_OPPORTUNITIES;
-  if (fundingResult.data && fundingResult.data.length > 0) {
-    fundingOpportunities = (fundingResult.data as Array<{
-      id: string; name: string; amount: number; type: string; provider_type: string;
-      eligibility: string; deadline: string | null; income_threshold: number | null;
-      min_aps: number | null; study_fields: string[] | null; service_contract: boolean | null;
-      disability_specific: boolean | null; province_specific: string | null;
-      application_url: string | null; last_verified_at: string | null;
-    }>).map(f => ({
+  if (fundingRows.length > 0) {
+    fundingOpportunities = fundingRows.map(f => ({
       id: f.id,
       name: f.name,
       amount: f.amount,
@@ -288,10 +279,10 @@ export default async function Page() {
   // Matric year
   const matricYear: number | undefined = (profile as Record<string, unknown> | null)?.matric_year as number | undefined;
 
-  // Careers
+  // Careers — from shared catalogue cache
   let careers: Career[] = CAREERS;
-  if (careersResult.data && careersResult.data.length > 0) {
-    careers = (careersResult.data as DbCareer[]).map((c, i) => mapDbCareerToCareer(c, i + 1));
+  if (careerRows.length > 0) {
+    careers = (careerRows as DbCareer[]).map((c, i) => mapDbCareerToCareer(c, i + 1));
   }
 
   return (
