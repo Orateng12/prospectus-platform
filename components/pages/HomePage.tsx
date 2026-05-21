@@ -171,6 +171,7 @@ interface HomePageProps {
   liveCareerMatches?: Record<string, number>;
   customDeadlines?: DbCustomDeadline[];
   documents?: DbDocument[];
+  onOpenCareer?: (name: string) => void;
 }
 
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -249,7 +250,7 @@ function statusToStages(status: string): string[] {
   return ['done', 'active', '', ''];
 }
 
-export default function HomePage({ subjects, navigate, programmes, applications = [], strategicScore, householdIncome, savedProgrammeIds = [], psychProfile, capabilityData, careers, liveCareerMatches, customDeadlines, documents }: HomePageProps) {
+export default function HomePage({ subjects, navigate, programmes, applications = [], strategicScore, householdIncome, savedProgrammeIds = [], psychProfile, capabilityData, careers, liveCareerMatches, customDeadlines, documents, onOpenCareer }: HomePageProps) {
   const [showAllDeadlines, setShowAllDeadlines] = useState(false);
   const aps = calcAPS(subjects);
   const allProgs = programmes ?? PROGRAMMES;
@@ -366,7 +367,7 @@ export default function HomePage({ subjects, navigate, programmes, applications 
                     key={c.name}
                     className="card compact"
                     style={{ textAlign: 'left', cursor: 'pointer', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}
-                    onClick={() => navigate('careers')}
+                    onClick={() => onOpenCareer ? onOpenCareer(c.name) : navigate('careers')}
                   >
                     <div style={{ fontWeight: 700, fontSize: '0.8125rem', lineHeight: 1.3 }}>{c.name}</div>
                     <div className="meter sm" style={{ width: '100%', height: 4 }}>
@@ -378,7 +379,10 @@ export default function HomePage({ subjects, navigate, programmes, applications 
                         {c.demand}
                       </span>
                     </div>
-                    <div className="caption" style={{ color: 'hsl(var(--muted-fg))' }}>{fmtR(c.salary)}/mo</div>
+                    <div className="row-between">
+                      <span className="caption" style={{ color: 'hsl(var(--muted-fg))' }}>{fmtR(c.salary)}/mo</span>
+                      <span className="caption" style={{ color: 'hsl(var(--success))', fontWeight: 600 }}>{c.growth}</span>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -410,7 +414,7 @@ export default function HomePage({ subjects, navigate, programmes, applications 
                     className={`btn ${x.urgency === 'high' ? 'btn-primary' : i === 0 ? 'btn-primary' : 'btn-outline'} btn-sm`}
                     onClick={() => navigate(x.route)}
                   >
-                    Open
+                    {x.urgency === 'high' ? 'Act now →' : i === 0 ? 'Open →' : 'View →'}
                   </button>
                 </div>
               ))}

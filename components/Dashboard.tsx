@@ -404,6 +404,10 @@ export default function Dashboard({
             liveCareerMatches={emptyMode ? {} : liveCareerMatches}
             customDeadlines={emptyMode ? [] : customDeadlines}
             documents={emptyMode ? [] : documents}
+            onOpenCareer={(name) => {
+              const c = (careers ?? STATIC_CAREERS).find(x => x.name === name);
+              if (c) navigateToDetail('career-detail', c);
+            }}
           />
         );
     }
