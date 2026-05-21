@@ -257,6 +257,7 @@ export default function Dashboard({
             capabilityData={displayCap}
             userAps={displayAps}
             householdIncome={householdIncome}
+            userFirstName={userFirstName}
           />
         );
       case 'notifications':

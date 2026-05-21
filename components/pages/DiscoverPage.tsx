@@ -11,6 +11,7 @@ interface DiscoverPageProps {
   capabilityData?: CapabilityData | null;
   userAps?: number;
   householdIncome?: number;
+  userFirstName?: string;
 }
 
 interface Citation {
@@ -86,7 +87,7 @@ function renderText(text: string): React.ReactNode[] {
   });
 }
 
-export default function DiscoverPage({ navigate, psychProfile, userAps, householdIncome }: DiscoverPageProps) {
+export default function DiscoverPage({ navigate, psychProfile, capabilityData, userAps, householdIncome, userFirstName }: DiscoverPageProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(SEED_MESSAGES);
   const [conversationHistory, setConversationHistory] = useState<ChatTurn[]>([]);
   const [input, setInput] = useState('');
@@ -146,7 +147,7 @@ export default function DiscoverPage({ navigate, psychProfile, userAps, househol
     setIsLoading(false);
   }
 
-  const initial = (psychProfile as { openness?: number } | null | undefined)?.openness !== undefined ? 'L' : 'L';
+  const initial = userFirstName ? userFirstName.charAt(0).toUpperCase() : 'S';
 
   return (
     <div className="page-anim">
@@ -264,20 +265,46 @@ export default function DiscoverPage({ navigate, psychProfile, userAps, househol
             </div>
           </div>
           <div className="card">
-            <div className="eyebrow"><span className="dot" />How the advisor reasons</div>
-            <div className="stack-2" style={{ marginTop: '0.625rem' }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>1. Profile pull</div>
-                <div className="caption">Your APS, Big Five, RIASEC, capability graph and household profile.</div>
-              </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>2. Domain search</div>
-                <div className="caption">SA programmes, careers, funding sources, and labour market signals.</div>
-              </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>3. Claude reasons</div>
-                <div className="caption">Powered by Claude · personalized to your profile · cites sources.</div>
-              </div>
+            <div className="eyebrow"><span className="dot" />What Claude can see</div>
+            <div className="stack" style={{ marginTop: '0.625rem' }}>
+              {([
+                {
+                  label: 'APS score',
+                  loaded: !!userAps && userAps > 0,
+                  detail: userAps && userAps > 0 ? `${userAps} pts · programme eligibility live` : 'Add subjects on Profile page',
+                },
+                {
+                  label: 'RIASEC + Big Five',
+                  loaded: !!psychProfile,
+                  detail: psychProfile
+                    ? `${['Realistic','Investigative','Artistic','Social','Enterprising','Conventional'].sort((a,b)=>(psychProfile[b.toLowerCase() as keyof PsychProfileData] as number??0)-(psychProfile[a.toLowerCase() as keyof PsychProfileData] as number??0)).slice(0,2).join('-')} dominant · career matching active`
+                    : 'Take assessment to unlock career matching',
+                },
+                {
+                  label: '8 capability dimensions',
+                  loaded: !!capabilityData,
+                  detail: capabilityData
+                    ? `Composite ${Math.round([capabilityData.analytical_thinking,capabilityData.technical_aptitude,capabilityData.communication_skills,capabilityData.creative_thinking,capabilityData.leadership_potential,capabilityData.entrepreneurial_drive,capabilityData.perseverance,capabilityData.academic_readiness].reduce((a,b)=>a+b,0)/8)}/100 · gap analysis live`
+                    : 'Assessment not yet taken',
+                },
+                {
+                  label: 'Household income',
+                  loaded: !!householdIncome,
+                  detail: householdIncome
+                    ? `R${Math.round(householdIncome/1000)}k/yr · ${householdIncome <= 350_000 ? 'NSFAS-eligible · bursary matching on' : 'Corporate + merit bursary matching on'}`
+                    : 'Add on Profile to improve funding advice',
+                },
+              ] as Array<{ label: string; loaded: boolean; detail: string }>).map(src => (
+                <div key={src.label} className="row" style={{ gap: '0.5rem', alignItems: 'flex-start', padding: '0.375rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                  <span className={`badge ${src.loaded ? 'success' : 'accent'}`} style={{ fontSize: '0.5rem', flexShrink: 0, marginTop: 3 }}>
+                    {src.loaded ? '✓' : '?'}
+                  </span>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{src.label}</div>
+                    <div className="caption" style={{ fontSize: '0.6875rem', marginTop: 1 }}>{src.detail}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
