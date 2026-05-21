@@ -20,6 +20,158 @@ interface SimulatorPageProps {
   householdIncome?: number;
 }
 
+// NSC APS points for a mark percentage
+function nscPoints(mark: number): number {
+  if (mark >= 90) return 7;
+  if (mark >= 80) return 6;
+  if (mark >= 70) return 5;
+  if (mark >= 60) return 4;
+  if (mark >= 50) return 3;
+  if (mark >= 40) return 2;
+  if (mark >= 30) return 1;
+  return 0;
+}
+
+// Find minimum mark to reach the next higher NSC point level
+function markForNextPoint(mark: number): number | null {
+  const boundaries = [30, 40, 50, 60, 70, 80, 90];
+  for (const b of boundaries) {
+    if (mark < b) return b;
+  }
+  return null; // already at max
+}
+
+interface GradeBoundaryProps {
+  subjects: Subject[];
+  aps: number;
+  allProgs: Programme[];
+  onApply: (id: string, val: string) => void;
+}
+
+function GradeBoundaryCalculator({ subjects, aps, allProgs, onApply }: GradeBoundaryProps) {
+  const maxAps = subjects.filter(s => s.id !== 'lo' && s.designated).length * 7;
+  const [targetAps, setTargetAps] = useState(() => Math.min(aps + 3, maxAps));
+
+  const gap = targetAps - aps;
+  const progsNow = allProgs.filter(p => p.aps <= aps).length;
+  const progsAtTarget = allProgs.filter(p => p.aps <= targetAps).length;
+  const progsUnlocked = progsAtTarget - progsNow;
+
+  // For each designated subject (excl. LO), compute what mark is needed for each additional point
+  const rows = useMemo(() => {
+    return subjects
+      .filter(s => s.id !== 'lo' && s.designated)
+      .map(s => {
+        const current = s.mark;
+        const currentPts = nscPoints(current);
+        const nextMark = markForNextPoint(current);
+        if (nextMark === null) return null; // already maxed
+        const ptsGained = nscPoints(nextMark) - currentPts;
+        const markIncrease = nextMark - current;
+        return { subject: s, current, nextMark, markIncrease, ptsGained };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a!.markIncrease - b!.markIncrease) as NonNullable<ReturnType<typeof subjects.map>>[number][];
+  }, [subjects]);
+
+  if (gap <= 0 && targetAps <= aps) {
+    // target is already met — still show the section but with a green message
+  }
+
+  return (
+    <div className="card" style={{ marginTop: '1.75rem' }}>
+      <div className="row-between" style={{ marginBottom: '1rem' }}>
+        <div>
+          <div className="eyebrow"><span className="dot" />Grade boundary calculator</div>
+          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>What marks do I need to reach APS {targetAps}?</h3>
+        </div>
+        {progsUnlocked > 0 && (
+          <span className="badge success" style={{ height: '1.5rem', fontSize: '0.75rem' }}>
+            +{progsUnlocked} programmes unlocked
+          </span>
+        )}
+      </div>
+
+      <div className="row" style={{ alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+        <span className="caption" style={{ flexShrink: 0 }}>Target APS</span>
+        <input
+          type="range"
+          className="slider"
+          min={aps}
+          max={maxAps}
+          step={1}
+          value={targetAps}
+          onChange={e => setTargetAps(Number(e.target.value))}
+          style={{ flex: 1 }}
+        />
+        <input
+          type="number"
+          className="sub-input"
+          min={aps}
+          max={maxAps}
+          value={targetAps}
+          onChange={e => setTargetAps(Math.max(aps, Math.min(maxAps, Number(e.target.value))))}
+        />
+      </div>
+
+      {gap <= 0 ? (
+        <div className="caption" style={{ color: 'hsl(var(--success))', fontWeight: 600 }}>
+          ✓ Your current APS ({aps}) already meets or exceeds this target.
+        </div>
+      ) : (
+        <>
+          <div className="caption" style={{ marginBottom: '0.75rem' }}>
+            Need <strong>+{gap} APS point{gap !== 1 ? 's' : ''}</strong>. Cheapest subjects to improve first:
+          </div>
+          <div className="stack">
+            {(rows as Array<{ subject: Subject; current: number; nextMark: number; markIncrease: number; ptsGained: number }>).map(({ subject: s, current, nextMark, markIncrease, ptsGained }, i) => (
+              <div
+                key={s.id}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto auto auto',
+                  gap: '0.75rem',
+                  alignItems: 'center',
+                  padding: '0.5rem 0',
+                  borderBottom: '1px solid hsl(var(--border))',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: i === 0 ? 700 : 600, fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    {s.name}
+                    {i === 0 && <span className="badge success" style={{ height: '1rem', fontSize: '0.5625rem', padding: '0 0.3125rem' }}>Cheapest</span>}
+                  </div>
+                  <div className="caption" style={{ marginTop: '0.125rem' }}>
+                    {current}% → <strong>{nextMark}%</strong> = +{ptsGained} APS pt{ptsGained !== 1 ? 's' : ''}
+                  </div>
+                </div>
+                <div style={{ fontWeight: 900, fontSize: '1.125rem', fontVariantNumeric: 'tabular-nums', color: i === 0 ? 'hsl(var(--success))' : 'hsl(var(--muted-fg))' }}>
+                  +{markIncrease}%
+                </div>
+                <span className={`badge ${ptsGained >= 2 ? 'success' : 'info'}`} style={{ height: '1.25rem', fontSize: '0.5625rem' }}>
+                  +{ptsGained} pt{ptsGained !== 1 ? 's' : ''}
+                </span>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ padding: '0 0.375rem', fontSize: '0.6875rem', height: '1.5rem' }}
+                  onClick={() => onApply(s.id, String(nextMark))}
+                >
+                  Apply
+                </button>
+              </div>
+            ))}
+          </div>
+          {progsUnlocked > 0 && (
+            <div className="caption" style={{ marginTop: '0.75rem', color: 'hsl(var(--success))', fontWeight: 600 }}>
+              Reaching APS {targetAps} unlocks {progsUnlocked} more programme{progsUnlocked !== 1 ? 's' : ''} you can&apos;t access at APS {aps}.
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // For each designated subject, find the minimum mark increase to gain the next APS point
 function cheapestLever(subject: Subject) {
   const currentPts = apsPoints(subject.mark);
@@ -723,6 +875,9 @@ export default function SimulatorPage({
           </div>
         )}
       </div>
+
+      {/* ── Grade Boundary Calculator ───────────────────────────────────────── */}
+      <GradeBoundaryCalculator subjects={subjects} aps={aps} allProgs={allProgs} onApply={handleChange} />
     </div>
   );
 }

@@ -16,6 +16,7 @@ export interface Programme {
   pathway: 'direct' | 'extended' | 'foundation' | 'tvet';
   salary: number;
   demand: 'High' | 'Med' | 'Low';
+  requiredSubjects?: string[];
 }
 
 export interface Application {
@@ -227,6 +228,12 @@ export interface DbDocument {
   mime_type?: string;
   uploaded_at: string;
   signed_url?: string;
+}
+
+export interface DbCustomDeadline {
+  id: string;
+  title: string;
+  date: string;
 }
 
 export interface DbNotification {

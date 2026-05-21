@@ -5,7 +5,7 @@ import { computeStrategicScore } from '@/lib/scoring';
 import Dashboard from '@/components/Dashboard';
 import type {
   Subject, Programme, Career,
-  PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbCareer, DbDocument, DbNotification,
+  PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbCareer, DbDocument, DbNotification, DbCustomDeadline,
 } from '@/lib/types';
 
 function pathwayFromQualType(qt: string | null, nqf: number | null): Programme['pathway'] {
@@ -58,7 +58,7 @@ export default async function Page() {
   if (!auth.ok) redirect('/login');
   const { user, supabase } = auth;
 
-  const [profileResult, progResult, psychResult, capResult, scoreResult, appsResult, careersResult, savedResult, scholarshipAppsResult, documentsResult, notificationsResult] = await Promise.all([
+  const [profileResult, progResult, psychResult, capResult, scoreResult, appsResult, careersResult, savedResult, scholarshipAppsResult, documentsResult, notificationsResult, customDeadlinesResult] = await Promise.all([
     supabase
       .from('user_profiles')
       .select('aps_score, subject_marks, first_name, last_name, province, household_income, matric_year')
@@ -116,6 +116,11 @@ export default async function Page() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(50),
+    supabase
+      .from('custom_deadlines')
+      .select('id, title, date')
+      .eq('user_id', user.id)
+      .order('date', { ascending: true }),
   ]);
 
   const profile = profileResult.data;
@@ -243,6 +248,9 @@ export default async function Page() {
   const notifications: DbNotification[] = (notificationsResult.data ?? []) as DbNotification[];
   const unreadNotificationCount = notifications.filter(n => !n.read).length;
 
+  // Custom deadlines
+  const customDeadlines: DbCustomDeadline[] = (customDeadlinesResult.data ?? []) as DbCustomDeadline[];
+
   // Matric year
   const matricYear: number | undefined = (profile as Record<string, unknown> | null)?.matric_year as number | undefined;
 
@@ -274,6 +282,7 @@ export default async function Page() {
       documents={documents}
       notifications={notifications}
       unreadNotificationCount={unreadNotificationCount}
+      customDeadlines={customDeadlines}
     />
   );
 }

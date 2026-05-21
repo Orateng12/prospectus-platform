@@ -23,14 +23,14 @@ export const SUBJECTS: Subject[] = [
 ];
 
 export const PROGRAMMES: Programme[] = [
-  { id: 'uct-cs',   name: 'BSc Computer Science',      uni: 'University of Cape Town',            aps: 38, fees: 76420, dur: 3, fit: 94, pathway: 'direct',     salary: 38500, demand: 'High' },
-  { id: 'wits-act', name: 'BSc Actuarial Science',     uni: 'University of the Witwatersrand',    aps: 42, fees: 82100, dur: 3, fit: 88, pathway: 'direct',     salary: 45200, demand: 'High' },
-  { id: 'sun-eng',  name: 'BSc Engineering (Mech.)',   uni: 'Stellenbosch University',            aps: 36, fees: 71800, dur: 4, fit: 81, pathway: 'extended',   salary: 36800, demand: 'High' },
-  { id: 'cput-ict', name: 'NDip ICT (App Dev)',        uni: 'Cape Peninsula UoT',                 aps: 28, fees: 38200, dur: 3, fit: 76, pathway: 'tvet',       salary: 24500, demand: 'High' },
-  { id: 'up-data',  name: 'BSc Data Science',          uni: 'University of Pretoria',             aps: 40, fees: 74100, dur: 3, fit: 85, pathway: 'direct',     salary: 41200, demand: 'High' },
-  { id: 'ukzn-med', name: 'MBChB (Medicine)',          uni: 'UKZN',                               aps: 48, fees: 91500, dur: 6, fit: 41, pathway: 'direct',     salary: 52000, demand: 'High' },
-  { id: 'sun-fin',  name: 'BCom Finance',              uni: 'Stellenbosch University',            aps: 44, fees: 68400, dur: 3, fit: 67, pathway: 'direct',     salary: 32400, demand: 'Med'  },
-  { id: 'wits-eng', name: 'BSc Eng (Foundation Yr)',   uni: 'University of the Witwatersrand',    aps: 32, fees: 71200, dur: 5, fit: 72, pathway: 'foundation', salary: 36800, demand: 'High' },
+  { id: 'uct-cs',   name: 'BSc Computer Science',      uni: 'University of Cape Town',            aps: 38, fees: 76420, dur: 3, fit: 94, pathway: 'direct',     salary: 38500, demand: 'High', requiredSubjects: ['Mathematics'] },
+  { id: 'wits-act', name: 'BSc Actuarial Science',     uni: 'University of the Witwatersrand',    aps: 42, fees: 82100, dur: 3, fit: 88, pathway: 'direct',     salary: 45200, demand: 'High', requiredSubjects: ['Mathematics', 'Physical Sciences'] },
+  { id: 'sun-eng',  name: 'BSc Engineering (Mech.)',   uni: 'Stellenbosch University',            aps: 36, fees: 71800, dur: 4, fit: 81, pathway: 'extended',   salary: 36800, demand: 'High', requiredSubjects: ['Mathematics', 'Physical Sciences'] },
+  { id: 'cput-ict', name: 'NDip ICT (App Dev)',        uni: 'Cape Peninsula UoT',                 aps: 28, fees: 38200, dur: 3, fit: 76, pathway: 'tvet',       salary: 24500, demand: 'High', requiredSubjects: ['Mathematics'] },
+  { id: 'up-data',  name: 'BSc Data Science',          uni: 'University of Pretoria',             aps: 40, fees: 74100, dur: 3, fit: 85, pathway: 'direct',     salary: 41200, demand: 'High', requiredSubjects: ['Mathematics', 'Physical Sciences'] },
+  { id: 'ukzn-med', name: 'MBChB (Medicine)',          uni: 'UKZN',                               aps: 48, fees: 91500, dur: 6, fit: 41, pathway: 'direct',     salary: 52000, demand: 'High', requiredSubjects: ['Mathematics', 'Physical Sciences', 'Life Sciences'] },
+  { id: 'sun-fin',  name: 'BCom Finance',              uni: 'Stellenbosch University',            aps: 44, fees: 68400, dur: 3, fit: 67, pathway: 'direct',     salary: 32400, demand: 'Med',  requiredSubjects: ['Mathematics'] },
+  { id: 'wits-eng', name: 'BSc Eng (Foundation Yr)',   uni: 'University of the Witwatersrand',    aps: 32, fees: 71200, dur: 5, fit: 72, pathway: 'foundation', salary: 36800, demand: 'High', requiredSubjects: ['Mathematics', 'Physical Sciences'] },
 ];
 
 export const APPS: Application[] = [

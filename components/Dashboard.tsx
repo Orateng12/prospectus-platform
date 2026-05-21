@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type {
   Route, Subject, Programme, Career, CompareItem, Application, Scholarship,
-  PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbDocument, DbNotification,
+  PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbDocument, DbNotification, DbCustomDeadline,
 } from '@/lib/types';
 import { SUBJECTS, CAREERS as STATIC_CAREERS, SCHOLARSHIPS as STATIC_SCHOLARSHIPS } from '@/lib/data';
 import { calcAPS } from '@/lib/utils';
@@ -59,6 +59,7 @@ interface DashboardProps {
   documents?: DbDocument[];
   notifications?: DbNotification[];
   unreadNotificationCount?: number;
+  customDeadlines?: DbCustomDeadline[];
 }
 
 export default function Dashboard({
@@ -82,6 +83,7 @@ export default function Dashboard({
   documents = [],
   notifications = [],
   unreadNotificationCount = 0,
+  customDeadlines = [],
 }: DashboardProps) {
   const router = useRouter();
   const [route, setRoute] = useState<Route>('home');
@@ -321,7 +323,7 @@ export default function Dashboard({
       case 'documents':
         return <DocumentsPage navigate={navigate} documents={emptyMode ? [] : documents} />;
       case 'deadlines':
-        return <DeadlinesPage navigate={navigate} applications={emptyMode ? [] : applications} />;
+        return <DeadlinesPage navigate={navigate} applications={emptyMode ? [] : applications} customDeadlines={emptyMode ? [] : customDeadlines} />;
       case 'profile':
         return (
           <ProfilePage

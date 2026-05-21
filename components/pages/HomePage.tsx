@@ -1,7 +1,7 @@
 'use client';
 
 import type { Route, Subject, Programme, DbApplication, StrategicScoreData, PsychProfileData, CapabilityData, Deadline, Career } from '@/lib/types';
-import { PROGRAMMES, APPS, DEADLINES } from '@/lib/data';
+import { PROGRAMMES, DEADLINES } from '@/lib/data';
 import { calcAPS, fmtR, apsPoints } from '@/lib/utils';
 import AiInsightCard from '@/components/AiInsightCard';
 
@@ -387,18 +387,32 @@ export default function HomePage({ subjects, navigate, programmes, applications 
 
           {/* Pipeline */}
           {(() => {
-            const hasRealApps = applications.length > 0;
-            const accepted = hasRealApps ? applications.filter(a => ['accepted','offer'].includes(a.status.toLowerCase())).length : 1;
-            const pending   = hasRealApps ? applications.filter(a => ['pending','submitted'].includes(a.status.toLowerCase())).length : 1;
-            const review    = hasRealApps ? applications.filter(a => !['accepted','offer','pending','submitted','rejected','declined'].includes(a.status.toLowerCase())).length : 1;
-            const rejected  = hasRealApps ? applications.filter(a => ['rejected','declined'].includes(a.status.toLowerCase())).length : 1;
-            const count     = hasRealApps ? applications.length : APPS.length;
+            const hasApps = applications.length > 0;
+            if (!hasApps) {
+              return (
+                <div className="card" style={{ textAlign: 'center', padding: '2rem 1.5rem' }}>
+                  <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>📋</div>
+                  <div style={{ fontWeight: 700 }}>No applications yet</div>
+                  <p className="caption" style={{ marginTop: '0.375rem', maxWidth: '22rem', margin: '0.375rem auto 0' }}>
+                    Explore programmes that match your APS, then track your applications here.
+                  </p>
+                  <div className="row" style={{ justifyContent: 'center', gap: '0.5rem', marginTop: '1rem' }}>
+                    <button className="btn btn-primary btn-sm" onClick={() => navigate('programmes')}>Explore programmes →</button>
+                    <button className="btn btn-outline btn-sm" onClick={() => navigate('applications')}>Add manually →</button>
+                  </div>
+                </div>
+              );
+            }
+            const accepted = applications.filter(a => ['accepted','offer'].includes(a.status.toLowerCase())).length;
+            const pending   = applications.filter(a => ['pending','submitted'].includes(a.status.toLowerCase())).length;
+            const review    = applications.filter(a => !['accepted','offer','pending','submitted','rejected','declined'].includes(a.status.toLowerCase())).length;
+            const rejected  = applications.filter(a => ['rejected','declined'].includes(a.status.toLowerCase())).length;
             return (
               <div className="card">
                 <div className="row-between" style={{ marginBottom: '0.875rem' }}>
                   <div>
                     <div className="eyebrow"><span className="dot" />Application pipeline</div>
-                    <h3 className="subheading" style={{ marginTop: '0.25rem', cursor: 'pointer' }} onClick={() => navigate('applications')}>{count} active →</h3>
+                    <h3 className="subheading" style={{ marginTop: '0.25rem', cursor: 'pointer' }} onClick={() => navigate('applications')}>{applications.length} active →</h3>
                   </div>
                   <div className="row">
                     {accepted > 0 && <span className="badge success">{accepted} accepted</span>}
@@ -408,7 +422,7 @@ export default function HomePage({ subjects, navigate, programmes, applications 
                   </div>
                 </div>
                 <div className="stack">
-                  {hasRealApps ? applications.map(a => (
+                  {applications.map(a => (
                     <div className="pipe-row" key={a.id}>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{a.institution_name} · {a.programme_name}</div>
@@ -423,19 +437,6 @@ export default function HomePage({ subjects, navigate, programmes, applications 
                         ))}
                       </div>
                       <span className={`badge ${statusToBadge(a.status)}`}>{statusToLabel(a.status)}</span>
-                    </div>
-                  )) : APPS.map(a => (
-                    <div className="pipe-row" key={a.uni}>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{a.uni}</div>
-                        <div className="caption" style={{ marginTop: 2 }}>{a.meta}</div>
-                      </div>
-                      <div className="pipe-stages">
-                        {a.stages.map((s, i) => (
-                          <span key={i} className={`stage${s ? ` ${s}` : ''}`} />
-                        ))}
-                      </div>
-                      <span className={`badge ${a.status}`}>{a.label}</span>
                     </div>
                   ))}
                 </div>

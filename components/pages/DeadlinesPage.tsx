@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { DEADLINES } from '@/lib/data';
-import type { Route, DbApplication } from '@/lib/types';
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import type { Route, DbApplication, DbCustomDeadline } from '@/lib/types';
+import { addDeadline, deleteDeadline } from '@/app/actions/deadlines';
 
-// Bursary deadlines expressed as month/day — days-remaining computed at render time
 const BURSARY_DEADLINES = [
   { month: 10, day: 15, t: 'Allan Gray Orbis Foundation', sub: 'entrepreneurial essay required', tag: '', tagL: 'Open' },
   { month:  9, day: 30, t: 'Investec Bursary application', sub: 'supporting docs required',      tag: '', tagL: 'Open' },
@@ -13,7 +13,6 @@ const BURSARY_DEADLINES = [
 
 function computeDynamic(month: number, day: number, today: Date) {
   let target = new Date(today.getFullYear(), month - 1, day);
-  // Roll to next year if already past
   if (target < today) target = new Date(today.getFullYear() + 1, month - 1, day);
   const daysLeft = Math.ceil((target.getTime() - today.getTime()) / 86_400_000);
   const tag  = daysLeft <= 7 ? 'destructive' : daysLeft <= 21 ? 'warning' : '';
@@ -27,20 +26,35 @@ function urgencyGroup(tag: string): 'urgent' | 'soon' | 'upcoming' {
   return 'upcoming';
 }
 
+type DisplayDeadline = {
+  id?: string;
+  d: number;
+  m: string;
+  t: string;
+  sub: string;
+  tag: string;
+  tagL: string;
+  isCustom?: boolean;
+};
+
 export default function DeadlinesPage({
   navigate,
   applications = [],
+  customDeadlines = [],
 }: {
   navigate?: (r: Route) => void;
   applications?: DbApplication[];
+  customDeadlines?: DbCustomDeadline[];
 }) {
+  const router = useRouter();
   const today = new Date();
-  const [customDeadlines, setCustomDeadlines] = useState<Array<{ d: number; m: string; t: string; sub: string; tag: string; tagL: string }>>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addTitle, setAddTitle] = useState('');
   const [addDate, setAddDate] = useState('');
+  const [addError, setAddError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
-  const APP_DEADLINES = applications
+  const APP_DEADLINES: DisplayDeadline[] = applications
     .filter(a => a.deadline)
     .map(a => {
       const date     = new Date(a.deadline!);
@@ -57,7 +71,7 @@ export default function DeadlinesPage({
       };
     });
 
-  const EXTRA_DEADLINES = BURSARY_DEADLINES.map(b => {
+  const EXTRA_DEADLINES: DisplayDeadline[] = BURSARY_DEADLINES.map(b => {
     const { daysLeft, tag, tagL, m } = computeDynamic(b.month, b.day, today);
     return {
       d: b.day,
@@ -69,13 +83,29 @@ export default function DeadlinesPage({
     };
   });
 
-  const ALL_DEADLINES = [...DEADLINES, ...EXTRA_DEADLINES, ...APP_DEADLINES, ...customDeadlines];
+  const CUSTOM_DEADLINES: DisplayDeadline[] = customDeadlines.map(c => {
+    const date     = new Date(c.date);
+    const daysLeft = Math.ceil((date.getTime() - today.getTime()) / 86_400_000);
+    const tag      = daysLeft <= 7 ? 'destructive' : daysLeft <= 21 ? 'warning' : '';
+    const tagL     = daysLeft <= 7 ? 'Urgent' : daysLeft <= 21 ? 'Soon' : 'Open';
+    return {
+      id: c.id,
+      d:    date.getDate(),
+      m:    date.toLocaleDateString('en-ZA', { month: 'short' }),
+      t:    c.title,
+      sub:  `${daysLeft > 0 ? `${daysLeft} days` : 'Today'} · custom deadline`,
+      tag,
+      tagL,
+      isCustom: true,
+    };
+  });
+
+  const ALL_DEADLINES: DisplayDeadline[] = [...EXTRA_DEADLINES, ...APP_DEADLINES, ...CUSTOM_DEADLINES];
 
   const urgent   = ALL_DEADLINES.filter(d => urgencyGroup(d.tag) === 'urgent');
   const soon     = ALL_DEADLINES.filter(d => urgencyGroup(d.tag) === 'soon');
   const upcoming = ALL_DEADLINES.filter(d => urgencyGroup(d.tag) === 'upcoming');
 
-  // Dynamic AI reminder — surface the most actionable item
   const mostUrgent = urgent[0] ?? soon[0] ?? upcoming[0];
   const aiReminderText = mostUrgent
     ? urgencyGroup(mostUrgent.tag) === 'urgent'
@@ -85,30 +115,34 @@ export default function DeadlinesPage({
       : `Your nearest upcoming deadline is <strong>${mostUrgent.t}</strong> (${mostUrgent.sub.split(' ')[0]} days away). You have time — use it to research requirements and prepare documents.`
     : 'No active deadlines right now. Stay ahead by adding your application deadlines above.';
 
-  function handleAddDeadline() {
+  function handleAdd() {
     if (!addTitle.trim() || !addDate) return;
-    const date = new Date(addDate);
-    const daysLeft = Math.ceil((date.getTime() - today.getTime()) / 86_400_000);
-    const tag  = daysLeft <= 7 ? 'destructive' : daysLeft <= 21 ? 'warning' : '';
-    const tagL = daysLeft <= 7 ? 'Urgent' : daysLeft <= 21 ? 'Soon' : 'Open';
-    setCustomDeadlines(prev => [...prev, {
-      d: date.getDate(),
-      m: date.toLocaleDateString('en-ZA', { month: 'short' }),
-      t: addTitle.trim(),
-      sub: `${daysLeft > 0 ? `${daysLeft} days` : 'Today'} · custom deadline`,
-      tag,
-      tagL,
-    }]);
-    setAddTitle('');
-    setAddDate('');
-    setShowAddForm(false);
+    setAddError(null);
+    startTransition(async () => {
+      const result = await addDeadline(addTitle.trim(), addDate);
+      if ('error' in result) {
+        setAddError(result.error);
+      } else {
+        setAddTitle('');
+        setAddDate('');
+        setShowAddForm(false);
+        router.refresh();
+      }
+    });
   }
 
-  function DeadlineList({ items }: { items: typeof ALL_DEADLINES }) {
+  function handleDelete(id: string) {
+    startTransition(async () => {
+      await deleteDeadline(id);
+      router.refresh();
+    });
+  }
+
+  function DeadlineList({ items }: { items: DisplayDeadline[] }) {
     return (
       <div className="stack">
         {items.map(d => (
-          <div key={d.t} className="deadline">
+          <div key={d.id ?? d.t} className="deadline">
             <div className="dl-date">
               <span className="d">{d.d}</span>
               <span className="m">{d.m}</span>
@@ -118,17 +152,29 @@ export default function DeadlinesPage({
               <div className="caption" style={{ marginTop: 1 }}>{d.sub}</div>
             </div>
             <span className={`badge ${d.tag || 'info'}`}>{d.tagL}</span>
-            <button
-              className="btn btn-ghost btn-sm"
-              style={{ padding: '0 0.5rem' }}
-              onClick={() => {
-                if (d.tag === 'destructive') navigate?.('documents');
-                else navigate?.('nsfas');
-              }}
-              title="Open related page"
-            >
-              →
-            </button>
+            {d.isCustom && d.id ? (
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ padding: '0 0.5rem', color: 'hsl(var(--destructive))' }}
+                onClick={() => handleDelete(d.id!)}
+                title="Delete deadline"
+                disabled={isPending}
+              >
+                ✕
+              </button>
+            ) : (
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ padding: '0 0.5rem' }}
+                onClick={() => {
+                  if (d.tag === 'destructive') navigate?.('documents');
+                  else navigate?.('nsfas');
+                }}
+                title="Open related page"
+              >
+                →
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -160,9 +206,9 @@ export default function DeadlinesPage({
       {/* KPI bar */}
       <div className="grid-3" style={{ marginBottom: '1.25rem' }}>
         {[
-          { l: 'This week',     v: String(urgent.length),           h: urgent.length > 0 ? 'needs immediate action' : 'nothing critical',      c: urgent.length > 0 ? 'destructive' : '' },
-          { l: 'This month',    v: String(urgent.length + soon.length), h: `${urgent.length} urgent · ${soon.length} soon`,                    c: urgent.length + soon.length > 0 ? 'warning' : '' },
-          { l: 'Total tracked', v: String(ALL_DEADLINES.length),    h: 'across applications, funding &amp; docs',                             c: '' },
+          { l: 'This week',     v: String(urgent.length),               h: urgent.length > 0 ? 'needs immediate action' : 'nothing critical',   c: urgent.length > 0 ? 'destructive' : '' },
+          { l: 'This month',    v: String(urgent.length + soon.length), h: `${urgent.length} urgent · ${soon.length} soon`,                      c: urgent.length + soon.length > 0 ? 'warning' : '' },
+          { l: 'Total tracked', v: String(ALL_DEADLINES.length),        h: 'across applications, funding &amp; docs',                            c: '' },
         ].map(({ l, v, h, c }) => (
           <div className="card kpi" key={l}>
             <div className="lbl">{l}</div>
@@ -197,13 +243,14 @@ export default function DeadlinesPage({
               />
             </div>
           </div>
+          {addError && <p style={{ color: 'hsl(var(--destructive))', fontSize: '0.8125rem', marginTop: '0.5rem' }}>{addError}</p>}
           <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'flex-end' }}>
             <button
               className="btn btn-primary btn-sm"
-              disabled={!addTitle.trim() || !addDate}
-              onClick={handleAddDeadline}
+              disabled={!addTitle.trim() || !addDate || isPending}
+              onClick={handleAdd}
             >
-              Add
+              {isPending ? 'Saving…' : 'Add'}
             </button>
           </div>
         </div>

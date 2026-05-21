@@ -404,12 +404,19 @@ function ProgDetail({
 }
 
 /* ─── Programme List ──────────────────────────────────────────── */
+function subjectGapBadges(prog: Programme, subjectNames: string[], aps: number) {
+  const apsGap = prog.aps - aps;
+  const missing = (prog.requiredSubjects ?? []).filter(r => !subjectNames.some(s => s.toLowerCase().includes(r.toLowerCase())));
+  return { apsGap, missing };
+}
+
 export default function ProgrammePage({
   selectedProg, subjects, navigate, programmes, savedProgrammeIds = [],
   psychProfile, capabilityData, userAps, householdIncome, onOpenCareer,
 }: ProgrammePageProps) {
   const allProgs = programmes ?? PROGRAMMES;
   const aps = calcAPS(subjects);
+  const subjectNames = subjects.map(s => s.name);
 
   const initialProg = allProgs.find(p => p.id === selectedProg) ?? null;
   const [selected, setSelected] = useState<Programme | null>(initialProg);
@@ -542,25 +549,31 @@ export default function ProgrammePage({
               <div className="eyebrow"><span className="dot" />Best fit for your APS ({effectiveAps})</div>
             </div>
             <div className="grid-3" style={{ gap: '0.75rem' }}>
-              {topFit.map(p => (
-                <button
-                  key={p.id}
-                  className="card compact"
-                  style={{ textAlign: 'left', cursor: 'pointer', padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}
-                  onClick={() => setSelected(p)}
-                >
-                  <div style={{ fontWeight: 700, fontSize: '0.8125rem', lineHeight: 1.3 }}>{p.name}</div>
-                  <div className="caption" style={{ color: 'hsl(var(--muted-fg))' }}>{p.uni}</div>
-                  <div className="meter sm"><i style={{ width: `${p.fit}%` }} /></div>
-                  <div className="row-between">
-                    <span className="caption">{p.fit}% fit</span>
-                    <span className={`badge ${p.demand === 'High' ? 'success' : 'warning'}`} style={{ height: '1.125rem', fontSize: '0.5625rem' }}>
-                      {p.demand}
-                    </span>
-                  </div>
-                  <div className="caption">{fmtR(p.fees)}/yr · APS {p.aps}</div>
-                </button>
-              ))}
+              {topFit.map(p => {
+                const { apsGap, missing } = subjectGapBadges(p, subjectNames, effectiveAps);
+                return (
+                  <button
+                    key={p.id}
+                    className="card compact"
+                    style={{ textAlign: 'left', cursor: 'pointer', padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}
+                    onClick={() => setSelected(p)}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: '0.8125rem', lineHeight: 1.3 }}>{p.name}</div>
+                    <div className="caption" style={{ color: 'hsl(var(--muted-fg))' }}>{p.uni}</div>
+                    <div className="meter sm"><i style={{ width: `${p.fit}%` }} /></div>
+                    <div className="row-between">
+                      <span className="caption">{p.fit}% fit</span>
+                      <span className={`badge ${apsGap <= 0 ? 'success' : 'destructive'}`} style={{ height: '1.125rem', fontSize: '0.5625rem' }}>
+                        {apsGap <= 0 ? `APS ✓ +${Math.abs(apsGap)}` : `+${apsGap} APS`}
+                      </span>
+                    </div>
+                    {missing.length > 0 && (
+                      <div className="caption" style={{ color: 'hsl(var(--warning))', fontSize: '0.6875rem' }}>⚠ Needs: {missing.join(', ')}</div>
+                    )}
+                    <div className="caption">{fmtR(p.fees)}/yr</div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         );
@@ -647,10 +660,20 @@ export default function ProgrammePage({
                   </div>
                 </div>
 
-                <div className="row" style={{ gap: '0.25rem' }}>
+                <div className="row" style={{ gap: '0.25rem', flexWrap: 'wrap' }}>
                   {eligible && <span className="career-tag" style={{ background: 'hsl(var(--success) / 0.1)', color: 'hsl(var(--success))' }}>Eligible</span>}
                   <span className="career-tag">{p.dur} yr{p.dur !== 1 ? 's' : ''}</span>
                   {p.fees < 40000 && <span className="career-tag">Affordable</span>}
+                  {(() => {
+                    const { apsGap, missing } = subjectGapBadges(p, subjectNames, aps);
+                    return (
+                      <>
+                        {apsGap > 0 && <span className="career-tag" style={{ background: 'hsl(var(--destructive) / 0.08)', color: 'hsl(var(--destructive))' }}>+{apsGap} APS needed</span>}
+                        {apsGap <= 0 && <span className="career-tag" style={{ background: 'hsl(var(--success) / 0.08)', color: 'hsl(var(--success))' }}>APS ✓ +{Math.abs(apsGap)}</span>}
+                        {missing.map(s => <span key={s} className="career-tag" style={{ background: 'hsl(var(--warning) / 0.1)', color: 'hsl(var(--warning))' }}>⚠ {s}</span>)}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 <div className="row" style={{ gap: '0.375rem', marginTop: 'auto' }}>

@@ -4,6 +4,16 @@ import { redirect } from 'next/navigation';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/supabase/requireAuth';
 
+function humanizeAuthError(msg: string): string {
+  if (msg.includes('Invalid login credentials')) return 'Incorrect email or password. Please try again.';
+  if (msg.includes('Email not confirmed')) return 'Please verify your email address before signing in.';
+  if (msg.includes('User already registered')) return 'An account with this email already exists. Try signing in instead.';
+  if (msg.includes('Password should be')) return 'Password must be at least 8 characters.';
+  if (msg.includes('rate limit')) return 'Too many attempts. Please wait a moment and try again.';
+  if (msg.includes('network') || msg.includes('fetch')) return 'Connection error. Check your internet and try again.';
+  return 'Something went wrong. Please try again.';
+}
+
 /**
  * Resolves the canonical site URL for redirect links in auth emails and OAuth.
  * Priority: explicit NEXT_PUBLIC_SITE_URL → Vercel production URL (auto-injected) → null
@@ -24,7 +34,7 @@ export async function signIn(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    return { error: error.message };
+    return { error: humanizeAuthError(error.message) };
   }
 
   redirect('/dashboard');
@@ -49,7 +59,7 @@ export async function signUp(formData: FormData): Promise<{ error?: string; need
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: humanizeAuthError(error.message) };
   }
 
   // If session is null, email confirmation is required before the user can sign in.
