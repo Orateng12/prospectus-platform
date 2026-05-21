@@ -51,18 +51,33 @@ function buildInsightText(psychProfile: PsychProfileData, capabilityData: Capabi
   const sorted = [...riasecKeys].sort((a, b) => (psychProfile[b] as number) - (psychProfile[a] as number));
   const dominant  = RIASEC_DESCRIPTORS[sorted[0]];
   const secondary = RIASEC_DESCRIPTORS[sorted[1]];
+  const domScore   = (psychProfile[sorted[0]] as number) ?? 0;
+  const secScore   = (psychProfile[sorted[1]] as number) ?? 0;
 
   let capPhrase = '';
+  let capAction = '';
   if (capabilityData) {
     const ranked = [...CAP_LABELS].sort((a, b) => (capabilityData[b[0]] as number) - (capabilityData[a[0]] as number));
-    capPhrase = ` and high ${ranked[0][1]} + ${ranked[1][1]} capability scores`;
+    const top2 = ranked.slice(0, 2);
+    const bottom = ranked[ranked.length - 1];
+    capPhrase = ` paired with strong ${top2[0][1].toLowerCase()} and ${top2[1][1].toLowerCase()} capability`;
+    capAction = ` Lifting ${bottom[1].toLowerCase()} (currently your lowest dimension) by 10 points would widen your top match score by an estimated 5–8%.`;
   }
 
+  const dominanceNote = domScore >= 75
+    ? `Your ${dominant.label} score (${domScore}) is distinctly high`
+    : `Your ${dominant.label} tendency (${domScore}) shapes your strongest fits`;
+
   return (
-    `Based on your ${dominant.label} RIASEC profile${capPhrase}, the sharpest career cluster for you is ` +
-    `${dominant.cluster} — spanning ${dominant.examples}. ` +
-    `Your secondary ${secondary.label} tendency also opens doors in ${secondary.cluster}. ` +
-    `All pathways are growing in SA and build directly on your strongest academic subjects.`
+    `${dominanceNote}${capPhrase}. ` +
+    `The sharpest career cluster for you is ${dominant.cluster} — spanning ${dominant.examples}. ` +
+    `Your secondary ${secondary.label} streak (${secScore}) means you can bridge into ${secondary.cluster} without a full pivot — hybrid roles like ${
+      sorted[0] === 'investigative' && sorted[1] === 'enterprising' ? 'product management or VC analyst'
+      : sorted[0] === 'realistic' && sorted[1] === 'investigative' ? 'R&D engineering or data systems'
+      : sorted[0] === 'social' && sorted[1] === 'enterprising' ? 'EdTech or health startups'
+      : sorted[0] === 'enterprising' && sorted[1] === 'conventional' ? 'corporate finance or strategy consulting'
+      : `${secondary.examples.split(',')[0].trim()}`
+    } often suit this combination well in SA.${capAction}`
   );
 }
 
@@ -233,12 +248,26 @@ export default function CareersPage({
             </div>
             {!query && (
               <div className="row" style={{ marginTop: '0.875rem', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {['Software Engineer', 'BSc Data Science', 'NSFAS bursary', 'UCT programmes', 'High demand careers'].map(s => (
-                  <button key={s} className="badge" style={{ cursor: 'pointer', height: '1.75rem', fontSize: '0.75rem' }}
-                    onClick={() => setQuery(s)}>
-                    {s}
-                  </button>
-                ))}
+                {(() => {
+                  const chips: string[] = [];
+                  if (psychProfile) {
+                    const riasecKeys: RiasecKey[] = ['realistic', 'investigative', 'artistic', 'social', 'enterprising', 'conventional'];
+                    const top = [...riasecKeys].sort((a, b) => ((psychProfile[b] as number) ?? 0) - ((psychProfile[a] as number) ?? 0))[0];
+                    if (top === 'investigative') chips.push('Data Scientist', 'Actuary');
+                    else if (top === 'realistic') chips.push('Mechanical Engineer', 'Civil Engineer');
+                    else if (top === 'artistic') chips.push('UX Designer', 'Architect');
+                    else if (top === 'social') chips.push('Teacher', 'Nurse', 'Social Worker');
+                    else if (top === 'enterprising') chips.push('Entrepreneur', 'Product Manager');
+                    else chips.push('Accountant', 'Financial Advisor');
+                  }
+                  chips.push('High demand careers', 'Remote-friendly');
+                  return [...new Set(chips)].slice(0, 5).map(s => (
+                    <button key={s} className="badge" style={{ cursor: 'pointer', height: '1.75rem', fontSize: '0.75rem' }}
+                      onClick={() => setQuery(s)}>
+                      {s}
+                    </button>
+                  ));
+                })()}
               </div>
             )}
           </div>
