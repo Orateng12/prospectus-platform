@@ -5,7 +5,7 @@ import { UNIS, PROGRAMMES, PROVINCES } from '@/lib/data';
 import { calcAPS, fmtR } from '@/lib/utils';
 import type { Subject, Route, CompareItem } from '@/lib/types';
 
-type Tab = 'all' | 'eligible' | 'tier1' | 'tvet' | 'private';
+type Tab = 'all' | 'eligible' | 'tier1' | 'comprehensive' | 'uot' | 'tvet' | 'private' | 'distance';
 type ViewMode = 'list' | 'map';
 
 // Maps full province names (from user_profiles) to PROVINCES ids
@@ -56,9 +56,13 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
   }, [aps]);
 
   const displayed = useMemo(() => {
-    if (tab === 'eligible') return UNIS.filter(u => eligibleUniShorts.has(u.short));
-    if (tab === 'tier1') return UNIS.filter(u => u.acpt === 'Tier 1');
-    if (tab === 'tvet') return UNIS.filter(u => u.acpt === 'Tier 2');
+    if (tab === 'eligible')      return UNIS.filter(u => eligibleUniShorts.has(u.short));
+    if (tab === 'tier1')         return UNIS.filter(u => u.acpt === 'Tier 1');
+    if (tab === 'comprehensive') return UNIS.filter(u => u.acpt === 'Comprehensive');
+    if (tab === 'uot')           return UNIS.filter(u => u.acpt === 'UoT');
+    if (tab === 'tvet')          return UNIS.filter(u => u.acpt === 'TVET');
+    if (tab === 'private')       return UNIS.filter(u => u.acpt === 'Private');
+    if (tab === 'distance')      return UNIS.filter(u => u.acpt === 'Distance');
     return UNIS;
   }, [tab, eligibleUniShorts]);
 
@@ -75,7 +79,7 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
         <div className="breadcrumb">Workspace · Universities</div>
         <div className="row-between">
           <div>
-            <div className="eyebrow"><span className="dot" />26 SA institutions</div>
+            <div className="eyebrow"><span className="dot" />{UNIS.length} SA institutions</div>
             <h2 className="heading" style={{ marginTop: '0.375rem' }}>Universities &amp; institutions</h2>
             <p className="body-text" style={{ marginTop: '0.5rem', maxWidth: '44rem' }}>
               Every accredited South African public university, plus selected private and TVET institutions — ranked by your eligibility, capability fit and funding likelihood.
@@ -246,8 +250,17 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
         // ── List view ──────────────────────────────────────────────────────
         <>
           <div className="tabs">
-            {([['all', `All (${UNIS.length})`], ['eligible', 'Eligible'], ['tier1', 'Tier 1'], ['tvet', 'Tier 2 / UoT'], ['private', 'Private']] as const).map(([t, label]) => (
-              <button key={t} className={`tab${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>{label}</button>
+            {([
+              ['all',           `All (${UNIS.length})`],
+              ['eligible',      `Eligible (${UNIS.filter(u => eligibleUniShorts.has(u.short)).length})`],
+              ['tier1',         `Tier 1 (${UNIS.filter(u => u.acpt === 'Tier 1').length})`],
+              ['comprehensive', `Comprehensive (${UNIS.filter(u => u.acpt === 'Comprehensive').length})`],
+              ['uot',           `UoTs (${UNIS.filter(u => u.acpt === 'UoT').length})`],
+              ['tvet',          `TVET (${UNIS.filter(u => u.acpt === 'TVET').length})`],
+              ['private',       `Private (${UNIS.filter(u => u.acpt === 'Private').length})`],
+              ['distance',      `Distance (${UNIS.filter(u => u.acpt === 'Distance').length})`],
+            ] as [Tab, string][]).map(([t, label]) => (
+              <button key={t} className={`tab${tab === t ? ' active' : ''}`} onClick={() => setTab(t as Tab)}>{label}</button>
             ))}
           </div>
 

@@ -1,8 +1,21 @@
+export type Curriculum = 'NSC' | 'IEB' | 'Cambridge_IGCSE' | 'Cambridge_AS' | 'Cambridge_A' | 'NCV' | 'IB';
+
+export type SubjectType =
+  | 'home_language' | 'first_additional' | 'second_additional'
+  | 'mathematics' | 'math_literacy' | 'technical_math'
+  | 'elective' | 'life_orientation';
+
+export type FundingType = 'bursary' | 'scholarship' | 'loan' | 'grant' | 'seta' | 'international' | 'disability';
+export type FundingProviderType = 'government' | 'corporate' | 'ngo' | 'seta' | 'university' | 'international';
+
 export interface Subject {
   id: string;
   name: string;
   mark: number;
   designated: boolean;
+  curriculum?: Curriculum;
+  subjectType?: SubjectType;
+  grade?: string;
 }
 
 export interface Programme {
@@ -43,7 +56,8 @@ export interface University {
   accept: number;
   fees: number;
   tag: 'success' | 'info' | 'warning' | 'destructive';
-  acpt: string;
+  acpt: 'Tier 1' | 'Comprehensive' | 'UoT' | 'TVET' | 'Distance' | 'Private';
+  website?: string;
 }
 
 export interface CompareItem {
@@ -67,6 +81,20 @@ export interface Scholarship {
   match: number;
   eligibility: string;
   deadline: string;
+}
+
+export interface FundingOpportunity extends Scholarship {
+  id: string;
+  type: FundingType;
+  provider_type: FundingProviderType;
+  service_contract?: boolean;
+  disability_specific?: boolean;
+  province_specific?: string;
+  application_url?: string;
+  last_verified_at?: string;
+  income_threshold?: number;
+  min_aps?: number;
+  study_fields?: string[];
 }
 
 export interface Capability {

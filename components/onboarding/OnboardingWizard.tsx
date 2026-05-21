@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { SUBJECTS } from '@/lib/data';
-import { calcAPS, apsPoints } from '@/lib/utils';
+import { SUBJECTS, SUBJECT_CATALOG } from '@/lib/data';
+import { calcAPS, calcAPSForCurriculum, apsPoints, cambridgeGradeToPoints, ncvMarkToPoints, ibScoreToPoints } from '@/lib/utils';
 import { saveOnboarding } from '@/app/actions/saveOnboarding';
-import type { Subject, OnboardingData } from '@/lib/types';
+import type { Subject, OnboardingData, Curriculum } from '@/lib/types';
 
 const PROVINCES = [
   'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
@@ -94,8 +94,10 @@ export default function OnboardingWizard({ initialFirstName = '', initialLastNam
   const [province, setProvince] = useState('');
   const [matricYear, setMatricYear] = useState(MATRIC_YEARS[0]);
 
-  // Step 2 — Subjects
+  // Step 2 — Subjects & Curriculum
+  const [curriculum, setCurriculum] = useState<Curriculum>('NSC');
   const [subjects, setSubjects] = useState<Subject[]>(SUBJECTS.map(s => ({ ...s })));
+  const [subjectSearch, setSubjectSearch] = useState('');
 
   // Step 3 — Personality
   const [ratings, setRatings] = useState<Record<string, number>>({});
@@ -108,7 +110,7 @@ export default function OnboardingWizard({ initialFirstName = '', initialLastNam
   // Step 5 — Financial
   const [income, setIncome] = useState(250_000);
 
-  const aps = calcAPS(subjects);
+  const aps = calcAPSForCurriculum(subjects);
   const totalSteps = 5;
 
   function canAdvance(): boolean {
@@ -274,9 +276,41 @@ export default function OnboardingWizard({ initialFirstName = '', initialLastNam
                 Your subject marks
               </h2>
               <p className="lede" style={{ marginBottom: '1.75rem' }}>
-                Enter your final (or expected) marks. Your APS updates in real time.
+                Select your qualification type, then add your subjects and marks. APS updates in real time.
               </p>
               <hr className="ink-rule" style={{ marginBottom: '1.75rem' }} />
+
+              {/* Curriculum selector */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'hsl(var(--ink))', marginBottom: '0.5rem' }}>Qualification type</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+                  {(['NSC', 'IEB', 'Cambridge_IGCSE', 'Cambridge_A', 'NCV', 'IB'] as Curriculum[]).map(c => {
+                    const labels: Record<string, string> = { NSC: 'NSC/DBE', IEB: 'IEB', Cambridge_IGCSE: 'Cambridge IGCSE', Cambridge_A: 'Cambridge A-Level', NCV: 'NC(V)', IB: 'IB' };
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        className={`btn btn-sm ${curriculum === c ? 'btn-primary' : 'btn-outline'}`}
+                        onClick={() => {
+                          setCurriculum(c);
+                          setSubjects(SUBJECTS.map(s => ({ ...s, curriculum: c })));
+                        }}
+                      >
+                        {labels[c]}
+                      </button>
+                    );
+                  })}
+                </div>
+                {curriculum !== 'NSC' && curriculum !== 'IEB' && (
+                  <p className="caption" style={{ marginTop: '0.375rem' }}>
+                    {curriculum === 'Cambridge_IGCSE' || curriculum === 'Cambridge_A'
+                      ? 'Grade input: A*, A, B, C, D, E, U — converted to NSC APS equivalents.'
+                      : curriculum === 'NCV'
+                        ? 'NC(V) Level 4 percentage marks — converted to NSC APS equivalents.'
+                        : 'IB scores 1–7 — mapped directly to NSC APS points.'}
+                  </p>
+                )}
+              </div>
 
               {/* APS panel */}
               <div className="aps-panel-editorial">
@@ -289,36 +323,105 @@ export default function OnboardingWizard({ initialFirstName = '', initialLastNam
               </div>
 
               {/* Subject rows */}
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {subjects.map(s => (
-                  <div
-                    key={s.id}
-                    style={{
-                      display: 'grid', gridTemplateColumns: '1fr auto auto',
-                      alignItems: 'center', gap: '0.75rem',
-                      padding: '0.75rem 0',
-                      borderBottom: '1px solid hsl(var(--ink) / 0.08)',
-                    }}
-                  >
-                    <span style={{ fontSize: '0.9375rem', fontWeight: s.designated ? 600 : 400, color: 'hsl(var(--ink))' }}>
-                      {s.name}
-                    </span>
-                    <input
-                      type="number" min={0} max={100}
-                      className="auth-input"
-                      style={{ width: 80, textAlign: 'center' }}
-                      value={s.mark}
-                      onChange={e => {
-                        const mark = Math.max(0, Math.min(100, parseInt(e.target.value) || 0));
-                        setSubjects(prev => prev.map(x => x.id === s.id ? { ...x, mark } : x));
+              <div style={{ display: 'flex', flexDirection: 'column', marginTop: '0.5rem' }}>
+                {subjects.map(s => {
+                  const isCambridge = curriculum === 'Cambridge_IGCSE' || curriculum === 'Cambridge_A';
+                  const isIB = curriculum === 'IB';
+                  const pts = isCambridge
+                    ? (s.grade ? cambridgeGradeToPoints(s.grade) : apsPoints(s.mark))
+                    : curriculum === 'NCV'
+                      ? ncvMarkToPoints(s.mark)
+                      : isIB
+                        ? ibScoreToPoints(s.mark)
+                        : apsPoints(s.mark);
+                  return (
+                    <div
+                      key={s.id}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr auto auto auto',
+                        alignItems: 'center', gap: '0.75rem',
+                        padding: '0.75rem 0',
+                        borderBottom: '1px solid hsl(var(--ink) / 0.08)',
                       }}
-                    />
-                    <span className="badge" style={{ minWidth: 28, justifyContent: 'center' }}>
-                      {apsPoints(s.mark)}
-                    </span>
-                  </div>
-                ))}
+                    >
+                      <span style={{ fontSize: '0.9375rem', fontWeight: s.designated ? 600 : 400, color: 'hsl(var(--ink))' }}>
+                        {s.name}
+                      </span>
+                      {isCambridge ? (
+                        <select
+                          className="auth-input"
+                          style={{ width: 80 }}
+                          value={s.grade ?? 'B'}
+                          onChange={e => setSubjects(prev => prev.map(x => x.id === s.id ? { ...x, grade: e.target.value } : x))}
+                        >
+                          {['A*','A','B','C','D','E','U'].map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                      ) : (
+                        <input
+                          type="number" min={isIB ? 1 : 0} max={isIB ? 7 : 100}
+                          className="auth-input"
+                          style={{ width: 80, textAlign: 'center' }}
+                          value={s.mark}
+                          onChange={e => {
+                            const raw = parseInt(e.target.value) || 0;
+                            const mark = isIB ? Math.max(1, Math.min(7, raw)) : Math.max(0, Math.min(100, raw));
+                            setSubjects(prev => prev.map(x => x.id === s.id ? { ...x, mark } : x));
+                          }}
+                        />
+                      )}
+                      <span className="badge" style={{ minWidth: 28, justifyContent: 'center' }}>
+                        {pts}
+                      </span>
+                      <button
+                        type="button"
+                        style={{ background: 'none', border: 'none', color: 'hsl(var(--ink-light))', cursor: 'pointer', padding: '0 4px', fontSize: '1rem', lineHeight: 1 }}
+                        title="Remove subject"
+                        onClick={() => setSubjects(prev => prev.filter(x => x.id !== s.id))}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
+
+              {/* Add subject search */}
+              <div style={{ marginTop: '1rem' }}>
+                <input
+                  className="auth-input"
+                  placeholder="Search and add a subject…"
+                  value={subjectSearch}
+                  onChange={e => setSubjectSearch(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+                {subjectSearch.trim().length > 0 && (() => {
+                  const q = subjectSearch.trim().toLowerCase();
+                  const existing = new Set(subjects.map(s => s.id));
+                  const matches = SUBJECT_CATALOG
+                    .filter(s => !existing.has(s.id) && s.name.toLowerCase().includes(q))
+                    .slice(0, 6);
+                  if (matches.length === 0) return <p className="caption" style={{ marginTop: '0.375rem' }}>No subjects found.</p>;
+                  return (
+                    <div style={{ marginTop: '0.375rem', border: '1px solid hsl(var(--ink) / 0.12)', borderRadius: 8, overflow: 'hidden' }}>
+                      {matches.map(s => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.625rem 0.875rem', background: 'hsl(var(--card))', border: 'none', borderBottom: '1px solid hsl(var(--ink) / 0.08)', cursor: 'pointer', fontSize: '0.875rem', color: 'hsl(var(--ink))' }}
+                          onClick={() => {
+                            setSubjects(prev => [...prev, { ...s, mark: 60, curriculum }]);
+                            setSubjectSearch('');
+                          }}
+                        >
+                          + {s.name}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+
               <p className="caption" style={{ marginTop: '0.75rem', color: 'hsl(var(--ink-light))' }}>
                 APS points shown per subject (Life Orientation excluded from total).
               </p>

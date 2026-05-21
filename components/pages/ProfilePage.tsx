@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Subject, PsychProfileData, CapabilityData } from '@/lib/types';
-import { CAPS } from '@/lib/data';
+import { CAPS, SUBJECT_CATALOG } from '@/lib/data';
 import { calcAPS, fmtR, apsPoints } from '@/lib/utils';
 import { updateProfile } from '@/app/actions/updateProfile';
 import { saveSubjectMarks } from '@/app/actions/saveSubjects';
@@ -64,6 +64,7 @@ export default function ProfilePage({
   const [editSubjects, setEditSubjects] = useState<Subject[]>(() => subjects.map(s => ({ ...s })));
   const [subjectSaving, setSubjectSaving] = useState(false);
   const [subjectError, setSubjectError] = useState<string | null>(null);
+  const [subjectSearch, setSubjectSearch] = useState('');
 
   const displaySubjects = subjects.length > 0 ? subjects : [
     { id: 'eng', name: 'English HL', mark: 62, designated: true },
@@ -406,8 +407,8 @@ export default function ProfilePage({
               {editSection === 'academic' ? calcAPS(editSubjects) : aps}
             </span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 56px 48px 72px', gap: 0, border: '1px solid hsl(var(--border))', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
-            {['Subject', 'Mark', 'APS', 'Trend'].map(h => (
+          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 56px 48px 72px auto', gap: 0, border: '1px solid hsl(var(--border))', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
+            {['Subject', 'Mark', 'APS', 'Trend', ''].map(h => (
               <div key={h} style={{ padding: '0.5rem 0.75rem', background: 'hsl(var(--muted))', fontWeight: 700, fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'hsl(var(--muted-fg))' }}>{h}</div>
             ))}
             {(editSection === 'academic' ? editSubjects : displaySubjects).map(s => {
@@ -421,9 +422,7 @@ export default function ProfilePage({
                 <div key={`${s.id}-mark`} style={{ padding: '0.5625rem 0.75rem', borderTop: '1px solid hsl(var(--border))', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
                   {editSection === 'academic' ? (
                     <input
-                      type="number"
-                      min={0}
-                      max={100}
+                      type="number" min={0} max={100}
                       className="input"
                       value={editSubjects.find(e => e.id === s.id)?.mark ?? s.mark}
                       onChange={ev => {
@@ -442,9 +441,57 @@ export default function ProfilePage({
                 <div key={`${s.id}-trend`} style={{ padding: '0.5625rem 0.75rem', borderTop: '1px solid hsl(var(--border))' }}>
                   <span className={`badge ${trend}`} style={{ fontSize: '0.5625rem' }}>{trendLabel}</span>
                 </div>,
+                <div key={`${s.id}-rm`} style={{ padding: '0.5625rem 0.5rem', borderTop: '1px solid hsl(var(--border))' }}>
+                  {editSection === 'academic' && (
+                    <button
+                      type="button"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--muted-fg))', fontSize: '0.875rem', lineHeight: 1, padding: '0 2px' }}
+                      title="Remove subject"
+                      onClick={() => setEditSubjects(prev => prev.filter(x => x.id !== s.id))}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>,
               ];
             })}
           </div>
+          {editSection === 'academic' && (
+            <div style={{ marginTop: '0.75rem' }}>
+              <input
+                className="input"
+                placeholder="Search and add a subject…"
+                value={subjectSearch}
+                onChange={e => setSubjectSearch(e.target.value)}
+                style={{ width: '100%' }}
+              />
+              {subjectSearch.trim().length > 0 && (() => {
+                const q = subjectSearch.trim().toLowerCase();
+                const existing = new Set(editSubjects.map(s => s.id));
+                const matches = SUBJECT_CATALOG
+                  .filter(s => !existing.has(s.id) && s.name.toLowerCase().includes(q))
+                  .slice(0, 5);
+                if (matches.length === 0) return <p className="caption" style={{ marginTop: '0.25rem' }}>No subjects found.</p>;
+                return (
+                  <div style={{ marginTop: '0.25rem', border: '1px solid hsl(var(--border))', borderRadius: 6, overflow: 'hidden' }}>
+                    {matches.map(s => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'hsl(var(--card))', border: 'none', borderBottom: '1px solid hsl(var(--border))', cursor: 'pointer', fontSize: '0.875rem' }}
+                        onClick={() => {
+                          setEditSubjects(prev => [...prev, { ...s, mark: 60 }]);
+                          setSubjectSearch('');
+                        }}
+                      >
+                        + {s.name}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </Section>
 
       </div>

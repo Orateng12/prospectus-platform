@@ -3,10 +3,10 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type {
-  Route, Subject, Programme, Career, CompareItem, Application, Scholarship,
+  Route, Subject, Programme, Career, CompareItem, Application, Scholarship, FundingOpportunity,
   PsychProfileData, CapabilityData, StrategicScoreData, DbApplication, DbDocument, DbNotification, DbCustomDeadline,
 } from '@/lib/types';
-import { SUBJECTS, CAREERS as STATIC_CAREERS, SCHOLARSHIPS as STATIC_SCHOLARSHIPS } from '@/lib/data';
+import { SUBJECTS, CAREERS as STATIC_CAREERS, FUNDING_OPPORTUNITIES } from '@/lib/data';
 import { calcAPS } from '@/lib/utils';
 import { scoreCareerMatch } from '@/lib/scoring';
 import Sidebar from './Sidebar';
@@ -60,6 +60,7 @@ interface DashboardProps {
   notifications?: DbNotification[];
   unreadNotificationCount?: number;
   customDeadlines?: DbCustomDeadline[];
+  fundingOpportunities?: FundingOpportunity[];
 }
 
 export default function Dashboard({
@@ -84,6 +85,7 @@ export default function Dashboard({
   notifications = [],
   unreadNotificationCount = 0,
   customDeadlines = [],
+  fundingOpportunities,
 }: DashboardProps) {
   const router = useRouter();
   const [route, setRoute] = useState<Route>('home');
@@ -117,7 +119,7 @@ export default function Dashboard({
     ['draft', 'pending', 'submitted'].includes(a.status.toLowerCase())
   ).length;
   const appliedSet = new Set(appliedScholarshipNames);
-  const unappliedScholarshipCount = STATIC_SCHOLARSHIPS.filter(s => !appliedSet.has(s.name)).length;
+  const unappliedScholarshipCount = FUNDING_OPPORTUNITIES.filter(f => !appliedSet.has(f.name)).length;
 
   const emptySubjects = (initialSubjects ?? SUBJECTS).map(s => ({ ...s, mark: 50 }));
   const displaySubjects = emptyMode ? emptySubjects : subjects;
@@ -309,6 +311,7 @@ export default function Dashboard({
             onToggleCompare={toggleCompare}
             onOpenDetail={(s) => navigateToDetail('scholarship-detail', s)}
             appliedScholarshipNames={emptyMode ? [] : appliedScholarshipNames}
+            fundingOpportunities={emptyMode ? undefined : (fundingOpportunities ?? FUNDING_OPPORTUNITIES)}
           />
         );
       case 'applications':

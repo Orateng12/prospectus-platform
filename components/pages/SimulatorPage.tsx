@@ -20,25 +20,13 @@ interface SimulatorPageProps {
   householdIncome?: number;
 }
 
-// NSC APS points for a mark percentage
-function nscPoints(mark: number): number {
-  if (mark >= 90) return 7;
-  if (mark >= 80) return 6;
-  if (mark >= 70) return 5;
-  if (mark >= 60) return 4;
-  if (mark >= 50) return 3;
-  if (mark >= 40) return 2;
-  if (mark >= 30) return 1;
-  return 0;
-}
-
 // Find minimum mark to reach the next higher NSC point level
 function markForNextPoint(mark: number): number | null {
-  const boundaries = [30, 40, 50, 60, 70, 80, 90];
+  const boundaries = [30, 40, 50, 60, 70, 80];
   for (const b of boundaries) {
     if (mark < b) return b;
   }
-  return null; // already at max
+  return null; // already at max (80+)
 }
 
 interface GradeBoundaryProps {
@@ -63,10 +51,10 @@ function GradeBoundaryCalculator({ subjects, aps, allProgs, onApply }: GradeBoun
       .filter(s => s.id !== 'lo' && s.designated)
       .map(s => {
         const current = s.mark;
-        const currentPts = nscPoints(current);
+        const currentPts = apsPoints(current);
         const nextMark = markForNextPoint(current);
         if (nextMark === null) return null; // already maxed
-        const ptsGained = nscPoints(nextMark) - currentPts;
+        const ptsGained = apsPoints(nextMark) - currentPts;
         const markIncrease = nextMark - current;
         return { subject: s, current, nextMark, markIncrease, ptsGained };
       })
