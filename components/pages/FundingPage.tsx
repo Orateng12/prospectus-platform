@@ -58,6 +58,14 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
     ? `APS ${userAps ?? '—'} qualifies · application open`
     : 'APS below merit threshold';
 
+  const fundingTier = householdIncome === undefined
+    ? null
+    : householdIncome <= 350_000
+    ? { label: 'NSFAS-eligible', sub: `Full NSFAS coverage + bursaries available`, cls: 'success', cta: 'nsfas' as const }
+    : householdIncome <= 600_000
+    ? { label: 'Bursary-first strategy', sub: `Above NSFAS threshold · merit bursaries are your primary route`, cls: 'warning', cta: 'scholarships' as const }
+    : { label: 'Merit + self-fund strategy', sub: `High-income bracket · target merit scholarships and service bursaries`, cls: 'info', cta: 'scholarships' as const };
+
   return (
     <div className="page-anim">
       <div className="page-head">
@@ -80,6 +88,32 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
           </div>
         </div>
       </div>
+
+      {/* Funding profile callout */}
+      {fundingTier && userAps !== undefined && (
+        <div
+          className="card"
+          style={{ borderLeft: `3px solid hsl(var(--${fundingTier.cls}))`, marginBottom: '1.25rem', padding: '1rem 1.25rem' }}
+        >
+          <div className="row-between">
+            <div>
+              <div className="eyebrow"><span className="dot" />Your funding profile</div>
+              <div style={{ fontWeight: 800, fontSize: '1.0625rem', marginTop: '0.25rem' }}>{fundingTier.label}</div>
+              <div className="caption" style={{ marginTop: '0.25rem' }}>{fundingTier.sub}</div>
+              <div className="caption" style={{ marginTop: '0.25rem' }}>
+                Household income {fmtR(householdIncome!)} / yr · APS {userAps}
+                {bursary > 0 ? ` · qualifies for ${fmtR(bursary)} bursary` : ''}
+              </div>
+            </div>
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={() => navigate?.(fundingTier.cta)}
+            >
+              {fundingTier.cta === 'nsfas' ? 'Check NSFAS →' : 'View scholarships →'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="fund-strategy">
         {/* Totals */}

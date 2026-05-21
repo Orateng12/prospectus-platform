@@ -181,6 +181,38 @@ export default function CareersPage({
         </button>
       </div>
 
+      {/* Recommended strip — shown on all non-discover tabs when APS is available */}
+      {activeTab !== 'discover' && userAps !== undefined && userAps > 0 && displayed.length > 0 && (
+        <div className="card" style={{ marginBottom: '1.25rem' }}>
+          <div className="row-between" style={{ marginBottom: '0.75rem' }}>
+            <div className="eyebrow"><span className="dot" />Top 3 matches for your profile</div>
+          </div>
+          <div className="grid-3" style={{ gap: '0.75rem' }}>
+            {displayed.slice(0, 3).map(c => (
+              <button
+                key={c.name}
+                className="card compact"
+                style={{ textAlign: 'left', cursor: 'pointer', padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}
+                onClick={() => onOpenDetail?.(c)}
+              >
+                <div className="row-between">
+                  <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{c.name}</div>
+                  <span className={`badge ${c.demand === 'High' ? 'success' : 'warning'}`} style={{ height: '1.25rem', fontSize: '0.5625rem' }}>
+                    {c.demand}
+                  </span>
+                </div>
+                <div className="meter sm"><i style={{ width: `${c.match}%` }} /></div>
+                <div className="row-between">
+                  <span className="caption">{c.match}% match</span>
+                  <span className="caption" style={{ color: 'hsl(var(--success))' }}>{c.growth}</span>
+                </div>
+                <div className="caption" style={{ color: 'hsl(var(--muted-fg))' }}>{fmtR(c.salary)}/mo</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {activeTab === 'discover' ? (
         <div className="page-anim">
           {/* Big search */}

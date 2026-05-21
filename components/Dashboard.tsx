@@ -376,6 +376,8 @@ export default function Dashboard({
             savedProgrammeIds={displaySavedIds}
             psychProfile={displayPsych}
             capabilityData={displayCap}
+            careers={careers ?? STATIC_CAREERS}
+            liveCareerMatches={emptyMode ? {} : liveCareerMatches}
           />
         );
     }

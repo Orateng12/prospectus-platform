@@ -1,6 +1,6 @@
 'use client';
 
-import type { Route, Subject, Programme, DbApplication, StrategicScoreData, PsychProfileData, CapabilityData, Deadline } from '@/lib/types';
+import type { Route, Subject, Programme, DbApplication, StrategicScoreData, PsychProfileData, CapabilityData, Deadline, Career } from '@/lib/types';
 import { PROGRAMMES, APPS, DEADLINES } from '@/lib/data';
 import { calcAPS, fmtR, apsPoints } from '@/lib/utils';
 import AiInsightCard from '@/components/AiInsightCard';
@@ -154,6 +154,8 @@ interface HomePageProps {
   savedProgrammeIds?: string[];
   psychProfile?: PsychProfileData | null;
   capabilityData?: CapabilityData | null;
+  careers?: Career[];
+  liveCareerMatches?: Record<string, number>;
 }
 
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -216,7 +218,7 @@ function statusToStages(status: string): string[] {
   return ['done', 'active', '', ''];
 }
 
-export default function HomePage({ subjects, navigate, programmes, applications = [], strategicScore, householdIncome, savedProgrammeIds = [], psychProfile, capabilityData }: HomePageProps) {
+export default function HomePage({ subjects, navigate, programmes, applications = [], strategicScore, householdIncome, savedProgrammeIds = [], psychProfile, capabilityData, careers, liveCareerMatches }: HomePageProps) {
   const aps = calcAPS(subjects);
   const allProgs = programmes ?? PROGRAMMES;
   const eligible = allProgs.filter(p => p.aps <= aps);
@@ -230,6 +232,14 @@ export default function HomePage({ subjects, navigate, programmes, applications 
   const totalFunding = nsfasAmt + bursaryAmt + scholarAmt;
   const fundingSourceCount = (nsfasAmt > 0 ? 1 : 0) + (bursaryAmt > 0 ? 1 : 0) + 1;
   const fundingEligible = householdIncome === undefined || householdIncome <= 600_000;
+
+  // Top career recommendations (only when APS is set and matches are available)
+  const topCareers = liveCareerMatches && careers && aps > 0
+    ? [...careers]
+        .map(c => ({ ...c, score: liveCareerMatches[c.name] ?? c.match }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3)
+    : [];
 
   const rawFocuses = buildFocusItems(applications, subjects, allProgs, aps, savedProgrammeIds, householdIncome, capabilityData);
   // Pad to 3 items with a fallback if needed
@@ -308,6 +318,41 @@ export default function HomePage({ subjects, navigate, programmes, applications 
       <div className="home-grid stack-3">
         {/* Left column */}
         <div className="stack-3">
+          {/* Career recommendations strip — shown once APS is entered */}
+          {topCareers.length > 0 && (
+            <div className="card">
+              <div className="row-between" style={{ marginBottom: '0.75rem' }}>
+                <div>
+                  <div className="eyebrow"><span className="dot" />Recommended for you</div>
+                  <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Your top career matches</h3>
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => navigate('careers')}>Explore all →</button>
+              </div>
+              <div className="grid-3" style={{ gap: '0.625rem' }}>
+                {topCareers.map(c => (
+                  <button
+                    key={c.name}
+                    className="card compact"
+                    style={{ textAlign: 'left', cursor: 'pointer', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}
+                    onClick={() => navigate('careers')}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: '0.8125rem', lineHeight: 1.3 }}>{c.name}</div>
+                    <div className="meter sm" style={{ width: '100%', height: 4 }}>
+                      <i style={{ width: `${c.score}%` }} />
+                    </div>
+                    <div className="row-between">
+                      <span className="caption">{c.score}% match</span>
+                      <span className={`badge ${c.demand === 'High' ? 'success' : 'warning'}`} style={{ height: '1.125rem', fontSize: '0.5625rem' }}>
+                        {c.demand}
+                      </span>
+                    </div>
+                    <div className="caption" style={{ color: 'hsl(var(--muted-fg))' }}>{fmtR(c.salary)}/mo</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Focus */}
           <div className="card">
             <div className="row-between" style={{ marginBottom: '0.875rem' }}>

@@ -109,6 +109,40 @@ export default function ScholarshipsPage({ userAps, householdIncome, compareItem
         })()}
       </div>
 
+      {/* Likely-eligible section — shown when APS and/or income are known */}
+      {(userAps !== undefined || householdIncome !== undefined) && (() => {
+        const topEligible = withLiveMatch
+          .filter(s => s.match >= 70)
+          .sort((a, b) => b.match - a.match)
+          .slice(0, 3);
+        if (topEligible.length === 0) return null;
+        return (
+          <div className="card" style={{ marginBottom: '1.25rem' }}>
+            <div className="row-between" style={{ marginBottom: '0.75rem' }}>
+              <div className="eyebrow"><span className="dot" />Likely eligible for you</div>
+              <span className="badge success">{topEligible.length} strong match{topEligible.length > 1 ? 'es' : ''}</span>
+            </div>
+            <div className="grid-3" style={{ gap: '0.75rem' }}>
+              {topEligible.map(s => (
+                <button
+                  key={s.name}
+                  className="card compact"
+                  style={{ textAlign: 'left', cursor: 'pointer', padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}
+                  onClick={() => onOpenDetail?.(s)}
+                >
+                  <div style={{ fontWeight: 700, fontSize: '0.8125rem', lineHeight: 1.3 }}>{s.name}</div>
+                  <div style={{ fontWeight: 800, fontSize: '1.125rem', color: 'hsl(var(--success))', fontVariantNumeric: 'tabular-nums' }}>
+                    {fmtR(s.amount)}<span className="caption" style={{ fontWeight: 400, fontSize: '0.6875rem' }}>/yr</span>
+                  </div>
+                  <div className="meter sm"><i style={{ width: `${s.match}%` }} /></div>
+                  <div className="caption">{s.match}% match · closes {s.deadline}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="tabs">
         <button className={`tab${tab === 'all' ? ' active' : ''}`} onClick={() => setTab('all')}>All matches ({SCHOLARSHIPS.length})</button>
         <button className={`tab${tab === 'closing' ? ' active' : ''}`} onClick={() => setTab('closing')}>Closing soon</button>

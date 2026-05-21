@@ -528,6 +528,44 @@ export default function ProgrammePage({
         </div>
       </div>
 
+      {/* Best-fit recommendation strip — only when APS is known and there are eligible programmes */}
+      {(userAps ?? aps) > 0 && (() => {
+        const effectiveAps = userAps ?? aps;
+        const topFit = [...allProgs]
+          .filter(p => p.aps <= effectiveAps)
+          .sort((a, b) => b.fit - a.fit)
+          .slice(0, 3);
+        if (topFit.length === 0) return null;
+        return (
+          <div className="card" style={{ marginBottom: '1.25rem' }}>
+            <div className="row-between" style={{ marginBottom: '0.75rem' }}>
+              <div className="eyebrow"><span className="dot" />Best fit for your APS ({effectiveAps})</div>
+            </div>
+            <div className="grid-3" style={{ gap: '0.75rem' }}>
+              {topFit.map(p => (
+                <button
+                  key={p.id}
+                  className="card compact"
+                  style={{ textAlign: 'left', cursor: 'pointer', padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}
+                  onClick={() => setSelected(p)}
+                >
+                  <div style={{ fontWeight: 700, fontSize: '0.8125rem', lineHeight: 1.3 }}>{p.name}</div>
+                  <div className="caption" style={{ color: 'hsl(var(--muted-fg))' }}>{p.uni}</div>
+                  <div className="meter sm"><i style={{ width: `${p.fit}%` }} /></div>
+                  <div className="row-between">
+                    <span className="caption">{p.fit}% fit</span>
+                    <span className={`badge ${p.demand === 'High' ? 'success' : 'warning'}`} style={{ height: '1.125rem', fontSize: '0.5625rem' }}>
+                      {p.demand}
+                    </span>
+                  </div>
+                  <div className="caption">{fmtR(p.fees)}/yr · APS {p.aps}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="tabs" style={{ marginBottom: '1.25rem' }}>
         <button className={`tab ${activeTab === 'fit'  ? 'active' : ''}`} onClick={() => setActiveTab('fit')}>
           Best fit ({eligibleCount})
