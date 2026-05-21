@@ -98,6 +98,31 @@ function getCareerCluster(programmeName: string): ClusterCareer[] {
   ];
 }
 
+const PROGRAMME_EMPLOYERS: Record<string, string[]> = {
+  cs:      ['Takealot', 'Standard Bank', 'Naspers / Prosus', 'Google ZA', 'Investec'],
+  data:    ['Discovery Health', 'Absa', 'Old Mutual', 'DataProphet', 'BCX'],
+  actuar:  ['Old Mutual', 'Sanlam', 'Momentum', 'Discovery', 'PwC Actuarial'],
+  eng:     ['Sasol', 'Eskom', 'Anglo American', 'Murray & Roberts', 'Aurecon'],
+  health:  ['Netcare', 'MediClinic', 'Life Healthcare', 'NHLS', 'Groote Schuur'],
+  finance: ['KPMG', 'Deloitte', 'Rand Merchant Bank', 'Investec', 'Standard Bank'],
+  law:     ['Bowmans', 'ENSafrica', 'Werksmans', 'DLA Piper ZA', 'Legal Aid SA'],
+  edu:     ['WCED', 'GDE', 'IEB schools', 'Curro', 'Spark Schools'],
+  default: ['Discovery', 'Standard Bank', 'Naspers / Prosus', 'Allan Gray', 'Old Mutual'],
+};
+
+function getProgrammeEmployers(programmeName: string): string[] {
+  const n = programmeName.toLowerCase();
+  if (n.includes('computer science') || n.includes('software') || n.includes('ict') || n.includes('information technology')) return PROGRAMME_EMPLOYERS.cs;
+  if (n.includes('data science') || n.includes('data analytics') || n.includes('statistics')) return PROGRAMME_EMPLOYERS.data;
+  if (n.includes('actuarial')) return PROGRAMME_EMPLOYERS.actuar;
+  if (n.includes('engineering') || n.includes('mech') || n.includes('civil') || n.includes('electrical') || n.includes('chemical')) return PROGRAMME_EMPLOYERS.eng;
+  if (n.includes('medicine') || n.includes('mbchb') || n.includes('nursing') || n.includes('pharmacy') || n.includes('health')) return PROGRAMME_EMPLOYERS.health;
+  if (n.includes('finance') || n.includes('accounting') || n.includes('bcom') || n.includes('economics')) return PROGRAMME_EMPLOYERS.finance;
+  if (n.includes('law') || n.includes('llb')) return PROGRAMME_EMPLOYERS.law;
+  if (n.includes('education') || n.includes('teaching') || n.includes('pgce')) return PROGRAMME_EMPLOYERS.edu;
+  return PROGRAMME_EMPLOYERS.default;
+}
+
 function uniToneClass(uni: string): string {
   const u = uni.toLowerCase();
   if (u.includes('cape town') || u === 'uct') return 'uct';
@@ -118,11 +143,12 @@ const PATHWAY_LABELS: Record<string, string> = {
 
 /* ─── Detail view ─────────────────────────────────────────────── */
 function ProgDetail({
-  p, aps, navigate, onBack, isSaved, onToggleSave, onApply, applyState, psychProfile, capabilityData,
+  p, aps, subjects, navigate, onBack, isSaved, onToggleSave, onApply, applyState, psychProfile, capabilityData,
   householdIncome, onOpenCareer,
 }: {
   p: Programme;
   aps: number;
+  subjects: Subject[];
   navigate: (r: Route) => void;
   onBack: () => void;
   isSaved: boolean;
@@ -134,18 +160,43 @@ function ProgDetail({
   householdIncome?: number;
   onOpenCareer?: (name: string) => void;
 }) {
-  const structure = [
-    { y: 'Year 1', t: 'Foundations',    d: 'Core theory, introduction to the discipline, one minor' },
-    { y: 'Year 2', t: 'Core modules',   d: 'Specialisation subjects, practical applications, two electives' },
-    { y: 'Year 3', t: 'Specialisation', d: 'Capstone project + advanced electives in chosen track' },
+  const durYears = p.dur ?? 3;
+  const YEAR_LABELS = ['Year 1', 'Year 2', 'Year 3', 'Year 4'];
+  const YEAR_TITLES = ['Foundations', 'Core modules', 'Specialisation', 'Honours / Professional'];
+  const YEAR_DESCS = [
+    'Core theory, introduction to the discipline, introductory mathematics and communication modules',
+    'Specialisation subjects, practical applications, two electives in your chosen track',
+    `Capstone project + advanced electives in chosen track${durYears > 3 ? '; preparation for professional practice' : ''}`,
+    'Honours year / professional practice component; industry placement or research thesis',
   ];
+  const structure = Array.from({ length: Math.min(durYears, 4) }, (_, i) => ({
+    y: YEAR_LABELS[i],
+    t: YEAR_TITLES[i],
+    d: YEAR_DESCS[i],
+  }));
 
-  const requirements = [
-    { name: 'Mathematics / Maths Literacy', req: p.aps >= 35 ? 60 : 50, mark: 78 },
-    { name: 'English Home / First Add. Lang.', req: 50, mark: 62 },
-    { name: 'Relevant NSC subject',           req: 50, mark: 71 },
-    { name: 'NBT / institutional test',       req: 55, mark: null as number | null },
-  ];
+  // Build subject requirements from programme data where available
+  const subjectMarks = Object.fromEntries(subjects.map(s => [s.name.toLowerCase(), s.mark]));
+  const requiredFromProg = (p.requiredSubjects ?? []).map(req => {
+    const matchedMark = Object.entries(subjectMarks).find(([n]) => n.includes(req.toLowerCase()))?.[1] ?? null;
+    return {
+      name: req,
+      req: p.aps >= 38 ? 60 : 50,
+      mark: matchedMark,
+    };
+  });
+  const requirements = requiredFromProg.length > 0
+    ? [
+        ...requiredFromProg,
+        { name: 'English Home / First Add. Lang.', req: 50, mark: subjectMarks['english home language'] ?? subjectMarks['english first additional'] ?? null },
+        { name: 'NBT / institutional test', req: 55, mark: null as number | null },
+      ]
+    : [
+        { name: 'Mathematics / Maths Literacy', req: p.aps >= 35 ? 60 : 50, mark: subjectMarks['mathematics'] ?? subjectMarks['mathematical literacy'] ?? null },
+        { name: 'English Home / First Add. Lang.', req: 50, mark: subjectMarks['english home language'] ?? subjectMarks['english first additional'] ?? null },
+        { name: 'Relevant NSC subject', req: 50, mark: null as number | null },
+        { name: 'NBT / institutional test', req: 55, mark: null as number | null },
+      ];
 
   const cluster = getCareerCluster(p.name);
   const careerPaths = cluster.map(({ name, badgeClass }) => {
@@ -355,7 +406,7 @@ function ProgDetail({
       <div className="grid-2">
         <div className="card">
           <div className="eyebrow"><span className="dot" />Programme structure</div>
-          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>3 years · 360 credits</h3>
+          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>{durYears} year{durYears !== 1 ? 's' : ''} · {durYears * 120} credits (NQF {durYears >= 4 ? 8 : durYears >= 3 ? 7 : 6})</h3>
           <div className="stack-2" style={{ marginTop: '0.875rem' }}>
             {structure.map(s => (
               <div key={s.y} style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '1rem', padding: '0.625rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
@@ -391,7 +442,7 @@ function ProgDetail({
                 <span>Top employers</span><span className="caption">Last 3 cohorts</span>
               </div>
               <div className="row" style={{ marginTop: '0.375rem' }}>
-                {['Discovery', 'Standard Bank', 'Naspers / Prosus', 'Google ZA', 'Allan Gray'].map(e => (
+                {getProgrammeEmployers(p.name).slice(0, 5).map(e => (
                   <span key={e} className="badge">{e}</span>
                 ))}
               </div>
@@ -491,6 +542,7 @@ export default function ProgrammePage({
         <ProgDetail
           p={selected}
           aps={userAps ?? aps}
+          subjects={subjects}
           navigate={navigate}
           onBack={() => setSelected(null)}
           isSaved={savedIds.has(selected.id)}
