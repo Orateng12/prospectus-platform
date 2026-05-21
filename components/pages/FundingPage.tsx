@@ -84,7 +84,9 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
   const PIPELINE_LIMIT = 6;
   const visibleOpps = showAll ? matchedOpps : matchedOpps.slice(0, PIPELINE_LIMIT);
 
-  const projection = [1, 2, 3].map(y => {
+  const degreeYears = topProg?.dur ?? 4;
+  const projection = Array.from({ length: degreeYears }, (_, i) => {
+    const y = i + 1;
     const cost = Math.round(total * Math.pow(1 + INFLATION, y - 1));
     const cov  = Math.min(cost, nsfas + bursary + scholar);
     return { y: `Year ${y}`, cost, cov };
@@ -294,6 +296,68 @@ export default function FundingPage({ householdIncome, userAps, programmes, navi
           </div>
         )}
       </div>
+
+      {/* Application priority timeline */}
+      {matchedOpps.filter(f => f.type !== 'loan' && f.deadline && f.deadline !== 'Rolling').length > 0 && (() => {
+        const prioritised = matchedOpps
+          .filter(f => f.type !== 'loan' && f.deadline && f.deadline !== 'Rolling')
+          .slice(0, 5);
+        return (
+          <div className="card" style={{ marginTop: '1.25rem' }}>
+            <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+              <div>
+                <div className="eyebrow"><span className="dot" />Application calendar</div>
+                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Apply in this order</h3>
+                <p className="caption" style={{ marginTop: '0.25rem' }}>
+                  Ranked by deadline proximity × amount. Submit earliest-closing first to avoid missing windows.
+                </p>
+              </div>
+              <span className="badge warning">{prioritised.length} with fixed deadlines</span>
+            </div>
+            <div className="stack">
+              {prioritised.map((f, i) => {
+                const isFirst = i === 0;
+                return (
+                  <div
+                    key={f.id}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '24px 1fr auto',
+                      gap: '0.75rem',
+                      alignItems: 'center',
+                      padding: '0.625rem 0',
+                      borderBottom: '1px solid hsl(var(--border))',
+                    }}
+                  >
+                    <span style={{
+                      width: 24, height: 24, borderRadius: 999, flexShrink: 0,
+                      background: isFirst ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                      color: isFirst ? 'hsl(var(--primary-fg))' : 'hsl(var(--muted-fg))',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontWeight: 800, fontSize: '0.6875rem',
+                    }}>
+                      {i + 1}
+                    </span>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{f.name}</div>
+                      <div className="caption" style={{ marginTop: '0.125rem' }}>
+                        Closes {f.deadline} · {fmtR(f.amount)}/yr
+                        {f.service_contract ? ' · service contract' : ''}
+                      </div>
+                    </div>
+                    <span className={`badge ${f.score >= 80 ? 'success' : 'warning'}`} style={{ fontSize: '0.625rem' }}>
+                      {f.score}% match
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="caption" style={{ marginTop: '0.75rem', fontSize: '0.6875rem' }}>
+              After applying to each, log it on the Applications page to track status.
+            </div>
+          </div>
+        );
+      })()}
 
       {/* 4-year projection + AI commentary */}
       <div className="grid-2 stack-3" style={{ marginTop: '1.25rem' }}>

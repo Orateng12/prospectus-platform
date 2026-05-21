@@ -122,12 +122,20 @@ export default function ScholarshipsPage({
   const totalValue = withLiveMatch.reduce((s, x) => s + x.amount, 0);
   const avgMatch = Math.round(withLiveMatch.reduce((s, x) => s + x.match, 0) / (withLiveMatch.length || 1));
   const today = new Date();
-  const closing14 = withLiveMatch.filter(s => {
-    if (!s.deadline || s.deadline === 'Rolling') return false;
-    const d = new Date(`${s.deadline} ${today.getFullYear()}`);
+
+  function daysUntil(deadline: string): number | null {
+    if (!deadline || deadline === 'Rolling') return null;
+    const d = new Date(`${deadline} ${today.getFullYear()}`);
     const days = Math.ceil((d.getTime() - today.getTime()) / 86_400_000);
-    return days >= 0 && days <= 14;
-  }).length;
+    return days >= 0 ? days : null;
+  }
+
+  const closingSoon = withLiveMatch
+    .filter(s => { const d = daysUntil(s.deadline ?? ''); return d !== null && d <= 30; })
+    .sort((a, b) => (daysUntil(a.deadline ?? '') ?? 999) - (daysUntil(b.deadline ?? '') ?? 999))
+    .slice(0, 3);
+
+  const closing14 = closingSoon.filter(s => (daysUntil(s.deadline ?? '') ?? 999) <= 14).length;
 
   return (
     <div className="page-anim">
@@ -164,6 +172,37 @@ export default function ScholarshipsPage({
           </div>
         ))}
       </div>
+
+      {/* Closing soon alert */}
+      {closingSoon.length > 0 && (
+        <div className="card" style={{ marginBottom: '1.25rem', borderLeft: '3px solid hsl(var(--destructive))', padding: '0.875rem 1.25rem' }}>
+          <div className="row-between" style={{ marginBottom: '0.625rem' }}>
+            <div className="eyebrow" style={{ color: 'hsl(var(--destructive))' }}><span className="dot" />Closing soon — act now</div>
+            <span className="badge destructive">{closingSoon.length} deadline{closingSoon.length > 1 ? 's' : ''} within 30 days</span>
+          </div>
+          <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
+            {closingSoon.map(s => {
+              const days = daysUntil(s.deadline ?? '');
+              return (
+                <div
+                  key={s.name}
+                  className="card compact"
+                  style={{ flex: '1 1 200px', padding: '0.75rem', cursor: onOpenDetail ? 'pointer' : 'default', borderColor: (days ?? 999) <= 7 ? 'hsl(var(--destructive) / 0.4)' : 'hsl(var(--warning) / 0.4)' }}
+                  onClick={() => onOpenDetail?.(s)}
+                >
+                  <div style={{ fontWeight: 700, fontSize: '0.8125rem', lineHeight: 1.3 }}>{s.name}</div>
+                  <div className="caption" style={{ marginTop: '0.125rem' }}>{fmtR(s.amount)}/yr · {s.match}% match</div>
+                  <div style={{ marginTop: '0.375rem' }}>
+                    <span className={`badge ${(days ?? 999) <= 7 ? 'destructive' : 'warning'}`} style={{ fontSize: '0.6rem' }}>
+                      {days === 0 ? 'Today' : `${days}d left`} · closes {s.deadline}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Likely-eligible spotlight */}
       {(userAps !== undefined || householdIncome !== undefined) && (() => {
@@ -329,6 +368,13 @@ export default function ScholarshipsPage({
                     {s.type === 'international' && <span className="badge brand" style={{ fontSize: '0.6rem', padding: '0 5px', height: '1.25rem' }}>International</span>}
                   </div>
                   <div className="caption" style={{ marginTop: 2 }}>{s.eligibility} · {s.deadline === 'Rolling' ? 'Rolling deadline' : `closes ${s.deadline}`}</div>
+                  {s.study_fields && s.study_fields.length > 0 && (
+                    <div className="row" style={{ gap: '0.25rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+                      {s.study_fields.slice(0, 3).map(f => (
+                        <span key={f} className="career-tag" style={{ fontSize: '0.5625rem', padding: '0 0.3rem', height: '1.125rem' }}>{f}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ fontWeight: 800, fontSize: '1.125rem', fontVariantNumeric: 'tabular-nums' }}>{fmtR(s.amount)}</div>
