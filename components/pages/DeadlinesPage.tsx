@@ -192,6 +192,35 @@ export default function DeadlinesPage({
   const soon     = ALL_DEADLINES.filter(d => urgencyGroup(d.tag) === 'soon');
   const upcoming = ALL_DEADLINES.filter(d => urgencyGroup(d.tag) === 'upcoming');
 
+  // Monthly load — next 6 months
+  const monthlyLoad = (() => {
+    const months: Array<{ label: string; key: string; count: number; maxAmount?: number }> = [];
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleDateString('en-ZA', { month: 'short', year: '2-digit' });
+      // Count all deadlines that fall in this month
+      const fundingInMonth = opps.filter(f => {
+        const fd = parseFundingDeadline(f.deadline);
+        if (!fd) return false;
+        return fd.getFullYear() === d.getFullYear() && fd.getMonth() === d.getMonth() && fd > today;
+      });
+      const appInMonth = applications.filter(a => {
+        if (!a.deadline) return false;
+        const fd = new Date(a.deadline);
+        return fd.getFullYear() === d.getFullYear() && fd.getMonth() === d.getMonth() && fd > today;
+      });
+      const count = fundingInMonth.length + appInMonth.length + customDeadlines.filter(c => {
+        const fd = new Date(c.date);
+        return fd.getFullYear() === d.getFullYear() && fd.getMonth() === d.getMonth() && fd > today;
+      }).length;
+      const maxAmount = fundingInMonth.length > 0 ? Math.max(...fundingInMonth.map(f => f.amount)) : undefined;
+      months.push({ label, key, count, maxAmount });
+    }
+    return months;
+  })();
+  const maxMonthCount = Math.max(...monthlyLoad.map(m => m.count), 1);
+
   const mostUrgent = urgent[0] ?? soon[0] ?? upcoming[0];
   const aiReminderText = mostUrgent
     ? urgencyGroup(mostUrgent.tag) === 'urgent'
@@ -338,6 +367,43 @@ export default function DeadlinesPage({
           </div>
         ))}
       </div>
+
+      {/* Monthly load forecast */}
+      {monthlyLoad.some(m => m.count > 0) && (
+        <div className="card" style={{ marginBottom: '1.25rem' }}>
+          <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+            <div>
+              <div className="eyebrow"><span className="dot" />Load forecast</div>
+              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Deadlines by month</h3>
+            </div>
+            <span className="caption" style={{ fontSize: '0.6875rem' }}>Next 6 months</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.5rem', alignItems: 'end' }}>
+            {monthlyLoad.map((m, i) => {
+              const barH = m.count > 0 ? Math.max(24, Math.round((m.count / maxMonthCount) * 80)) : 6;
+              const isNow = i === 0;
+              const color = m.count >= 4 ? 'hsl(var(--destructive))' : m.count >= 2 ? 'hsl(var(--warning))' : 'hsl(var(--primary))';
+              return (
+                <div key={m.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.375rem' }}>
+                  <div style={{ fontSize: '0.625rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: m.count > 0 ? color : 'hsl(var(--muted-fg))' }}>
+                    {m.count > 0 ? m.count : '—'}
+                  </div>
+                  <div style={{ width: '100%', height: barH, borderRadius: 4, background: m.count > 0 ? color : 'hsl(var(--border))', opacity: isNow ? 1 : 0.7 }} />
+                  <div style={{ fontSize: '0.5625rem', fontWeight: isNow ? 800 : 500, color: isNow ? 'hsl(var(--fg))' : 'hsl(var(--muted-fg))', textAlign: 'center' }}>
+                    {m.label}
+                    {isNow && <div style={{ fontSize: '0.5rem', color: 'hsl(var(--primary))' }}>NOW</div>}
+                  </div>
+                  {m.maxAmount && (
+                    <div style={{ fontSize: '0.5rem', color: 'hsl(var(--success))', fontVariantNumeric: 'tabular-nums', textAlign: 'center' }}>
+                      up to R{Math.round(m.maxAmount / 1000)}k
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {showAddForm && (
         <div className="card" style={{ marginBottom: '1rem' }}>

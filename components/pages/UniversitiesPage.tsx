@@ -56,6 +56,31 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
     );
   }, [aps]);
 
+  // Per-university count of eligible programmes
+  const eligibleProgsByUni = useMemo(() => {
+    return PROGRAMMES.filter(p => p.aps <= aps).reduce<Record<string, number>>((acc, p) => {
+      const uni = UNIS.find(u => u.name === p.uni);
+      if (uni) acc[uni.short] = (acc[uni.short] ?? 0) + 1;
+      return acc;
+    }, {});
+  }, [aps]);
+
+  // Universities the student is within 6 APS points of qualifying at
+  const nearlyEligible = useMemo(() => {
+    return UNIS
+      .filter(u => !eligibleUniShorts.has(u.short))
+      .map(u => {
+        const uProgs = PROGRAMMES.filter(p => p.uni === u.name);
+        if (uProgs.length === 0) return null;
+        const minAps = Math.min(...uProgs.map(p => p.aps));
+        const gap = minAps - aps;
+        return gap > 0 && gap <= 6 ? { ...u, gap, minAps } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a!.gap - b!.gap)
+      .slice(0, 3) as Array<typeof UNIS[number] & { gap: number; minAps: number }>;
+  }, [aps, eligibleUniShorts]);
+
   const displayed = useMemo(() => {
     if (tab === 'eligible')      return UNIS.filter(u => eligibleUniShorts.has(u.short));
     if (tab === 'tier1')         return UNIS.filter(u => u.acpt === 'Tier 1');
@@ -250,6 +275,31 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
       ) : (
         // ── List view ──────────────────────────────────────────────────────
         <>
+          {nearlyEligible.length > 0 && (
+            <div className="card" style={{ marginBottom: '1.25rem', borderColor: 'hsl(var(--warning) / 0.4)', background: 'hsl(var(--warning) / 0.03)' }}>
+              <div className="eyebrow" style={{ marginBottom: '0.625rem' }}><span className="dot" />Almost there — within reach</div>
+              <div className="grid-3" style={{ gap: '0.75rem' }}>
+                {nearlyEligible.map(u => (
+                  <div key={u.short} className="card compact" style={{ background: 'transparent' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{u.name}</div>
+                    <div className="caption" style={{ marginTop: 2 }}>Minimum APS: {u.minAps}</div>
+                    <div className="row" style={{ marginTop: '0.5rem', gap: '0.375rem' }}>
+                      <span className="badge warning">+{u.gap} APS needed</span>
+                      <span className="badge">{u.acpt}</span>
+                    </div>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ marginTop: '0.5rem', width: '100%', fontSize: '0.6875rem' }}
+                      onClick={() => navigate('simulator')}
+                    >
+                      Simulate mark increase →
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="tabs">
             {([
               ['all',           `All (${UNIS.length})`],
@@ -268,6 +318,8 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
           <div className="grid-3">
             {displayed.slice(0, visibleCount).map(u => {
               const inCompare = compareItems.some(c => c.id === u.short);
+              const eligCount  = eligibleProgsByUni[u.short] ?? 0;
+              const isEligible = eligCount > 0;
               return (
                 <div className="card interactive" key={u.short} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div className="row-between">
@@ -287,12 +339,14 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.625rem' }}>
                     <div>
-                      <div className="caption" style={{ fontSize: '0.6875rem' }}>Programmes</div>
+                      <div className="caption" style={{ fontSize: '0.6875rem' }}>Total progs</div>
                       <div style={{ fontWeight: 800, fontSize: '1.0625rem', fontVariantNumeric: 'tabular-nums' }}>{u.progs}</div>
                     </div>
                     <div>
-                      <div className="caption" style={{ fontSize: '0.6875rem' }}>Accept rate</div>
-                      <div style={{ fontWeight: 800, fontSize: '1.0625rem', fontVariantNumeric: 'tabular-nums' }}>{u.accept}%</div>
+                      <div className="caption" style={{ fontSize: '0.6875rem' }}>Eligible</div>
+                      <div style={{ fontWeight: 800, fontSize: '1.0625rem', fontVariantNumeric: 'tabular-nums', color: isEligible ? 'hsl(var(--success))' : 'hsl(var(--muted-fg))' }}>
+                        {eligCount}
+                      </div>
                     </div>
                     <div>
                       <div className="caption" style={{ fontSize: '0.6875rem' }}>Avg fees</div>
@@ -301,7 +355,10 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
                   </div>
 
                   <div className="row" style={{ gap: '0.375rem' }}>
-                    <span className="badge success">Eligible</span>
+                    {isEligible
+                      ? <span className="badge success">{eligCount} eligible</span>
+                      : <span className="badge accent">APS needed</span>
+                    }
                     <span className={`badge ${u.acpt === 'Tier 1' ? 'brand' : 'info'}`}>{u.acpt}</span>
                   </div>
 
