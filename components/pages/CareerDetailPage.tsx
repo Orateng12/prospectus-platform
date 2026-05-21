@@ -85,14 +85,24 @@ const SA_EMPLOYERS: Record<string, string[]> = {
 };
 
 const NEXT_STEPS: Record<string, string[]> = {
-  'Software Engineer':       ['Build a portfolio project on GitHub (3–5 weeks)', 'Take CS50 or freeCodeCamp (free)', 'Apply to CS programmes with APS ≥ 30', 'Attend a hackathon this year'],
-  'Data Scientist':          ['Learn Python basics (4 weeks, Kaggle free course)', 'Complete one end-to-end data project', 'Apply to BCom/BSc Data Science or Statistics', 'Join a data community (DataKind, Zindi)'],
-  'Actuary':                 ['Confirm APS ≥ 42 for UCT/WITS actuarial', 'Study Maths intensively — need 80%+', 'Register for the actuarial science programme', 'Look into Allan Gray / Momentum bursaries'],
-  'Civil Engineer':          ['Confirm APS ≥ 35 for engineering', 'Ensure Maths + Physical Sciences both above 60%', 'Apply to Eskom / AECOM graduate bursary', 'Visit ECSA website for engineering registration requirements'],
-  'Doctor (MBChB)':          ['Target APS 42+ (MBChB is the most competitive)', 'Physical Sciences + Life Sciences + Maths required', 'Apply to UKZN / Wits / UP MBChB with early deadline', 'Shadow a doctor for work-experience letter'],
-  'Doctor':                  ['Target APS 42+ and strong Maths + Sciences', 'Apply to UKZN / Wits / Sefako Makgatho MBChB', 'Explore Funza Lushaka or Medunsa bursary paths', 'Shadow a practitioner for experience letter'],
-  'Lawyer':                  ['APS ≥ 33 typically needed for LLB', 'Focus on English and History for entry', 'Apply to UWC / Wits / UP Law Faculty', 'Attend a moot court or legal clinic as observer'],
-  'Teacher':                 ['Look into Funza Lushaka bursary (covers full costs)', 'Confirm which subject you want to specialise in', 'Apply to BEd programmes at WITS / UJ / UNISA', 'Contact your district DoE about student placements'],
+  'Software Engineer':       ['Build a portfolio project on GitHub (3–5 weeks)', 'Take CS50 or freeCodeCamp (free, online)', 'Apply to CS programmes with APS ≥ 30', 'Attend a hackathon this year — many are free-to-enter'],
+  'Data Scientist':          ['Learn Python basics (4 weeks, Kaggle free course)', 'Complete one end-to-end data project', 'Apply to BCom/BSc Data Science or Statistics', 'Join ZA data community (DataKind SA, Zindi platform)'],
+  'Data Analyst':            ['Learn SQL and Excel pivot tables (2 weeks, free online)', 'Build a dashboard project with public SA datasets', 'Apply for BCom IT or BSc Statistics programmes', 'MICT SETA offers ICT bursaries — apply by Feb deadline'],
+  'Actuary':                 ['Confirm APS ≥ 42 for UCT/WITS actuarial', 'Study Maths intensively — need 80%+', 'Register for the actuarial science programme', 'Look into Allan Gray / Momentum / Sanlam bursaries'],
+  'Quantitative Analyst':    ['Target APS 40+ (highly competitive entry)', 'Complete BCom Actuarial / BSc Mathematics first', 'Intern at a CIB bank in second/third year', 'CFA Level 1 (optional) strengthens postgrad applications'],
+  'ML Engineer':             ['Learn Python + NumPy + pandas (6 weeks, free)', 'Complete Coursera Machine Learning Specialization', 'Apply to CS or Data Science programmes', 'Contribute to an open-source ML project for portfolio'],
+  'Product Manager (Tech)':  ['Read "Inspired" by Marty Cagan — core PM framework', 'Build or help ship a small app (even no-code)', 'Apply to BCom IT or BSc Computer Science', 'Join a student startup or hackathon team as PM'],
+  'Product Manager':         ['Study business + technology combination degree', 'Build a case study portfolio around a product you know', 'Apply to BCom General or BCom IT programmes', 'Reach out to a PM at a SA startup for informational chat'],
+  'Civil Engineer':          ['Confirm APS ≥ 35 for engineering', 'Ensure Maths + Physical Sciences both above 60%', 'Apply to Eskom / AECOM / merSETA bursary', 'Visit ECSA website for engineering registration requirements'],
+  'Mechanical Engineer':     ['APS ≥ 32 needed; Physical Sciences essential', 'Apply to Sasol / Anglo American / Eskom engineering bursary', 'merSETA bursary covers engineering — apply by March', 'Join SA Institution of Mechanical Engineering (SAIMechE) student chapter'],
+  'Doctor (MBChB)':          ['Target APS 42+ (MBChB is the most competitive entry)', 'Physical Sciences + Life Sciences + Maths required', 'Apply to UKZN / Wits / UP MBChB with early deadline', 'Shadow a doctor for work-experience reference letter'],
+  'Doctor':                  ['Target APS 42+ and strong Maths + Sciences', 'Apply to UKZN / Wits / Sefako Makgatho MBChB', 'Explore HWSETA / Department of Health bursary paths', 'Shadow a practitioner for a work-experience letter'],
+  'Nurse':                   ['Apply for HWSETA Health bursary (covers nursing degrees)', 'Target APS ≥ 26 for nursing programmes', 'Apply to UWC / UKZN / Netcare Nursing Academy', 'Community service year is required post-graduation'],
+  'Lawyer':                  ['APS ≥ 33 typically needed for LLB', 'Focus on English and History for entry', 'Apply to UWC / Wits / UP / UJ Law Faculty', 'Attend a moot court or Legal Aid SA clinic as observer'],
+  'Accountant':              ['BCom Accounting at any accredited SA university', 'Target APS ≥ 32; Maths and English are prerequisite', 'Apply to PwC / KPMG / Deloitte SAICA training bursary', 'FASSET bursary available — apply by February'],
+  'Financial Advisor':       ['BCom Finance or similar is preferred entry path', 'FAIS certification required post-degree (6 months)', 'Apply to Old Mutual / Sanlam training programmes', 'BANKSETA bursary available for finance students'],
+  'Teacher':                 ['Apply for Funza Lushaka bursary (covers full degree costs)', 'Confirm which subject you want to specialise in (Maths/Science = priority)', 'Apply to BEd programmes at WITS / UJ / UNISA / UFS', 'Contact your district DoE about teaching placement opportunities'],
+  'Entrepreneur':            ['Identify a real problem in your community to solve', 'Apply to Allan Gray Orbis Foundation (entrepreneurial scholarship)', 'Explore UCT / Wits / UJ entrepreneurship and innovation programmes', 'SEDA offers free business mentorship — register early'],
 };
 
 function getNextSteps(careerName: string, aps: number, minAps: number): string[] {
