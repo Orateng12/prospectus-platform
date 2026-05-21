@@ -100,6 +100,7 @@ export default function Dashboard({
   const [selectedCareer, setSelectedCareer] = useState<Career | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [emptyMode, setEmptyMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const aps = calcAPS(subjects);
   const apsDelta = aps - BASE_APS;
@@ -389,6 +390,10 @@ export default function Dashboard({
             navigate={navigate}
           />
         );
+      case 'notifications':
+        return <NotificationsPage navigate={navigate} notifications={emptyMode ? [] : notifications} />;
+      case 'search':
+        return <SearchResultsPage query={searchQuery} navigate={navigate} />;
       default:
         return (
           <HomePage
@@ -439,6 +444,7 @@ export default function Dashboard({
           aps={aps}
           apsDelta={apsDelta}
           navigate={navigate}
+          onSearch={(q) => { setSearchQuery(q); navigate('search'); }}
           onMenuClick={() => setSidebarOpen(true)}
           unreadNotificationCount={unreadNotificationCount}
         />

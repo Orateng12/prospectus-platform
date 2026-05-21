@@ -79,6 +79,7 @@ interface TopbarProps {
   aps?: number;
   apsDelta?: number;
   navigate?: (r: Route) => void;
+  onSearch?: (query: string) => void;
   onMenuClick?: () => void;
   unreadNotificationCount?: number;
 }
@@ -91,6 +92,7 @@ export default function Topbar({
   aps = 42,
   apsDelta = 0,
   navigate,
+  onSearch,
   onMenuClick,
   unreadNotificationCount = 0,
 }: TopbarProps) {
@@ -279,6 +281,12 @@ export default function Topbar({
             placeholder="Type to search across Prospectus…"
             value={cmdkQuery}
             onChange={e => setCmdkQuery(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && cmdkQuery.trim() && onSearch) {
+                setCmdkOpen(false);
+                onSearch(cmdkQuery.trim());
+              }
+            }}
           />
           <span className="cmdk-kbd">esc</span>
         </div>

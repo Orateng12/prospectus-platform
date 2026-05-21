@@ -157,10 +157,10 @@ export const APPS: Application[] = [
 ];
 
 export const DEADLINES: Deadline[] = [
-  { d: 29, m: 'Apr', t: 'NSFAS supporting docs',        sub: '2 days · required',          tag: 'destructive', tagL: 'Urgent' },
-  { d: 5,  m: 'May', t: 'UCT residence application',    sub: '8 days',                     tag: 'warning',     tagL: 'Soon'   },
-  { d: 11, m: 'May', t: 'Allan Gray Orbis essay',       sub: '14 days · 1,000 words',      tag: '',            tagL: 'Open'   },
-  { d: 22, m: 'May', t: 'Wits portfolio submission',    sub: '25 days',                    tag: '',            tagL: 'Open'   },
+  { d: 31, m: 'Aug', t: 'NSFAS supporting docs',        sub: '12 days · required',         tag: 'destructive', tagL: 'Urgent' },
+  { d: 30, m: 'Sep', t: 'UCT residence application',    sub: '30 days',                    tag: 'warning',     tagL: 'Soon'   },
+  { d: 15, m: 'Oct', t: 'Allan Gray Orbis essay',       sub: '46 days · 1,000 words',      tag: '',            tagL: 'Open'   },
+  { d: 31, m: 'Oct', t: 'Wits portfolio submission',    sub: '62 days',                    tag: '',            tagL: 'Open'   },
 ];
 
 export const SCHOLARSHIPS: Scholarship[] = [
