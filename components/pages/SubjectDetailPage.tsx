@@ -9,7 +9,7 @@ interface SubjectDetailPageProps {
   subjects: Subject[];
   programmes?: Programme[];
   savedProgrammeIds?: string[];
-  navigate: (r: Route) => void;
+  navigate: (r: Route, prog?: string) => void;
 }
 
 const APS_TABLE = [
@@ -133,8 +133,8 @@ export default function SubjectDetailPage({ subject, subjects, programmes: propP
     ? [50, 55, 60, 65, 70, 75, 80].map(mark => {
         const pts      = apsPoints(mark);
         const totalAps = otherAps + pts;
-        const newUnlocked = allProgs.filter(p => p.aps <= totalAps && p.aps > currentAps).length;
-        return { mark, pts, totalAps, newUnlocked };
+        const newProgs = allProgs.filter(p => p.aps <= totalAps && p.aps > currentAps);
+        return { mark, pts, totalAps, newProgs };
       })
     : [];
   // The single row that corresponds to the student's current mark (largest trajectory mark ≤ subject.mark)
@@ -192,6 +192,21 @@ export default function SubjectDetailPage({ subject, subjects, programmes: propP
           {/* APS conversion table */}
           <div className="card">
             <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Mark → APS conversion</div>
+            <div style={{ marginBottom: '0.875rem' }}>
+              <div style={{ position: 'relative', height: '0.375rem', borderRadius: 999, background: 'hsl(var(--border))' }}>
+                <div style={{
+                  position: 'absolute', left: 0, top: 0, bottom: 0,
+                  width: `${Math.min(subject.mark, 100)}%`,
+                  borderRadius: 999,
+                  background: subject.mark >= 80 ? 'hsl(var(--success))' : subject.mark >= 60 ? 'hsl(var(--primary))' : subject.mark >= 40 ? 'hsl(var(--warning))' : 'hsl(var(--destructive))',
+                }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem' }}>
+                <span className="caption" style={{ fontSize: '0.5rem' }}>0%</span>
+                <span className="caption" style={{ fontSize: '0.5rem', fontWeight: 700, color: 'hsl(var(--fg))' }}>{subject.mark}% — you</span>
+                <span className="caption" style={{ fontSize: '0.5rem' }}>100%</span>
+              </div>
+            </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                 <thead>
@@ -222,16 +237,20 @@ export default function SubjectDetailPage({ subject, subjects, programmes: propP
               </table>
             </div>
 
-            {nextThreshold && (
-              <div className="card compact" style={{ marginTop: '0.875rem', background: 'hsl(var(--success) / 0.08)', borderColor: 'hsl(var(--success) / 0.3)' }}>
-                <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>
-                  Raise to {nextThreshold.mark}% → earn {nextThreshold.pts} pts (+{nextThreshold.pts - currentPts})
+            {nextThreshold && (() => {
+              const marksNeeded = nextThreshold.mark - subject.mark;
+              const studyWeeks = Math.max(1, Math.ceil(marksNeeded / 5));
+              return (
+                <div className="card compact" style={{ marginTop: '0.875rem', background: 'hsl(var(--success) / 0.08)', borderColor: 'hsl(var(--success) / 0.3)' }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                    Raise to {nextThreshold.mark}% → earn {nextThreshold.pts} pts (+{nextThreshold.pts - currentPts})
+                  </div>
+                  <div className="caption" style={{ marginTop: '0.25rem', fontSize: '0.6875rem' }}>
+                    {marksNeeded}% to go · approx. {studyWeeks === 1 ? '1 week' : `${studyWeeks} weeks`} of focused daily practice
+                  </div>
                 </div>
-                <div className="caption" style={{ marginTop: '0.25rem', fontSize: '0.6875rem' }}>
-                  That&apos;s {subject.mark < nextThreshold.mark ? nextThreshold.mark - subject.mark : 0}% to go
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
 
           {/* Study tips */}
@@ -283,7 +302,15 @@ export default function SubjectDetailPage({ subject, subjects, programmes: propP
                           <td style={{ padding: '0.4rem 0.375rem', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{row.pts}</td>
                           <td style={{ padding: '0.4rem 0.375rem', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: highlight ? 'hsl(var(--success))' : undefined }}>{row.totalAps}</td>
                           <td style={{ padding: '0.4rem 0.375rem', textAlign: 'right', fontSize: '0.75rem' }}>
-                            {row.newUnlocked > 0 ? <span style={{ color: 'hsl(var(--success))', fontWeight: 700 }}>+{row.newUnlocked}</span> : <span className="caption">—</span>}
+                            {row.newProgs.length > 0 ? (
+                              <div>
+                                <span style={{ color: 'hsl(var(--success))', fontWeight: 700 }}>+{row.newProgs.length}</span>
+                                <div className="caption" style={{ fontSize: '0.5rem', lineHeight: 1.35, marginTop: '0.125rem' }}>
+                                  {row.newProgs.slice(0, 2).map(p => p.name).join(', ')}
+                                  {row.newProgs.length > 2 && ` +${row.newProgs.length - 2} more`}
+                                </div>
+                              </div>
+                            ) : <span className="caption">—</span>}
                           </td>
                         </tr>
                       );
@@ -364,9 +391,18 @@ export default function SubjectDetailPage({ subject, subjects, programmes: propP
                         <span className="badge success" style={{ flexShrink: 0, marginLeft: '0.5rem' }}>+{apsGain} APS</span>
                       </div>
                       <div className="caption" style={{ marginBottom: '0.375rem' }}>{prog.uni} · {fmtR(prog.fees)}/yr</div>
-                      <div style={{ fontSize: '0.8125rem' }}>
-                        Raise to <strong style={{ color: 'hsl(var(--primary))' }}>{markNeeded}%</strong> to unlock
-                        <span className="caption" style={{ marginLeft: '0.375rem' }}>({markNeeded - subject.mark}% to go)</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
+                        <div style={{ fontSize: '0.8125rem' }}>
+                          Raise to <strong style={{ color: 'hsl(var(--primary))' }}>{markNeeded}%</strong> to unlock
+                          <span className="caption" style={{ marginLeft: '0.375rem' }}>({markNeeded - subject.mark}% to go)</span>
+                        </div>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          style={{ fontSize: '0.6875rem', padding: '0.125rem 0.5rem', height: 'auto', flexShrink: 0 }}
+                          onClick={() => navigate('programmes', prog.id)}
+                        >
+                          View →
+                        </button>
                       </div>
                     </div>
                   ))}
