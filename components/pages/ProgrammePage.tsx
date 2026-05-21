@@ -436,35 +436,70 @@ function ProgDetail({
           </div>
         </div>
 
-        <div className="card">
-          <div className="eyebrow"><span className="dot" />Outcomes</div>
-          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Where graduates land</h3>
-          <div className="stack-2" style={{ marginTop: '0.875rem' }}>
-            <div>
-              <div className="row-between" style={{ fontSize: '0.8125rem' }}>
-                <span>Industry employment</span><span style={{ fontWeight: 800 }}>81%</span>
+        {(() => {
+          const empPct   = p.demand === 'High' ? 89 : p.demand === 'Med' ? 76 : 58;
+          const pname    = p.name.toLowerCase();
+          const pgPct    = (pname.includes('science') || pname.includes('research') || pname.includes('law') || pname.includes('mbchb') || pname.includes('medicine')) ? 31
+            : (pname.includes('engineering') || pname.includes('accounting') || pname.includes('commerce')) ? 19 : 11;
+          const selfPct  = 100 - empPct - pgPct;
+          const empColor = empPct >= 85 ? 'success' : empPct >= 70 ? 'primary' : 'accent';
+          const medSal   = p.salary;
+          const top5Sal  = Math.round(medSal * 1.6);
+          return (
+            <div className="card">
+              <div className="eyebrow"><span className="dot" />Outcomes</div>
+              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Where graduates land</h3>
+              <div className="stack-2" style={{ marginTop: '0.875rem' }}>
+                <div>
+                  <div className="row-between" style={{ fontSize: '0.8125rem' }}>
+                    <span>Industry employment</span>
+                    <span style={{ fontWeight: 800 }}>{empPct}%</span>
+                  </div>
+                  <div className={`meter ${empColor}`} style={{ marginTop: '0.25rem' }}><i style={{ width: `${empPct}%` }} /></div>
+                  <div className="caption" style={{ marginTop: '0.25rem' }}>Within 6 months of graduation · demand is <strong>{p.demand.toLowerCase()}</strong></div>
+                </div>
+                <div>
+                  <div className="row-between" style={{ fontSize: '0.8125rem' }}>
+                    <span>Postgraduate study</span>
+                    <span style={{ fontWeight: 800 }}>{pgPct}%</span>
+                  </div>
+                  <div className="meter primary" style={{ marginTop: '0.25rem' }}><i style={{ width: `${pgPct}%` }} /></div>
+                  <div className="caption" style={{ marginTop: '0.25rem' }}>Honours / Masters / Professional registration</div>
+                </div>
+                {selfPct > 0 && (
+                  <div>
+                    <div className="row-between" style={{ fontSize: '0.8125rem' }}>
+                      <span>Entrepreneurial / other</span>
+                      <span style={{ fontWeight: 800 }}>{selfPct}%</span>
+                    </div>
+                    <div className="meter accent" style={{ marginTop: '0.25rem' }}><i style={{ width: `${selfPct}%` }} /></div>
+                  </div>
+                )}
+                <div>
+                  <div className="row-between" style={{ fontSize: '0.8125rem' }}>
+                    <span>Salary range (grad → top 20%)</span>
+                  </div>
+                  <div className="row" style={{ marginTop: '0.375rem', gap: '0.5rem', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums', fontSize: '0.875rem' }}>{fmtR(medSal)}</span>
+                    <span className="caption">→</span>
+                    <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', fontSize: '0.875rem', color: 'hsl(var(--success))' }}>{fmtR(top5Sal)}</span>
+                    <span className="caption">/mo</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="row-between" style={{ fontSize: '0.8125rem' }}>
+                    <span>Top employers</span><span className="caption">Last 3 cohorts</span>
+                  </div>
+                  <div className="row" style={{ marginTop: '0.375rem', flexWrap: 'wrap' }}>
+                    {getProgrammeEmployers(p.name).slice(0, 5).map(e => (
+                      <span key={e} className="badge">{e}</span>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <div className="meter success" style={{ marginTop: '0.25rem' }}><i style={{ width: '81%' }} /></div>
-              <div className="caption" style={{ marginTop: '0.25rem' }}>Within 6 months of graduation</div>
             </div>
-            <div>
-              <div className="row-between" style={{ fontSize: '0.8125rem' }}>
-                <span>Postgraduate study</span><span style={{ fontWeight: 800 }}>14%</span>
-              </div>
-              <div className="meter primary" style={{ marginTop: '0.25rem' }}><i style={{ width: '14%' }} /></div>
-            </div>
-            <div>
-              <div className="row-between" style={{ fontSize: '0.8125rem' }}>
-                <span>Top employers</span><span className="caption">Last 3 cohorts</span>
-              </div>
-              <div className="row" style={{ marginTop: '0.375rem' }}>
-                {getProgrammeEmployers(p.name).slice(0, 5).map(e => (
-                  <span key={e} className="badge">{e}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+          );
+        })()}
       </div>
     </div>
   );

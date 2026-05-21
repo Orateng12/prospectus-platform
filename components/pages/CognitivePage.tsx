@@ -17,6 +17,24 @@ const RIASEC_CAREERS: Record<string, string> = {
   Conventional:  'Finance · Accounting · Administration',
 };
 
+const RIASEC_TRACKS: Record<string, string> = {
+  Realistic:     'hands-on, technical, and practical tracks',
+  Investigative: 'research, analytical, and scientific tracks',
+  Artistic:      'creative, expressive, and design tracks',
+  Social:        'people-centred, education, and healthcare tracks',
+  Enterprising:  'leadership, business, and entrepreneurial tracks',
+  Conventional:  'structured, financial, and administrative tracks',
+};
+
+const RIASEC_STYLE: Record<string, string> = {
+  Realistic:     'You prefer concrete problems with clear, tangible outcomes.',
+  Investigative: 'You thrive when investigating abstract problems and building understanding.',
+  Artistic:      'You gravitate toward ambiguity, self-expression, and originality.',
+  Social:        'You are energised by helping, teaching, and collaborating with others.',
+  Enterprising:  'You are motivated by influence, persuasion, and driving results.',
+  Conventional:  'You excel at systematic, detail-oriented tasks with defined procedures.',
+};
+
 interface AssessmentPageProps {
   psychProfile?: PsychProfileData | null;
   capabilityData?: CapabilityData | null;
@@ -231,7 +249,10 @@ export default function CognitivePage({
               <div className="eyebrow"><span className="dot" />RIASEC profile</div>
               <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Holland code · {hollandCode}</h3>
               <p className="body-text" style={{ marginTop: '0.375rem', fontSize: '0.8125rem' }}>
-                {top2}-dominant profile — aligns with technical, research, and analytical career tracks.
+                {top2}-dominant profile — aligns with{' '}
+                {RIASEC_TRACKS[riasec[0]?.l] ?? 'research and analytical tracks'}{' '}
+                and {RIASEC_TRACKS[riasec[1]?.l] ?? 'practical tracks'}.{' '}
+                {RIASEC_STYLE[riasec[0]?.l] ?? ''}{' '}
                 Work style: <strong>{workStyle}</strong>. Primary motivation: <strong>{motivation}</strong>.
               </p>
               <div style={{ marginTop: '1rem' }}>

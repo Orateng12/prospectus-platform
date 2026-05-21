@@ -456,12 +456,36 @@ export default function ProfilePage({
                 <div style={{ fontWeight: 600, marginTop: '0.125rem' }}>{fmtR(displayIncome)}</div>
               )}
             </div>
-            <div>
-              <div className="caption" style={{ fontSize: '0.6875rem' }}>NSFAS eligibility</div>
-              <div style={{ fontWeight: 600, marginTop: '0.125rem' }}>
-                {displayIncome <= 350000 ? 'Eligible (below R 350k)' : 'Above threshold'}
-              </div>
-            </div>
+            {(() => {
+              const inc = displayIncome;
+              const nsfas   = inc <= 350_000;
+              const provBur = inc <= 400_000;
+              const corpBur = inc <= 600_000;
+              const tiers: Array<{ label: string; eligible: boolean; note: string }> = [
+                { label: 'NSFAS (govt bursary)', eligible: nsfas,   note: nsfas   ? 'Up to R100k/yr · covers fees + living' : 'Threshold: R350k/yr household' },
+                { label: 'Provincial bursaries', eligible: provBur, note: provBur  ? 'Gauteng, WC, KZN, LP bursaries open' : 'Most close above R400k income' },
+                { label: 'Corporate bursaries',  eligible: corpBur, note: corpBur  ? 'Merit-based · income gates are soft' : 'Most corporates have no income cap' },
+                { label: 'Merit scholarships',   eligible: true,    note: 'Allan Gray, Investec, NRF — open to all' },
+              ];
+              return (
+                <div>
+                  <div className="caption" style={{ fontSize: '0.6875rem', marginBottom: '0.5rem' }}>Funding eligibility by tier</div>
+                  <div className="stack" style={{ gap: '0.375rem' }}>
+                    {tiers.map(t => (
+                      <div key={t.label} className="row" style={{ gap: '0.5rem', alignItems: 'flex-start' }}>
+                        <span className={`badge ${t.eligible ? 'success' : 'accent'}`} style={{ fontSize: '0.5rem', flexShrink: 0, marginTop: 2 }}>
+                          {t.eligible ? '✓' : '✗'}
+                        </span>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{t.label}</div>
+                          <div className="caption" style={{ fontSize: '0.6875rem' }}>{t.note}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </Section>
 
