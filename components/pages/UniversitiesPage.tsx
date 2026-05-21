@@ -312,8 +312,20 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
                     </button>
                     <button className="btn btn-primary btn-sm" style={{ flex: 1 }}
                       onClick={() => navigate('programmes')}>
-                      Browse →
+                      Programmes →
                     </button>
+                    {u.website && (
+                      <a
+                        href={u.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-outline btn-sm"
+                        title="Open official website"
+                        style={{ flexShrink: 0, padding: '0 0.5rem' }}
+                      >
+                        ↗
+                      </a>
+                    )}
                   </div>
                 </div>
               );
