@@ -106,6 +106,7 @@ export default function CareersPage({
   const allCareers = propCareers && propCareers.length > 0 ? propCareers : CAREERS;
   const [activeTab, setActiveTab] = useState<Tab>(initialTab ?? 'fit');
   const [query, setQuery] = useState('');
+  const [visibleCount, setVisibleCount] = useState(9);
 
   const withLiveMatch = useMemo(() => allCareers.map(c => ({
     ...c,
@@ -163,19 +164,19 @@ export default function CareersPage({
       </div>
 
       <div className="tabs" style={{ marginBottom: '1.25rem' }}>
-        <button className={`tab ${activeTab === 'fit' ? 'active' : ''}`} onClick={() => setActiveTab('fit')}>
+        <button className={`tab ${activeTab === 'fit' ? 'active' : ''}`} onClick={() => { setActiveTab('fit'); setVisibleCount(9); }}>
           Best fit ({allCareers.length})
         </button>
-        <button className={`tab ${activeTab === 'demand' ? 'active' : ''}`} onClick={() => setActiveTab('demand')}>
+        <button className={`tab ${activeTab === 'demand' ? 'active' : ''}`} onClick={() => { setActiveTab('demand'); setVisibleCount(9); }}>
           High demand ({highDemandCount})
         </button>
-        <button className={`tab ${activeTab === 'growth' ? 'active' : ''}`} onClick={() => setActiveTab('growth')}>
+        <button className={`tab ${activeTab === 'growth' ? 'active' : ''}`} onClick={() => { setActiveTab('growth'); setVisibleCount(9); }}>
           High growth
         </button>
-        <button className={`tab ${activeTab === 'salary' ? 'active' : ''}`} onClick={() => setActiveTab('salary')}>
+        <button className={`tab ${activeTab === 'salary' ? 'active' : ''}`} onClick={() => { setActiveTab('salary'); setVisibleCount(9); }}>
           Top salary
         </button>
-        <button className={`tab ${activeTab === 'discover' ? 'active' : ''}`} onClick={() => setActiveTab('discover')}>
+        <button className={`tab ${activeTab === 'discover' ? 'active' : ''}`} onClick={() => { setActiveTab('discover'); setVisibleCount(9); }}>
           For You
           <span className="badge brand" style={{ height: '1rem', fontSize: '0.5625rem', padding: '0 0.375rem', marginLeft: '0.375rem' }}>AI</span>
         </button>
@@ -335,7 +336,7 @@ export default function CareersPage({
       ) : (
         <>
           <div className="grid-3">
-            {displayed.map(c => (
+            {displayed.slice(0, visibleCount).map(c => (
               <div className="career-card" key={c.name}>
                 <div className={`img-tile ${careerTileClass(c.name)}`} aria-hidden="true">
                   <span className="glyph">{c.name.split(' ').slice(0,2).map(w=>w[0]).join('')}</span>
@@ -412,6 +413,19 @@ export default function CareersPage({
               </div>
             ))}
           </div>
+          {visibleCount < displayed.length && (
+            <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+              <button
+                className="btn btn-outline"
+                onClick={() => setVisibleCount(v => Math.min(v + 9, displayed.length))}
+              >
+                Show {Math.min(9, displayed.length - visibleCount)} more careers
+              </button>
+              <div className="caption" style={{ marginTop: '0.5rem', color: 'hsl(var(--muted-fg))' }}>
+                Showing {Math.min(visibleCount, displayed.length)} of {displayed.length}
+              </div>
+            </div>
+          )}
 
           <div className="card stack-3" style={{ marginTop: '1.25rem' }}>
             <div className="row-between">

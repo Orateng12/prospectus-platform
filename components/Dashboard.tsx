@@ -225,7 +225,7 @@ export default function Dashboard({
           />
         );
       case 'funding':
-        return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} />;
+        return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} fundingOpportunities={emptyMode ? undefined : fundingOpportunities} />;
       case 'nsfas':
         return (
           <NSFASPage
@@ -235,7 +235,7 @@ export default function Dashboard({
           />
         );
       case 'financial':
-        return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} />;
+        return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} fundingOpportunities={emptyMode ? undefined : fundingOpportunities} />;
       case 'careers':
         return (
           <CareersPage

@@ -43,6 +43,7 @@ function uniToneClass(short: string): string {
 export default function UniversitiesPage({ subjects, navigate, compareItems, onToggleCompare, userProvince }: UniversitiesPageProps) {
   const [tab, setTab] = useState<Tab>('all');
   const [view, setView] = useState<ViewMode>('list');
+  const [visibleCount, setVisibleCount] = useState(9);
   const aps = calcAPS(subjects);
   const homeProvinceId = userProvince ? (PROVINCE_NAME_TO_ID[userProvince] ?? null) : null;
 
@@ -260,12 +261,12 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
               ['private',       `Private (${UNIS.filter(u => u.acpt === 'Private').length})`],
               ['distance',      `Distance (${UNIS.filter(u => u.acpt === 'Distance').length})`],
             ] as [Tab, string][]).map(([t, label]) => (
-              <button key={t} className={`tab${tab === t ? ' active' : ''}`} onClick={() => setTab(t as Tab)}>{label}</button>
+              <button key={t} className={`tab${tab === t ? ' active' : ''}`} onClick={() => { setTab(t as Tab); setVisibleCount(9); }}>{label}</button>
             ))}
           </div>
 
           <div className="grid-3">
-            {displayed.map(u => {
+            {displayed.slice(0, visibleCount).map(u => {
               const inCompare = compareItems.some(c => c.id === u.short);
               return (
                 <div className="card interactive" key={u.short} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -318,6 +319,19 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
               );
             })}
           </div>
+          {visibleCount < displayed.length && (
+            <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+              <button
+                className="btn btn-outline"
+                onClick={() => setVisibleCount(v => Math.min(v + 9, displayed.length))}
+              >
+                Show {Math.min(9, displayed.length - visibleCount)} more institutions
+              </button>
+              <div className="caption" style={{ marginTop: '0.5rem', color: 'hsl(var(--muted-fg))' }}>
+                Showing {Math.min(visibleCount, displayed.length)} of {displayed.length}
+              </div>
+            </div>
+          )}
 
           <div className="card stack-3" style={{ marginTop: '1.25rem' }}>
             <div className="row-between">

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import type { Route, Subject, Programme, DbApplication, StrategicScoreData, PsychProfileData, CapabilityData, Deadline, Career, DbCustomDeadline, DbDocument } from '@/lib/types';
 import { PROGRAMMES, DEADLINES } from '@/lib/data';
 import { calcAPS, fmtR, apsPoints } from '@/lib/utils';
@@ -220,7 +221,7 @@ function buildDeadlines(applications: DbApplication[], customDeadlines: DbCustom
     .filter(d => d.ts >= now);
 
   const merged = [...appDeadlines, ...customItems, ...staticFuture].sort((a, b) => a.ts - b.ts);
-  return merged.slice(0, 3);
+  return merged.slice(0, 10);
 }
 
 function statusToBadge(status: string): string {
@@ -249,6 +250,7 @@ function statusToStages(status: string): string[] {
 }
 
 export default function HomePage({ subjects, navigate, programmes, applications = [], strategicScore, householdIncome, savedProgrammeIds = [], psychProfile, capabilityData, careers, liveCareerMatches, customDeadlines, documents }: HomePageProps) {
+  const [showAllDeadlines, setShowAllDeadlines] = useState(false);
   const aps = calcAPS(subjects);
   const allProgs = programmes ?? PROGRAMMES;
   const eligible = allProgs.filter(p => p.aps <= aps);
@@ -558,10 +560,15 @@ export default function HomePage({ subjects, navigate, programmes, applications 
 
           {/* Deadlines */}
           <div className="card">
-            <div className="eyebrow"><span className="dot" />Deadlines</div>
-            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Next 14 days</h3>
-            <div className="stack" style={{ marginTop: '0.875rem' }}>
-              {deadlineItems.map(d => (
+            <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+              <div>
+                <div className="eyebrow"><span className="dot" />Deadlines</div>
+                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Upcoming dates</h3>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate('deadlines')}>View all →</button>
+            </div>
+            <div className="stack">
+              {(showAllDeadlines ? deadlineItems : deadlineItems.slice(0, 3)).map(d => (
                 <div className="deadline" key={d.t}>
                   <div className="dl-date">
                     <span className="d">{d.d}</span>
@@ -575,6 +582,15 @@ export default function HomePage({ subjects, navigate, programmes, applications 
                 </div>
               ))}
             </div>
+            {deadlineItems.length > 3 && (
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ width: '100%', marginTop: '0.625rem' }}
+                onClick={() => setShowAllDeadlines(s => !s)}
+              >
+                {showAllDeadlines ? 'Show less' : `Show ${deadlineItems.length - 3} more deadlines`}
+              </button>
+            )}
           </div>
 
           <AiInsightCard

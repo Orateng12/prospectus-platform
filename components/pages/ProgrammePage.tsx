@@ -423,6 +423,7 @@ export default function ProgrammePage({
   const [activeTab, setActiveTab] = useState<'fit' | 'aps' | 'fees' | 'saved'>('fit');
   const [eligibleOnly, setEligibleOnly] = useState(false);
   const [search, setSearch] = useState('');
+  const [visibleCount, setVisibleCount] = useState(8);
 
   // Local saved state (optimistic — starts from server-fetched ids)
   const [savedIds, setSavedIds] = useState<Set<string>>(() => new Set(savedProgrammeIds));
@@ -526,7 +527,7 @@ export default function ProgrammePage({
           <div className="row">
             <button
               className={`btn ${eligibleOnly ? 'btn-primary' : 'btn-outline'}`}
-              onClick={() => setEligibleOnly(v => !v)}
+              onClick={() => { setEligibleOnly(v => !v); setVisibleCount(8); }}
             >
               {eligibleOnly ? '✓ Eligible only' : 'Eligible only'}
             </button>
@@ -534,7 +535,7 @@ export default function ProgrammePage({
               className="input"
               placeholder="Search…"
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => { setSearch(e.target.value); setVisibleCount(8); }}
               style={{ minWidth: 0, width: 180 }}
             />
           </div>
@@ -586,16 +587,16 @@ export default function ProgrammePage({
       })()}
 
       <div className="tabs" style={{ marginBottom: '1.25rem' }}>
-        <button className={`tab ${activeTab === 'fit'  ? 'active' : ''}`} onClick={() => setActiveTab('fit')}>
+        <button className={`tab ${activeTab === 'fit'  ? 'active' : ''}`} onClick={() => { setActiveTab('fit'); setVisibleCount(8); }}>
           Best fit ({eligibleCount})
         </button>
-        <button className={`tab ${activeTab === 'aps'  ? 'active' : ''}`} onClick={() => setActiveTab('aps')}>
+        <button className={`tab ${activeTab === 'aps'  ? 'active' : ''}`} onClick={() => { setActiveTab('aps'); setVisibleCount(8); }}>
           Lowest APS first
         </button>
-        <button className={`tab ${activeTab === 'fees' ? 'active' : ''}`} onClick={() => setActiveTab('fees')}>
+        <button className={`tab ${activeTab === 'fees' ? 'active' : ''}`} onClick={() => { setActiveTab('fees'); setVisibleCount(8); }}>
           Lowest fees first
         </button>
-        <button className={`tab ${activeTab === 'saved' ? 'active' : ''}`} onClick={() => setActiveTab('saved')}>
+        <button className={`tab ${activeTab === 'saved' ? 'active' : ''}`} onClick={() => { setActiveTab('saved'); setVisibleCount(8); }}>
           Saved ({savedIds.size})
         </button>
       </div>
@@ -617,8 +618,9 @@ export default function ProgrammePage({
           )}
         </div>
       ) : (
+        <>
         <div className="grid-3">
-          {sorted.map((p, i) => {
+          {sorted.slice(0, visibleCount).map((p, i) => {
             const eligible = p.aps <= aps;
             const isSaved = savedIds.has(p.id);
             return (
@@ -703,6 +705,20 @@ export default function ProgrammePage({
             );
           })}
         </div>
+        {visibleCount < sorted.length && (
+          <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+            <button
+              className="btn btn-outline"
+              onClick={() => setVisibleCount(v => Math.min(v + 8, sorted.length))}
+            >
+              Show {Math.min(8, sorted.length - visibleCount)} more programmes
+            </button>
+            <div className="caption" style={{ marginTop: '0.5rem', color: 'hsl(var(--muted-fg))' }}>
+              Showing {Math.min(visibleCount, sorted.length)} of {sorted.length}
+            </div>
+          </div>
+        )}
+        </>
       )}
     </div>
   );
