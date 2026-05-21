@@ -96,7 +96,7 @@ export default function Dashboard({
   const [selectedProg, setSelectedProg] = useState('');
   const [compareItems, setCompareItems] = useState<CompareItem[]>([]);
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
-  const [selectedScholarship, setSelectedScholarship] = useState<Scholarship | null>(null);
+  const [selectedScholarship, setSelectedScholarship] = useState<Scholarship | FundingOpportunity | null>(null);
   const [selectedCareer, setSelectedCareer] = useState<Career | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [emptyMode, setEmptyMode] = useState(false);

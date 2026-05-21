@@ -1,10 +1,10 @@
 'use client';
 
-import type { Scholarship, Route } from '@/lib/types';
+import type { Scholarship, FundingOpportunity, Route } from '@/lib/types';
 import { fmtR } from '@/lib/utils';
 
 interface ScholarshipDetailPageProps {
-  scholarship: Scholarship | null;
+  scholarship: Scholarship | FundingOpportunity | null;
   userAps?: number;
   householdIncome?: number;
   userProvince?: string;
@@ -101,6 +101,13 @@ export default function ScholarshipDetailPage({ scholarship, userAps, householdI
     );
   }
 
+  const fo = scholarship as FundingOpportunity;
+  const applicationUrl = fo.application_url ?? null;
+  const isServiceContract = fo.service_contract ?? false;
+  const isDisabilitySpecific = fo.disability_specific ?? false;
+  const studyFields = fo.study_fields ?? [];
+  const lastVerified = fo.last_verified_at ?? null;
+
   const criteria = parseCriteria(scholarship.eligibility, userAps, householdIncome);
   const metCount = criteria.filter(c => c.met === true).length;
   const totalKnown = criteria.filter(c => c.met !== null).length;
@@ -127,6 +134,12 @@ export default function ScholarshipDetailPage({ scholarship, userAps, householdI
             <div className="eyebrow"><span className="dot" />Scholarship detail</div>
             <h2 className="heading" style={{ marginTop: '0.375rem' }}>{scholarship.name}</h2>
             <div className="caption" style={{ marginTop: '0.25rem' }}>{scholarship.eligibility}</div>
+            <div className="row" style={{ marginTop: '0.5rem', gap: '0.375rem', flexWrap: 'wrap' }}>
+              {isServiceContract && <span className="badge warning">Service contract required</span>}
+              {isDisabilitySpecific && <span className="badge info">Disability-specific</span>}
+              {studyFields.map(f => <span key={f} className="badge" style={{ fontSize: '0.65rem' }}>{f}</span>)}
+              {lastVerified && <span className="badge" style={{ fontSize: '0.65rem' }}>Verified {new Date(lastVerified).toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' })}</span>}
+            </div>
           </div>
           <div className="row" style={{ alignItems: 'flex-start', gap: '0.75rem' }}>
             <div className="card compact" style={{ textAlign: 'center', padding: '0.5rem 0.875rem' }}>
@@ -249,9 +262,29 @@ export default function ScholarshipDetailPage({ scholarship, userAps, householdI
                 </div>
               ))}
             </div>
-            <button className="btn btn-primary" style={{ marginTop: '1.25rem', width: '100%' }}>
-              Apply on scholarship website →
-            </button>
+            {isServiceContract && (
+              <div style={{ marginTop: '0.875rem', padding: '0.75rem', background: 'hsl(var(--warning) / 0.1)', border: '1px solid hsl(var(--warning) / 0.3)', borderRadius: 'var(--r-md)' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.8125rem', color: 'hsl(var(--warning))' }}>Service contract applies</div>
+                <p className="caption" style={{ marginTop: '0.25rem', lineHeight: 1.5 }}>
+                  You will be required to work for the sponsor after graduation, typically for 1–3 years. Read the service agreement before accepting the award.
+                </p>
+              </div>
+            )}
+            {applicationUrl ? (
+              <a
+                href={applicationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary"
+                style={{ marginTop: '1.25rem', width: '100%', textAlign: 'center', display: 'block' }}
+              >
+                Apply on scholarship website →
+              </a>
+            ) : (
+              <button className="btn btn-primary" style={{ marginTop: '1.25rem', width: '100%' }} disabled>
+                Search "{scholarship.name}" for application link
+              </button>
+            )}
           </div>
         </div>
       </div>

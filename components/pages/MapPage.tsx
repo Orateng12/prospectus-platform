@@ -1,7 +1,11 @@
+'use client';
+
+import { useState } from 'react';
 import { PROVINCES } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
 
 export default function MapPage() {
+  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
   const totalProgs = PROVINCES.reduce((s, p) => s + p.n, 0);
   const sortedByN   = [...PROVINCES].sort((a, b) => b.n - a.n);
   const sortedByFee = [...PROVINCES].sort((a, b) => b.fees - a.fees);
@@ -62,21 +66,33 @@ export default function MapPage() {
               {/* Province bubbles */}
               {PROVINCES.map(p => {
                 const r = 16 + Math.sqrt(p.n) * 4;
+                const isSelected = selectedProvince === p.id;
                 return (
-                  <g key={p.id} style={{ cursor: 'pointer' }}>
+                  <g
+                    key={p.id}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setSelectedProvince(isSelected ? null : p.id)}
+                    role="button"
+                    aria-label={`${p.name} — ${p.n} programmes`}
+                  >
                     <circle
                       cx={p.x}
                       cy={p.y}
-                      r={r}
+                      r={r + (isSelected ? 4 : 0)}
                       className="za-bubble"
-                      style={p.you ? { fill: 'hsl(var(--accent))' } : undefined}
+                      style={{
+                        fill: isSelected ? 'hsl(var(--primary))' : p.you ? 'hsl(var(--accent))' : undefined,
+                        stroke: isSelected ? 'hsl(var(--primary))' : undefined,
+                        strokeWidth: isSelected ? 3 : undefined,
+                        transition: 'r 0.15s, fill 0.15s',
+                      }}
                     />
-                    <text x={p.x} y={p.y - 4} className="za-label">{p.n}</text>
+                    <text x={p.x} y={p.y - 4} className="za-label" style={{ fill: isSelected ? 'white' : undefined }}>{p.n}</text>
                     <text
                       x={p.x}
                       y={p.y + 8}
                       className="za-label"
-                      style={{ fontSize: 9, fontWeight: 600, opacity: 0.85 }}
+                      style={{ fontSize: 9, fontWeight: 600, opacity: 0.85, fill: isSelected ? 'white' : undefined }}
                     >
                       {p.id.toUpperCase()}
                     </text>
@@ -97,6 +113,22 @@ export default function MapPage() {
               </g>
             </svg>
           </div>
+          {selectedProvince && (() => {
+            const p = PROVINCES.find(x => x.id === selectedProvince);
+            if (!p) return null;
+            return (
+              <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid hsl(var(--border))', background: 'hsl(var(--muted) / 0.4)' }}>
+                <div className="row-between">
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{p.name}</div>
+                    <div className="caption" style={{ marginTop: '0.125rem' }}>{p.n} programmes · Avg {fmtR(p.fees)}/yr</div>
+                  </div>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setSelectedProvince(null)}>✕</button>
+                </div>
+                <p className="body-text" style={{ marginTop: '0.5rem', fontSize: '0.8125rem', lineHeight: 1.55 }}>{p.intel}</p>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Side panels */}
