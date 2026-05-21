@@ -148,11 +148,11 @@ function buildSubScoreNarratives(
 }
 
 const FALLBACK_PROBS = [
-  { name: 'Software Engineer', score: 88, salary: undefined as number | undefined, growth: '+22%' },
-  { name: 'Data Analyst',      score: 82, salary: undefined as number | undefined, growth: '+18%' },
-  { name: 'Actuary',           score: 76, salary: undefined as number | undefined, growth: '+9%'  },
-  { name: 'Civil Engineer',    score: 58, salary: undefined as number | undefined, growth: '+5%'  },
-  { name: 'Doctor',            score: 41, salary: undefined as number | undefined, growth: '+7%'  },
+  { name: 'Software Engineer', score: 88, salary: undefined as number | undefined, growth: '+22%', demand: 'High' as const },
+  { name: 'Data Analyst',      score: 82, salary: undefined as number | undefined, growth: '+18%', demand: 'High' as const },
+  { name: 'Actuary',           score: 76, salary: undefined as number | undefined, growth: '+9%',  demand: 'Med'  as const },
+  { name: 'Civil Engineer',    score: 58, salary: undefined as number | undefined, growth: '+5%',  demand: 'Med'  as const },
+  { name: 'Doctor',            score: 41, salary: undefined as number | undefined, growth: '+7%',  demand: 'High' as const },
 ];
 
 export default function IntelligencePage({ navigate, strategicScore, capabilityData, programmes = [], careers = [], psychProfile, subjects = [], userAps = 0, householdIncome, onOpenCareer }: IntelligencePageProps & { householdIncome?: number }) {
@@ -204,6 +204,7 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
         score:  scoreCareerMatch(c.name, psychProfile, capabilityData, userAps),
         salary: c.salary,
         growth: c.growth,
+        demand: c.demand,
       }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
@@ -457,27 +458,47 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
 
         <div className="card">
           <div className="eyebrow"><span className="dot" />Future-You · {futureYear}</div>
-          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>If you stay on the highest-fit path</h3>
-          <div className="stack-2" style={{ marginTop: '0.875rem' }}>
-            <div className="stat-pair">
-              <div className="l">Likely role</div>
-              <div className="v">{topCareer ? topCareer.name : 'Data Scientist'}</div>
-            </div>
-            <div className="stat-pair">
-              <div className="l">Median salary</div>
-              <div className="v">
-                {topCareer?.salary ? `${fmtR(topCareer.salary)} / mo` : 'R\u00A041,200 / mo'}
+          <h3 className="subheading" style={{ marginTop: '0.25rem' }}>5-year salary trajectory on the highest-fit path</h3>
+          {(() => {
+            const medianSalary = topCareer?.salary ?? 41200;
+            const growthPct = topCareer?.growth
+              ? parseFloat(topCareer.growth.replace(/[^0-9.-]/g, '')) / 100
+              : 0.18;
+            const stages = [
+              { label: 'Graduate entry', yr: 1, salary: Math.round(medianSalary * 0.72) },
+              { label: 'Junior role',    yr: 2, salary: Math.round(medianSalary * 0.88) },
+              { label: 'Mid-level',      yr: 3, salary: Math.round(medianSalary * 1.0) },
+              { label: 'Senior / Spec.', yr: 5, salary: Math.round(medianSalary * (1 + growthPct * 2)) },
+            ];
+            const maxSalary = stages[stages.length - 1].salary;
+            return (
+              <div className="stack-2" style={{ marginTop: '0.875rem' }}>
+                {stages.map(s => (
+                  <div key={s.label}>
+                    <div className="row-between" style={{ marginBottom: '0.25rem' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.8125rem' }}>Yr {s.yr} · {s.label}</span>
+                      <span style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums', fontSize: '0.875rem' }}>{fmtR(s.salary)}/mo</span>
+                    </div>
+                    <div className="meter success">
+                      <i style={{ width: `${Math.round((s.salary / maxSalary) * 100)}%` }} />
+                    </div>
+                  </div>
+                ))}
+                <div className="stat-pair" style={{ marginTop: '0.25rem' }}>
+                  <div className="l">Career</div>
+                  <div className="v">{topCareer ? topCareer.name : 'Data Scientist'}</div>
+                </div>
+                <div className="stat-pair">
+                  <div className="l">Market growth</div>
+                  <div className="v">{topCareer?.growth ?? '+18%'}/yr · {topCareer?.demand ?? 'High'} demand</div>
+                </div>
               </div>
-            </div>
-            <div className="stat-pair">
-              <div className="l">Industry growth</div>
-              <div className="v">{topCareer?.growth ? `${topCareer.growth} / yr` : '+18% / yr'}</div>
-            </div>
-          </div>
+            );
+          })()}
           <div className="caption" style={{ marginTop: '0.75rem' }}>
             {psychProfile
-              ? `Derived from your RIASEC profile + capability graph. Match score: ${topCareer?.score ?? '—'}/100.`
-              : 'Based on labour-market data + your capability graph + 12 generated scenarios.'}
+              ? `Derived from RIASEC profile + capability graph. Match: ${topCareer?.score ?? '—'}/100. SA salary medians.`
+              : 'SA market salary trajectory. Complete your profile to personalise to your top career.'}
           </div>
         </div>
 
