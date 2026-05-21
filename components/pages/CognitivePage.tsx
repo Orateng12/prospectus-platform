@@ -33,8 +33,14 @@ const DESCRIPTIONS: Record<string, string> = {
 };
 
 const GROWTH_NOTES: Record<string, string> = {
-  Verbal:   'Lifting Verbal opens Law, journalism, PM tracks. Suggested: 4-week reading-comprehension program.',
-  Creative: 'Creative correlates with design + research roles. Suggested: portfolio project on side problem.',
+  Analytical: 'Analytical is the gateway to engineering, actuarial, and data science. Suggested: daily logic puzzles + Khan Academy Statistics (4 weeks).',
+  Technical:  'Technical opens engineering, IT, and systems roles. Suggested: build a small electronics or coding project; 6-week bootcamp adds ~18 points.',
+  Social:     'Social (communication) unlocks management, medicine, and law. Suggested: join a debating society or Toastmasters — 6 months of practice typically adds 12–18 points.',
+  Creative:   'Creative correlates with design and research roles. Suggested: complete a portfolio project on a real-world problem — design process thinking builds this skill.',
+  Verbal:     'Verbal opens Law, journalism, and PM tracks. Suggested: 4-week structured reading-comprehension programme + one essay per week.',
+  Numerical:  'Numerical fluency is required for finance, actuarial, and data roles. Suggested: work through NSC Maths past papers at 75%+ consistency before graduation.',
+  Spatial:    'Spatial reasoning is key for architecture, engineering drawing, and medicine. Suggested: 3D modelling software (Tinkercad, free) for 20 min/day over 4 weeks.',
+  Practical:  'Practical execution separates high-scoring students from high-impact graduates. Suggested: lead a school or community project — any completed real-world deliverable counts.',
 };
 
 const DB_TO_CAP: Array<[keyof CapabilityData, string]> = [

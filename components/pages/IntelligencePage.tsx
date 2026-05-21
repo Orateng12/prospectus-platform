@@ -325,6 +325,78 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
         ))}
       </div>
 
+      {/* APS What-if panel */}
+      {programmes.length > 0 && (() => {
+        const currentEligible = programmes.filter(p => p.aps <= userAps).length;
+        const scenarios = [1, 2, 3].map(delta => {
+          const newAps = userAps + delta;
+          const newEligible = programmes.filter(p => p.aps <= newAps).length;
+          const newUnlocked = newEligible - currentEligible;
+          const highFitUnlocked = programmes.filter(p => p.aps > userAps && p.aps <= newAps && p.fit >= 70).length;
+          const lowestSub = [...subjects].filter(s => s.id !== 'lo').sort((a, b) => a.mark - b.mark)[0];
+          const markNeeded = lowestSub
+            ? (lowestSub.mark < 50 ? 50 : lowestSub.mark < 60 ? 60 : lowestSub.mark < 70 ? 70 : 80)
+            : null;
+          return { delta, newAps, newUnlocked, highFitUnlocked, markNeeded, subjectName: lowestSub?.name };
+        });
+        const nearMissProgs = programmes
+          .filter(p => p.aps > userAps && p.aps <= userAps + 3)
+          .sort((a, b) => a.aps - b.aps)
+          .slice(0, 3);
+        return (
+          <div className="card" style={{ marginTop: '1.25rem' }}>
+            <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+              <div>
+                <div className="eyebrow"><span className="dot" />Scenario explorer</div>
+                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>What would +1, +2, +3 APS unlock?</h3>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate('simulator')}>Open Simulator →</button>
+            </div>
+            <div className="grid-3" style={{ gap: '0.75rem', marginBottom: '1rem' }}>
+              {scenarios.map(sc => (
+                <div key={sc.delta} className="card compact" style={{ padding: '0.875rem', borderColor: sc.delta === 1 ? 'hsl(var(--success) / 0.4)' : undefined }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <span className="eyebrow" style={{ fontSize: '0.6875rem' }}>APS {sc.newAps}</span>
+                    <span className="badge success" style={{ fontSize: '0.65rem', padding: '0 4px', height: '1.1rem' }}>+{sc.delta}</span>
+                  </div>
+                  <div style={{ fontWeight: 900, fontSize: '1.5rem', lineHeight: 1, marginTop: '0.375rem', fontVariantNumeric: 'tabular-nums', color: sc.newUnlocked > 0 ? 'hsl(var(--success))' : 'hsl(var(--muted-fg))' }}>
+                    +{sc.newUnlocked}
+                  </div>
+                  <div className="caption" style={{ marginTop: '0.125rem' }}>
+                    programme{sc.newUnlocked !== 1 ? 's' : ''} unlocked
+                    {sc.highFitUnlocked > 0 ? ` · ${sc.highFitUnlocked} high-fit` : ''}
+                  </div>
+                  {sc.markNeeded && sc.subjectName && (
+                    <div className="caption" style={{ marginTop: '0.375rem', fontSize: '0.7rem', color: 'hsl(var(--muted-fg))' }}>
+                      Raise {sc.subjectName} → {sc.markNeeded}%
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            {nearMissProgs.length > 0 && (
+              <div>
+                <div className="caption" style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Near-miss programmes (within 3 APS points):</div>
+                <div className="stack-2">
+                  {nearMissProgs.map(p => (
+                    <div key={p.id} className="row-between" style={{ fontSize: '0.8125rem', padding: '0.5rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                      <div>
+                        <span style={{ fontWeight: 600 }}>{p.name}</span>
+                        <span className="caption" style={{ marginLeft: '0.5rem' }}>{p.uni.split(' ').slice(0, 3).join(' ')}</span>
+                      </div>
+                      <div className="row" style={{ gap: '0.5rem' }}>
+                        <span className="badge destructive" style={{ fontSize: '0.65rem' }}>Need APS {p.aps}</span>
+                        <span className="caption">Gap: {p.aps - userAps}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Lower 2×2 */}
       <div className="grid-2" style={{ marginTop: '1.25rem' }}>
         <div className="card">

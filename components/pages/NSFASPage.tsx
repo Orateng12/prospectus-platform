@@ -259,6 +259,98 @@ export default function NSFASPage({ householdIncome = 220000, programmes, userAp
           </div>
         ))}
       </div>
+
+      {/* Application steps */}
+      <div className="card" style={{ marginTop: '1.25rem' }}>
+        <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />How to apply — 2026 step by step</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+          {[
+            {
+              step: '1',
+              title: 'Create myNSFAS account',
+              deadline: 'Open now · closes 31 Jan 2027',
+              detail: 'Go to my.nsfas.org.za → Register with your SA ID number. Check spam for the verification email. Use a working email you check regularly.',
+              cls: 'success',
+            },
+            {
+              step: '2',
+              title: 'Complete online application',
+              deadline: 'After account creation',
+              detail: 'Fill in all sections: personal info, academic history, household income. Do not leave fields blank — incomplete applications are rejected automatically.',
+              cls: 'success',
+            },
+            {
+              step: '3',
+              title: 'Upload supporting documents',
+              deadline: 'Within 7 days of applying',
+              detail: 'See the document checklist below. PDFs preferred. Each file must be under 5 MB. All income documents must be for the most recent tax year.',
+              cls: 'warning',
+            },
+            {
+              step: '4',
+              title: 'Await outcome & registration',
+              deadline: 'Jan–Feb 2027',
+              detail: 'NSFAS will SMS/email an outcome. If approved, go to your university and request NSFAS registration. Do not pay upfront — NSFAS pays the institution directly.',
+              cls: 'primary',
+            },
+            {
+              step: '5',
+              title: 'Confirm allowance method',
+              deadline: 'After registration',
+              detail: 'NSFAS pays directly to your institution for tuition. Allowances (accommodation, books, transport) are paid via Fundi card or EFT. Confirm your banking details on the portal.',
+              cls: 'primary',
+            },
+          ].map((s, i, arr) => (
+            <div key={s.step} style={{ display: 'flex', gap: '0.875rem', paddingBottom: i < arr.length - 1 ? '1rem' : 0, position: 'relative' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: `hsl(var(--${s.cls}) / 0.15)`, border: `2px solid hsl(var(--${s.cls}))`, color: `hsl(var(--${s.cls}))`, display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: '0.875rem', flexShrink: 0 }}>
+                  {s.step}
+                </div>
+                {i < arr.length - 1 && (
+                  <div style={{ width: 2, flex: 1, background: 'hsl(var(--border))', marginTop: '0.375rem', minHeight: '1.25rem' }} />
+                )}
+              </div>
+              <div style={{ paddingBottom: i < arr.length - 1 ? '0.5rem' : 0 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{s.title}</div>
+                <div className="caption" style={{ color: `hsl(var(--${s.cls}))`, marginTop: '0.125rem', fontWeight: 600 }}>{s.deadline}</div>
+                <p className="caption" style={{ marginTop: '0.375rem', lineHeight: 1.55, margin: '0.375rem 0 0' }}>{s.detail}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Document checklist */}
+      <div className="card" style={{ marginTop: '1.25rem' }}>
+        <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+          <div className="eyebrow"><span className="dot" />Document checklist</div>
+          <span className="badge warning">Upload within 7 days</span>
+        </div>
+        <div className="grid-2" style={{ gap: '0.625rem' }}>
+          {[
+            { doc: 'SA ID or birth certificate', note: 'Certified copy (not older than 3 months)', required: true },
+            { doc: 'Matric results / Grade 11 report', note: 'Official school stamp required', required: true },
+            { doc: 'Proof of household income', note: 'Payslips (3 months) or SASSA grant letter', required: true },
+            { doc: 'Parent/Guardian ID', note: 'Both parents if applicable', required: true },
+            { doc: 'Proof of registration (from university)', note: 'Only after you register', required: false },
+            { doc: 'Disability certificate', note: 'From a medical practitioner — only if applicable', required: false },
+            { doc: 'Death certificate (if orphan)', note: 'Both parents\' certificates if applicable', required: false },
+            { doc: 'Proof of address', note: 'Utility bill or affidavit, not older than 3 months', required: true },
+          ].map(d => (
+            <div key={d.doc} style={{ display: 'flex', gap: '0.625rem', alignItems: 'flex-start', padding: '0.625rem', background: 'hsl(var(--muted) / 0.4)', borderRadius: 'var(--r-md)' }}>
+              <div style={{ width: 18, height: 18, borderRadius: 4, border: `2px solid ${d.required ? 'hsl(var(--fg))' : 'hsl(var(--muted-fg))'}`, flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <div style={{ fontWeight: d.required ? 700 : 500, fontSize: '0.8125rem' }}>{d.doc}</div>
+                <div className="caption" style={{ marginTop: '0.125rem' }}>{d.note}</div>
+                {d.required && <span className="badge" style={{ fontSize: '0.6rem', padding: '0 4px', height: '1.1rem', marginTop: '0.25rem' }}>Required</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="caption" style={{ marginTop: '0.875rem', lineHeight: 1.55 }}>
+          All documents must be in PDF or JPEG format, each under 5 MB. Certified copies must be certified by a commissioner of oaths (SAPS, post office, bank).
+        </p>
+      </div>
     </div>
   );
 }

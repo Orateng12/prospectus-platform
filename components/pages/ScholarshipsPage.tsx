@@ -76,6 +76,7 @@ export default function ScholarshipsPage({
   const [tab, setTab] = useState<Tab>('all');
   const [applying, setApplying] = useState<string | null>(null);
   const [localApplied, setLocalApplied] = useState<Set<string>>(() => new Set(appliedScholarshipNames));
+  const [visibleCount, setVisibleCount] = useState(10);
 
   const source = fundingOpportunities && fundingOpportunities.length > 0
     ? fundingOpportunities
@@ -91,7 +92,8 @@ export default function ScholarshipsPage({
     return withLiveMatch;
   })();
 
-  const displayed = [...typeFiltered].sort((a, b) => b.match - a.match);
+  const sorted = [...typeFiltered].sort((a, b) => b.match - a.match);
+  const displayed = sorted.slice(0, visibleCount);
   const highMatch = withLiveMatch.filter(s => s.match >= 80).length;
   const appliedList = withLiveMatch.filter(s => localApplied.has(s.name));
   const verifiedBadge = dataAgeBadge(source);
@@ -209,7 +211,7 @@ export default function ScholarshipsPage({
             : t === 'bursaries' ? withLiveMatch.filter(s => ['bursary','scholarship','grant','disability'].includes(s.type)).length
             : withLiveMatch.filter(s => s.type === t).length;
           return (
-            <button key={t} className={`tab${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>
+            <button key={t} className={`tab${tab === t ? ' active' : ''}`} onClick={() => { setTab(t); setVisibleCount(10); }}>
               {TAB_LABELS[t]}{count > 0 ? ` (${count})` : ''}
             </button>
           );
@@ -291,6 +293,17 @@ export default function ScholarshipsPage({
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {tab !== 'mine' && visibleCount < sorted.length && (
+        <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+          <button className="btn btn-outline" onClick={() => setVisibleCount(v => Math.min(v + 10, sorted.length))}>
+            Show {Math.min(10, sorted.length - visibleCount)} more opportunities
+          </button>
+          <div className="caption" style={{ marginTop: '0.375rem', color: 'hsl(var(--muted-fg))' }}>
+            Showing {Math.min(visibleCount, sorted.length)} of {sorted.length}
           </div>
         </div>
       )}
