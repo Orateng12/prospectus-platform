@@ -31,6 +31,7 @@ const GREET_TEMPLATE: Record<Route, string | ((name: string) => string)> = {
   'career-detail':      'Career Path',
   'subject-detail':     'Subject Deep-dive',
   'notifications':      'Notifications',
+  'search':             'Search Results',
 };
 
 interface CmdkResult {

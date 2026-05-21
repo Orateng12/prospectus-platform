@@ -35,6 +35,7 @@ import MapPage from './pages/MapPage';
 import SkillsPage from './pages/SkillsPage';
 import NSFASPage from './pages/NSFASPage';
 import NotificationsPage from './pages/NotificationsPage';
+import SearchResultsPage from './pages/SearchResultsPage';
 
 const BASE_APS = 42;
 

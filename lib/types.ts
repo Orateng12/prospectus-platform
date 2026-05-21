@@ -232,7 +232,8 @@ export type Route =
   | 'scholarship-detail'
   | 'career-detail'
   | 'subject-detail'
-  | 'notifications';
+  | 'notifications'
+  | 'search';
 
 // Routes still in the type for backward-compatibility with navigate() callsites.
 // Sidebar items removed: financial, skills, map, discover, nsfas, documents, deadlines, compare
