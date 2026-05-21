@@ -9,6 +9,7 @@ interface SkillsPageProps {
   psychProfile?: PsychProfileData | null;
   careers?: Career[];
   userAps?: number;
+  onRetake?: () => void;
 }
 
 const DESCRIPTIONS: Record<string, string> = {
@@ -53,7 +54,7 @@ const CAP_DB_LABEL: Record<keyof CapabilityData, string> = {
   career_readiness:     'Career readiness',
 };
 
-export default function SkillsPage({ capabilityData, psychProfile, careers = [], userAps = 0 }: SkillsPageProps) {
+export default function SkillsPage({ capabilityData, psychProfile, careers = [], userAps = 0, onRetake }: SkillsPageProps) {
   let caps: Capability[] = CAPS.map(c => ({ ...c }));
 
   if (capabilityData) {
@@ -137,7 +138,7 @@ export default function SkillsPage({ capabilityData, psychProfile, careers = [],
           <div className="row">
             <span className="badge brand">Composite: {composite}</span>
             {hasData && <span className="badge success">Real data</span>}
-            <button className="btn btn-outline">Update inputs</button>
+            <button className="btn btn-outline" onClick={onRetake}>Update inputs</button>
           </div>
         </div>
       </div>

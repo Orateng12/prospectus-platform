@@ -46,15 +46,28 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
   const aps = calcAPS(subjects);
   const homeProvinceId = userProvince ? (PROVINCE_NAME_TO_ID[userProvince] ?? null) : null;
 
+  const eligibleUniShorts = useMemo(() => {
+    return new Set(
+      PROGRAMMES.filter(p => p.aps <= aps).map(p => {
+        const match = UNIS.find(u => u.name === p.uni);
+        return match?.short;
+      }).filter(Boolean)
+    );
+  }, [aps]);
+
   const displayed = useMemo(() => {
+    if (tab === 'eligible') return UNIS.filter(u => eligibleUniShorts.has(u.short));
     if (tab === 'tier1') return UNIS.filter(u => u.acpt === 'Tier 1');
     if (tab === 'tvet') return UNIS.filter(u => u.acpt === 'Tier 2');
     return UNIS;
-  }, [tab]);
+  }, [tab, eligibleUniShorts]);
 
   const totalProgs = PROVINCES.reduce((s, p) => s + p.n, 0);
   const sortedByN   = [...PROVINCES].sort((a, b) => b.n - a.n);
   const sortedByFee = [...PROVINCES].sort((a, b) => b.fees - a.fees);
+  const homeUniCount = homeProvinceId
+    ? UNIS.filter(u => (PROVINCE_NAME_TO_ID[u.province] ?? null) === homeProvinceId).length
+    : 0;
 
   return (
     <div className="page-anim">
@@ -102,7 +115,7 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
                 </div>
                 <div className="row" style={{ gap: '0.375rem' }}>
                   <span className="badge">{totalProgs} eligible</span>
-                  <span className="badge success">1 home</span>
+                  {homeUniCount > 0 && <span className="badge success">{homeUniCount} home</span>}
                 </div>
               </div>
 
@@ -222,7 +235,7 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
                   </div>
                 </div>
                 <p className="body-text" style={{ fontSize: '0.8125rem', marginTop: '0.625rem' }}>{p.intel}</p>
-                <button className="btn btn-outline btn-sm" style={{ marginTop: '0.875rem' }}>
+                <button className="btn btn-outline btn-sm" style={{ marginTop: '0.875rem' }} onClick={() => navigate('programmes')}>
                   Browse programmes →
                 </button>
               </div>

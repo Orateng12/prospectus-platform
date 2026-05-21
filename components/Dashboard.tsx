@@ -281,6 +281,7 @@ export default function Dashboard({
             psychProfile={displayPsych}
             careers={careers}
             userAps={displayAps}
+            onRetake={() => router.push('/onboarding?retake=true')}
           />
         );
       case 'map':

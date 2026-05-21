@@ -6,6 +6,19 @@ import { SCHOLARSHIPS } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
 import type { CompareItem, Scholarship } from '@/lib/types';
 import { toggleScholarshipApplication } from '@/app/actions/toggleScholarshipApplication';
+import { addDeadline } from '@/app/actions/deadlines';
+
+const MONTH_MAP: Record<string, string> = {
+  Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+  Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12',
+};
+
+function deadlineToISO(dl: string): string | null {
+  const [day, mon, year] = dl.split(' ');
+  const m = MONTH_MAP[mon];
+  if (!m || !day || !year) return null;
+  return `${year}-${m}-${day.padStart(2, '0')}`;
+}
 
 interface ScholarshipsPageProps {
   userAps?: number;
@@ -55,6 +68,14 @@ export default function ScholarshipsPage({ userAps, householdIncome, compareItem
     const result = await toggleScholarshipApplication(scholarshipName);
     setApplying(null);
     if ('error' in result) return;
+    if (result.applied) {
+      const scholarship = displayed.find(s => s.name === scholarshipName)
+        ?? withLiveMatch.find(s => s.name === scholarshipName);
+      if (scholarship) {
+        const isoDate = deadlineToISO(scholarship.deadline);
+        if (isoDate) await addDeadline(`${scholarshipName} application deadline`, isoDate);
+      }
+    }
     setLocalApplied(prev => {
       const next = new Set(prev);
       if (result.applied) next.add(scholarshipName);

@@ -72,6 +72,7 @@ export default function CognitivePage({
   onRetake,
 }: AssessmentPageProps) {
   const [tab, setTab] = useState<Tab>(initialTab);
+  const [showBig5Info, setShowBig5Info] = useState(false);
 
   // ── Personality data ───────────────────────────────────────────────────────
   const big5: BigFiveTrait[] = BIG5.map(b => {
@@ -183,8 +184,15 @@ export default function CognitivePage({
                 <div className="eyebrow"><span className="dot" />Big Five</div>
                 <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Trait profile</h3>
               </div>
-              <button className="btn btn-ghost btn-sm">What is this?</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowBig5Info(v => !v)}>
+                {showBig5Info ? 'Hide' : 'What is this?'}
+              </button>
             </div>
+            {showBig5Info && (
+              <div style={{ background: 'hsl(var(--muted) / 0.5)', borderRadius: '0.5rem', padding: '0.875rem', marginBottom: '0.875rem', fontSize: '0.8125rem', lineHeight: 1.6 }}>
+                <strong>The Big Five (OCEAN)</strong> is the most well-validated personality model in psychology. Each trait sits on a spectrum — there is no "good" or "bad" score. Your scores were inferred from your assessment responses and feed the career match algorithm directly. A score of 50 is average; 70+ is meaningfully above average for that trait.
+              </div>
+            )}
             {big5.map(b => (
               <div key={b.l} style={{ padding: '0.625rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
                 <div className="row-between">
@@ -221,7 +229,7 @@ export default function CognitivePage({
             </div>
 
             <AiInsightCard
-              context={{ type: 'cognitive', aps: 0, subjects: [], psychProfile: psychProfile ?? null, capabilityData: null, strategicScore: null, topProgrammes: [], topCareers: [] }}
+              context={{ type: 'cognitive', aps: userAps, subjects: [], psychProfile: psychProfile ?? null, capabilityData: capabilityData ?? null, strategicScore: null, topProgrammes: [], topCareers: topCareer ? [topCareer] : [] }}
             />
           </div>
         </div>
@@ -246,7 +254,7 @@ export default function CognitivePage({
                 <p className="body-text" style={{ fontSize: '0.8125rem' }}>
                   Eight cognitive dimensions inferred from your assessments, marks history and self-reports. Hover any axis on the radar to see what feeds it.
                 </p>
-                <button className="btn btn-outline btn-sm" style={{ marginTop: '0.75rem' }}>Update inputs</button>
+                <button className="btn btn-outline btn-sm" style={{ marginTop: '0.75rem' }} onClick={onRetake}>Update inputs</button>
               </div>
               <div className="card">
                 <div className="eyebrow"><span className="dot" />Strengths</div>
