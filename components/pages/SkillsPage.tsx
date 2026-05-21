@@ -204,7 +204,7 @@ export default function SkillsPage({ capabilityData, psychProfile, careers = [],
             <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Lowest 2 — highest ROI to move</h3>
             <div className="stack-2" style={{ marginTop: '0.875rem' }}>
               {sorted.slice(-2).map(c => {
-                const plan = PROGRESSION_PLANS[c.l];
+                const action = DEVELOPMENT_ACTIONS[c.l]?.[0];
                 return (
                   <div key={c.l} style={{ paddingBottom: '0.875rem', borderBottom: '1px solid hsl(var(--border))' }}>
                     <div className="row-between" style={{ marginBottom: '0.375rem' }}>
@@ -214,16 +214,13 @@ export default function SkillsPage({ capabilityData, psychProfile, careers = [],
                     <div className="meter warning" style={{ marginBottom: '0.5rem' }}>
                       <i style={{ width: `${c.v}%` }} />
                     </div>
-                    {plan ? (
+                    {action ? (
                       <>
-                        <div style={{ fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.25rem' }}>{plan.action}</div>
+                        <div style={{ fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.25rem' }}>{action.action}</div>
                         <div className="row" style={{ gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.375rem' }}>
-                          <span className="badge">{plan.commitment}</span>
-                          <span className="badge">{plan.weeks} weeks</span>
+                          <span className="badge">{action.timeframe}</span>
+                          <span className="badge">{action.resource}</span>
                           <span className="badge success">+8–12 pts</span>
-                        </div>
-                        <div className="caption" style={{ fontSize: '0.75rem' }}>
-                          Unlocks: {plan.unlocks.slice(0, 3).join(' · ')}{plan.unlocks.length > 3 ? ` + ${plan.unlocks.length - 3} more` : ''}
                         </div>
                       </>
                     ) : (
@@ -232,11 +229,8 @@ export default function SkillsPage({ capabilityData, psychProfile, careers = [],
                       </div>
                     )}
                   </div>
-                  <div className="caption" style={{ marginTop: '0.25rem', fontSize: '0.75rem' }}>
-                    {DEVELOPMENT_ACTIONS[c.l]?.[0]?.action ?? 'Targeted practice over 4-6 weeks should move this 8-12 points.'}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

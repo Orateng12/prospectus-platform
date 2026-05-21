@@ -52,16 +52,6 @@ const GRAD_OUTCOMES: Record<string, { startingSalary: number; top20pct: number; 
   CPUT:  { startingSalary: 24_000, top20pct: 38_000, employment: 88 },
 };
 
-function uniToneClass(short: string): string {
-  const s = short.toUpperCase();
-  if (s === 'UCT') return 'uct';
-  if (s === 'WITS') return 'wits';
-  if (s === 'SUN') return 'sun';
-  if (s === 'UP') return 'up';
-  if (s === 'UKZN') return 'ukzn';
-  if (s === 'CPUT') return 'cput';
-  return 'default-uni';
-}
 
 export default function UniversitiesPage({ subjects, navigate, compareItems, onToggleCompare, userProvince }: UniversitiesPageProps) {
   const [tab, setTab] = useState<Tab>('all');
@@ -387,16 +377,6 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
                       <div style={{ fontWeight: 800, fontSize: '1.0625rem', fontVariantNumeric: 'tabular-nums' }}>{fmtR(u.fees)}</div>
                     </div>
                   </div>
-
-                  {gradData && (
-                    <div style={{ fontSize: '0.75rem', padding: '0.5rem', background: 'hsl(var(--muted) / 0.5)', borderRadius: 6 }}>
-                      <span className="caption">Grad salary: </span>
-                      <strong>{fmtR(gradData.startingSalary)}/mo</strong>
-                      <span className="caption"> median · </span>
-                      <strong style={{ color: 'hsl(var(--success))' }}>{gradData.employment}%</strong>
-                      <span className="caption"> employed within 6mo</span>
-                    </div>
-                  )}
 
                   <div className="row" style={{ gap: '0.375rem' }}>
                     {isEligible
