@@ -184,6 +184,10 @@ export default function Dashboard({
             subjects={displaySubjects}
             userAps={displayAps}
             householdIncome={householdIncome}
+            onOpenCareer={(name) => {
+              const c = (careers ?? STATIC_CAREERS).find(x => x.name === name);
+              if (c) navigateToDetail('career-detail', c);
+            }}
           />
         );
       case 'simulator':
@@ -219,7 +223,13 @@ export default function Dashboard({
       case 'funding':
         return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} />;
       case 'nsfas':
-        return <NSFASPage householdIncome={householdIncome} />;
+        return (
+          <NSFASPage
+            householdIncome={householdIncome}
+            programmes={initialProgrammes}
+            userAps={displayAps}
+          />
+        );
       case 'financial':
         return <FundingPage householdIncome={householdIncome} userAps={displayAps} programmes={initialProgrammes} navigate={navigate} />;
       case 'careers':

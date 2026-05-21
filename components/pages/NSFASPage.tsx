@@ -2,15 +2,26 @@
 
 import { useState } from 'react';
 import { fmtR } from '@/lib/utils';
+import type { Programme } from '@/lib/types';
+import { PROGRAMMES } from '@/lib/data';
 
 interface NSFASPageProps {
   householdIncome?: number;
+  programmes?: Programme[];
+  userAps?: number;
 }
 
-export default function NSFASPage({ householdIncome = 220000 }: NSFASPageProps) {
+export default function NSFASPage({ householdIncome = 220000, programmes, userAps }: NSFASPageProps) {
   const [income, setIncome] = useState(householdIncome);
   const [dependants, setDependants] = useState(3);
   const [residence, setResidence] = useState<'campus' | 'private' | 'home'>('campus');
+
+  // Build eligible programme list for the selector
+  const allProgs = (programmes && programmes.length > 0 ? programmes : PROGRAMMES);
+  const eligibleProgs = userAps
+    ? [...allProgs].filter(p => p.aps <= userAps).sort((a, b) => b.fit - a.fit).slice(0, 8)
+    : allProgs.slice(0, 8);
+  const [selectedProgId, setSelectedProgId] = useState(() => eligibleProgs[0]?.id ?? '');
 
   const THRESHOLD = Math.min(600_000, 350_000 + Math.max(0, dependants - 1) * 25_000);
   const eligible = income <= THRESHOLD;
@@ -76,7 +87,30 @@ export default function NSFASPage({ householdIncome = 220000 }: NSFASPageProps) 
 
             <div>
               <label style={{ fontSize: '0.8125rem', fontWeight: 600 }}>Programme &amp; institution</label>
-              <input className="input" defaultValue="UCT · BSc Computer Science" style={{ marginTop: '0.375rem', width: '100%' }} readOnly />
+              {eligibleProgs.length > 0 ? (
+                <select
+                  className="input"
+                  style={{ marginTop: '0.375rem', width: '100%' }}
+                  value={selectedProgId}
+                  onChange={e => setSelectedProgId(e.target.value)}
+                >
+                  {eligibleProgs.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.uni} · {p.name} (APS {p.aps})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input className="input" defaultValue="Enter your APS to see eligible programmes" style={{ marginTop: '0.375rem', width: '100%' }} readOnly />
+              )}
+              {eligibleProgs.length > 0 && (() => {
+                const sel = eligibleProgs.find(p => p.id === selectedProgId);
+                return sel ? (
+                  <div className="caption" style={{ marginTop: '0.375rem' }}>
+                    Estimated year 1 cost: {fmtR(Math.round(sel.fees * 1.8))} (tuition + living)
+                  </div>
+                ) : null;
+              })()}
             </div>
 
             <div>

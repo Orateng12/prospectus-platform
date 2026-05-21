@@ -17,6 +17,7 @@ interface IntelligencePageProps {
   psychProfile?: PsychProfileData | null;
   subjects?: Subject[];
   userAps?: number;
+  onOpenCareer?: (careerName: string) => void;
 }
 
 const DB_TO_CAP: Array<[keyof CapabilityData, string]> = [
@@ -154,7 +155,8 @@ const FALLBACK_PROBS = [
   { name: 'Doctor',            score: 41, salary: undefined as number | undefined, growth: '+7%'  },
 ];
 
-export default function IntelligencePage({ navigate, strategicScore, capabilityData, programmes = [], careers = [], psychProfile, subjects = [], userAps = 0, householdIncome }: IntelligencePageProps & { householdIncome?: number }) {
+export default function IntelligencePage({ navigate, strategicScore, capabilityData, programmes = [], careers = [], psychProfile, subjects = [], userAps = 0, householdIncome, onOpenCareer }: IntelligencePageProps & { householdIncome?: number }) {
+  const futureYear = new Date().getFullYear() + 5;
   const [expandedScore, setExpandedScore] = useState<string | null>(null);
   const score = strategicScore?.overall ?? 74;
   const prev  = strategicScore?.previous_score;
@@ -335,13 +337,20 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
           </div>
           <div className="stack-2">
             {careerProbs.map(({ name, score }) => (
-              <div key={name} className="progress-row">
-                <span className="label">{name}</span>
-                <div className={`meter ${score >= 80 ? 'success' : score >= 65 ? 'primary' : 'accent'}`}>
+              <button
+                key={name}
+                className="progress-row"
+                style={{ background: 'none', border: 'none', padding: 0, cursor: onOpenCareer ? 'pointer' : 'default', textAlign: 'left', width: '100%' }}
+                onClick={() => onOpenCareer?.(name)}
+                title={onOpenCareer ? `Open ${name} detail` : undefined}
+              >
+                <span className="label" style={{ flex: 1 }}>{name}</span>
+                <div className={`meter ${score >= 80 ? 'success' : score >= 65 ? 'primary' : 'accent'}`} style={{ flex: 3 }}>
                   <i style={{ width: `${score}%` }} />
                 </div>
                 <span className="val">{score}</span>
-              </div>
+                {onOpenCareer && <span className="caption" style={{ marginLeft: '0.375rem', color: 'hsl(var(--muted-fg))' }}>→</span>}
+              </button>
             ))}
             {!psychProfile && (
               <div className="caption" style={{ marginTop: '0.375rem', color: 'hsl(var(--warning))' }}>
@@ -375,7 +384,7 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
         </div>
 
         <div className="card">
-          <div className="eyebrow"><span className="dot" />Future-You · 2031</div>
+          <div className="eyebrow"><span className="dot" />Future-You · {futureYear}</div>
           <h3 className="subheading" style={{ marginTop: '0.25rem' }}>If you stay on the highest-fit path</h3>
           <div className="stack-2" style={{ marginTop: '0.875rem' }}>
             <div className="stat-pair">
