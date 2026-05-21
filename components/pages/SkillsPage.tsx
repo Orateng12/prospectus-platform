@@ -11,6 +11,7 @@ interface SkillsPageProps {
   userAps?: number;
   onRetake?: () => void;
   navigate?: (r: Route) => void;
+  onOpenCareer?: (name: string) => void;
 }
 
 const DESCRIPTIONS: Record<string, string> = {
@@ -93,7 +94,7 @@ const CAP_DB_LABEL: Record<keyof CapabilityData, string> = {
   career_readiness:     'Career readiness',
 };
 
-export default function SkillsPage({ capabilityData, psychProfile, careers = [], userAps = 0, onRetake, navigate }: SkillsPageProps) {
+export default function SkillsPage({ capabilityData, psychProfile, careers = [], userAps = 0, onRetake, navigate, onOpenCareer }: SkillsPageProps) {
   let caps: Capability[] = CAPS.map(c => ({ ...c }));
 
   if (capabilityData) {
@@ -471,9 +472,9 @@ export default function SkillsPage({ capabilityData, psychProfile, careers = [],
                   border: '1px solid hsl(var(--border))',
                   borderRadius: 8,
                   background: 'hsl(var(--muted) / 0.2)',
-                  cursor: navigate ? 'pointer' : 'default',
+                  cursor: onOpenCareer || navigate ? 'pointer' : 'default',
                 }}
-                onClick={() => navigate?.('careers')}
+                onClick={() => onOpenCareer ? onOpenCareer(career.name) : navigate?.('careers')}
               >
                 <div className="row-between" style={{ marginBottom: '0.625rem' }}>
                   <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{career.name}</div>
@@ -504,14 +505,14 @@ export default function SkillsPage({ capabilityData, psychProfile, careers = [],
                     </div>
                   ))}
                 </div>
-                {navigate && (
+                {(onOpenCareer || navigate) && (
                   <div style={{ marginTop: '0.75rem', paddingTop: '0.625rem', borderTop: '1px solid hsl(var(--border))' }}>
                     <button
                       className="btn btn-ghost btn-sm"
                       style={{ width: '100%' }}
-                      onClick={e => { e.stopPropagation(); navigate('careers'); }}
+                      onClick={e => { e.stopPropagation(); onOpenCareer ? onOpenCareer(career.name) : navigate?.('careers'); }}
                     >
-                      View career →
+                      View career path →
                     </button>
                   </div>
                 )}

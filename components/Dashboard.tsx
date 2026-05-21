@@ -285,6 +285,10 @@ export default function Dashboard({
             userAps={displayAps}
             onRetake={() => router.push('/onboarding?retake=true')}
             navigate={navigate}
+            onOpenCareer={(name) => {
+              const c = (careers ?? []).find(x => x.name === name);
+              if (c) navigateToDetail('career-detail', c);
+            }}
           />
         );
       case 'map':
