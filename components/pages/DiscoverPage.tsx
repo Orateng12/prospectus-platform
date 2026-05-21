@@ -38,21 +38,36 @@ const SEED_MESSAGES: ChatMessage[] = [
   },
 ];
 
-function buildSuggestedPrompts(userAps?: number, householdIncome?: number): string[] {
+function buildSuggestedPrompts(userAps?: number, householdIncome?: number, psychProfile?: { realistic?: number; investigative?: number; social?: number; enterprising?: number; artistic?: number } | null): string[] {
   const prompts: string[] = [];
+
   if (userAps) {
-    prompts.push(`My APS is ${userAps} — what are my best programme options?`);
+    prompts.push(`My APS is ${userAps} — which programmes have the best career outcomes?`);
   } else {
     prompts.push('Show me programmes where I can use my Maths and English equally');
   }
-  if (householdIncome !== undefined && householdIncome <= 600_000) {
-    prompts.push('How does NSFAS actually work and am I eligible?');
+
+  if (psychProfile) {
+    const riasec = [
+      { k: 'realistic', v: psychProfile.realistic ?? 0, prompt: 'What careers use hands-on technical skills and suit a practical personality?' },
+      { k: 'investigative', v: psychProfile.investigative ?? 0, prompt: 'I love research and analysis — what high-demand careers fit this?' },
+      { k: 'social', v: psychProfile.social ?? 0, prompt: 'I want to work with people and make a social impact — what should I study?' },
+      { k: 'enterprising', v: psychProfile.enterprising ?? 0, prompt: 'I have entrepreneurial drive — which degree will best prepare me to start a business?' },
+      { k: 'artistic', v: psychProfile.artistic ?? 0, prompt: 'What careers combine creativity with a good salary in South Africa?' },
+    ].sort((a, b) => b.v - a.v);
+    prompts.push(riasec[0].prompt);
   } else {
-    prompts.push('What bursaries and scholarships should I apply for?');
+    prompts.push('I want to work outdoors — what should I study?');
   }
-  prompts.push('I want to work outdoors — what should I study?');
-  prompts.push('What if I drop History and add Geography?');
-  return prompts;
+
+  if (householdIncome !== undefined && householdIncome <= 600_000) {
+    prompts.push('How do I stack NSFAS with a bursary to fully cover my costs?');
+  } else {
+    prompts.push('What merit bursaries can I apply for without an income test?');
+  }
+
+  prompts.push('Compare engineering vs computer science for long-term salary growth in SA');
+  return prompts.slice(0, 4);
 }
 
 function renderText(text: string): React.ReactNode[] {
@@ -78,7 +93,7 @@ export default function DiscoverPage({ navigate, psychProfile, userAps, househol
   const [isLoading, setIsLoading] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
-  const suggestedPrompts = buildSuggestedPrompts(userAps, householdIncome);
+  const suggestedPrompts = buildSuggestedPrompts(userAps, householdIncome, psychProfile);
 
   useEffect(() => {
     if (transcriptRef.current) {

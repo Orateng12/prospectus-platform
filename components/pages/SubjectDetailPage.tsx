@@ -23,14 +23,52 @@ const APS_TABLE = [
 ];
 
 const STUDY_TIPS: Record<string, string[]> = {
-  math:     ['Practice past papers from 2021–2025 (DBE website)', 'Focus on algebra, functions, and statistics', 'Do 30 min of timed problem-solving daily'],
-  pscience: ['Master Newton\'s laws and electricity circuits first — highest exam weight', 'Use the CAPS formula sheet in every practice session', 'Pair with a study partner for experimental write-ups'],
-  eng:      ['Read one quality article per day and summarise it in 3 sentences', 'Practice essay structure: introduction, 3 body paragraphs, conclusion', 'Work through past comprehension papers under timed conditions'],
-  lifesci:  ['Use labelled diagrams for cell biology and genetics', 'Make a glossary of technical terms per chapter', 'Focus on ecology and human systems — most frequently tested'],
-  history:  ['Practice source-based questions from all periods', 'Learn to write structured essays with clear argument and evidence', 'Build a timeline for each topic to anchor events'],
-  sesotho:  ['Read Sesotho newspapers or short stories weekly', 'Practise essay writing and formal letter format', 'Focus on grammar rules — consistently tested'],
-  lo:       ['Life Orientation is excluded from APS — focus on core subjects first', 'Aim for 80%+ as it counts toward your NSC certificate', 'Use it as a confidence booster, not an APS driver'],
+  math:        ['Practice past papers from 2021–2025 (DBE website)', 'Focus on algebra, functions, and statistics — highest exam weight', 'Do 30 min of timed problem-solving daily, then mark yourself honestly'],
+  mathliteracy:['Focus on finance, measurement, and data handling sections', 'Work through past exam papers under real conditions', 'Use a calculator for all practicals — speed with accuracy matters'],
+  techmath:    ['Prioritise trigonometry, geometry, and financial maths', 'Practice past Technical Maths NSC papers (2019–2025)', 'Link concepts to real-world engineering applications'],
+  pscience:    ['Master Newton\'s laws and electricity circuits first — highest exam weight', 'Use the CAPS formula sheet in every practice session', 'Pair with a study partner for experimental write-ups'],
+  lifesciences:['Use labelled diagrams for cell biology and genetics', 'Make a glossary of technical terms per chapter', 'Focus on ecology, human systems, and evolution — most frequently tested'],
+  accounting:  ['Practice the balance sheet and income statement until automatic', 'Do at least one full accounting exam per week under time pressure', 'Reconciliation questions are high-value — don\'t skip them'],
+  business:    ['Learn the 4Ps and all business functions thoroughly', 'Write your own case study answers then compare to memo', 'Link theory to real SA companies in your examples'],
+  economics:   ['Understand supply/demand shifts with diagram practice', 'Economic indicators (GDP, inflation, unemployment) are frequently tested', 'Write a sample essay per section — examiners reward structure'],
+  geography:   ['Sketch maps from memory for high-weight regions', 'Practice climate graphs and data response questions', 'Link human geography to current SA news events'],
+  history:     ['Practice source-based questions from all periods', 'Learn to write structured essays with clear argument and evidence', 'Build a timeline for each topic to anchor events in sequence'],
+  it:          ['Code consistently — even 30 min of problem-solving daily compounds fast', 'Review Delphi/Java past papers for patterns in examination questions', 'Build a small project that uses the concepts you\'re studying'],
+  cat:         ['Master spreadsheet formulas — they appear in every paper', 'Practice word-processing and presentation tasks under time pressure', 'Theory section: learn hardware/software concepts in plain English'],
+  eng:         ['Read one quality article per day and summarise it in 3 sentences', 'Practice essay structure: introduction, 3 body paragraphs, conclusion', 'Work through past comprehension papers under timed conditions'],
+  afr:         ['Read Afrikaans short stories or articles for 15 min daily', 'Practice formal and informal letter formats', 'Focus on grammar: conjunctions, sentence structure, tenses'],
+  zul:         ['Listen to isiZulu radio or news daily for comprehension', 'Practise essay and formal letter writing formats', 'Master grammar rules — consistently tested across all papers'],
+  sesotho:     ['Read Sesotho newspapers or short stories weekly', 'Practise essay writing and formal letter format', 'Focus on grammar rules — consistently tested'],
+  lo:          ['Life Orientation is excluded from APS — focus on core subjects first', 'Aim for 80%+ as it counts toward your NSC certificate', 'Use it as a confidence booster, not an APS driver'],
 };
+
+function getStudyTips(subjectId: string, subjectName: string): string[] {
+  const id = subjectId.toLowerCase();
+  const name = subjectName.toLowerCase();
+  if (STUDY_TIPS[id]) return STUDY_TIPS[id];
+  if (name.includes('mathematics') && !name.includes('literacy') && !name.includes('technical')) return STUDY_TIPS.math;
+  if (name.includes('mathematical literacy') || name.includes('maths literacy')) return STUDY_TIPS.mathliteracy;
+  if (name.includes('technical math')) return STUDY_TIPS.techmath;
+  if (name.includes('physical science')) return STUDY_TIPS.pscience;
+  if (name.includes('life science')) return STUDY_TIPS.lifesciences;
+  if (name.includes('accounting')) return STUDY_TIPS.accounting;
+  if (name.includes('business')) return STUDY_TIPS.business;
+  if (name.includes('economics')) return STUDY_TIPS.economics;
+  if (name.includes('geography')) return STUDY_TIPS.geography;
+  if (name.includes('history')) return STUDY_TIPS.history;
+  if (name.includes('information technology') || name.includes(' it ')) return STUDY_TIPS.it;
+  if (name.includes('computer application') || name.includes('cat')) return STUDY_TIPS.cat;
+  if (name.includes('english')) return STUDY_TIPS.eng;
+  if (name.includes('afrikaans')) return STUDY_TIPS.afr;
+  if (name.includes('zulu') || name.includes('isizulu')) return STUDY_TIPS.zul;
+  if (name.includes('sesotho') || name.includes('sotho')) return STUDY_TIPS.sesotho;
+  if (name.includes('life orientation')) return STUDY_TIPS.lo;
+  return [
+    'Work through the most recent 3 years of DBE past papers for this subject',
+    'Identify your weakest chapter and dedicate 30 min daily to it for 2 weeks',
+    'Form a study group with peers to explain concepts to each other',
+  ];
+}
 
 function getNextApsThreshold(currentMark: number): { mark: number; pts: number } | null {
   const currentPts = apsPoints(currentMark);
@@ -87,7 +125,7 @@ export default function SubjectDetailPage({ subject, subjects, programmes: propP
   }
   impactProgs.sort((a, b) => a.markNeeded - b.markNeeded);
 
-  const tips = STUDY_TIPS[subject.id] ?? ['Focus on past papers and timed practice', 'Identify your weakest topics and address them first', 'Seek help from your teacher for topics you struggle with'];
+  const tips = getStudyTips(subject.id, subject.name);
 
   // Mark trajectory: what would total APS be at key thresholds for this subject
   const otherAps = subject.designated ? currentAps - currentPts : currentAps;
