@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { APPS } from '@/lib/data';
+import { fmtR } from '@/lib/utils';
 import type { Application, DbApplication, Programme, Route } from '@/lib/types';
 import AddApplicationModal from '@/components/AddApplicationModal';
 
@@ -331,12 +332,12 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail, p
             <div className="eyebrow"><span className="dot" />Stage breakdown</div>
             <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Where things are</h3>
             <div className="stack" style={{ marginTop: '0.875rem' }}>
-              {[
-                ['Eligibility check',   100],
-                ['Submit application',  apps.filter(a => a.submitted).length > 0 ? Math.round(apps.filter(a => a.submitted).length / apps.length * 100) : 75],
-                ['Document upload',     50],
-                ['Decision received',   counts.accepted + (apps.filter(a => a.status === 'destructive').length) > 0 ? Math.round((counts.accepted + apps.filter(a => a.status === 'destructive').length) / apps.length * 100) : 25],
-              ].map(([l, v]) => (
+              {([
+                ['Eligibility check',  100] as const,
+                ['Submit application', apps.filter(a => a.submitted).length > 0 ? Math.round(apps.filter(a => a.submitted).length / apps.length * 100) : 75] as const,
+                ['Document upload',    50] as const,
+                ['Decision received',  counts.accepted + apps.filter(a => a.status === 'destructive').length > 0 ? Math.round((counts.accepted + apps.filter(a => a.status === 'destructive').length) / apps.length * 100) : 25] as const,
+              ] as [string, number][]).map(([l, v]) => (
                 <div key={l} className="progress-row">
                   <span className="label">{l}</span>
                   <div className="meter"><i style={{ width: `${v}%` }} /></div>
@@ -346,7 +347,7 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail, p
             </div>
           </div>
           <div className="card">
-            <div className="eyebrow"><span className="dot" />AI insight</div>
+            <div className="eyebrow"><span className="dot" />Advisor note</div>
             <h3 className="subheading" style={{ marginTop: '0.25rem' }}>What to do next</h3>
             <p style={{ margin: '0.5rem 0 0', fontSize: '0.875rem', lineHeight: 1.6 }}>
               {counts.rejected > 0
@@ -369,6 +370,53 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail, p
           </div>
         </div>
       )}
+
+      {/* Fallback programme suggestions — shown when there are rejections */}
+      {(() => {
+        const fallbacks = fallbackProgrammes(apps, programmes, userAps);
+        if (fallbacks.length === 0) return null;
+        return (
+          <div className="card" style={{ marginTop: '1.25rem', borderLeft: '3px solid hsl(var(--warning))' }}>
+            <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+              <div>
+                <div className="eyebrow"><span className="dot" />Recovery options</div>
+                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
+                  Alternative programmes within your APS range
+                </h3>
+                <p className="caption" style={{ marginTop: '0.25rem' }}>
+                  Based on your rejections, here are similar-fit programmes you haven&apos;t applied to yet.
+                </p>
+              </div>
+              <button className="btn btn-outline btn-sm" onClick={() => navigate?.('programmes')}>
+                Browse all →
+              </button>
+            </div>
+            <div className="stack">
+              {fallbacks.map(p => (
+                <button
+                  key={p.id}
+                  className="prog-row"
+                  onClick={() => navigate?.('programmes')}
+                >
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.name}</div>
+                    <div className="caption" style={{ marginTop: 2 }}>
+                      {p.uni} · APS {p.aps} · {fmtR(p.fees)} / yr · {p.dur} years
+                    </div>
+                  </div>
+                  <span className={`badge ${p.pathway}`}>
+                    {p.pathway[0].toUpperCase() + p.pathway.slice(1)}
+                  </span>
+                  <div className="fit">
+                    <span className="n">{p.fit}</span>
+                    <span className="caption">fit</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

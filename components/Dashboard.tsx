@@ -284,6 +284,7 @@ export default function Dashboard({
             careers={careers}
             userAps={displayAps}
             onRetake={() => router.push('/onboarding?retake=true')}
+            navigate={navigate}
           />
         );
       case 'map':

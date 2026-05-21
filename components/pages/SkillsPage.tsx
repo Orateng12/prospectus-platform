@@ -2,7 +2,7 @@ import { CAPS } from '@/lib/data';
 import RadarChart from '@/components/RadarChart';
 import { rankCareersByMatch, getCareerCapRequirements, getCareerBigFiveRanges } from '@/lib/scoring';
 import type { CareerBigFiveRanges } from '@/lib/scoring';
-import type { CapabilityData, Capability, PsychProfileData, Career } from '@/lib/types';
+import type { CapabilityData, Capability, PsychProfileData, Career, Route } from '@/lib/types';
 
 interface SkillsPageProps {
   capabilityData?: CapabilityData | null;
@@ -10,6 +10,7 @@ interface SkillsPageProps {
   careers?: Career[];
   userAps?: number;
   onRetake?: () => void;
+  navigate?: (r: Route) => void;
 }
 
 const DESCRIPTIONS: Record<string, string> = {
@@ -92,7 +93,7 @@ const CAP_DB_LABEL: Record<keyof CapabilityData, string> = {
   career_readiness:     'Career readiness',
 };
 
-export default function SkillsPage({ capabilityData, psychProfile, careers = [], userAps = 0, onRetake }: SkillsPageProps) {
+export default function SkillsPage({ capabilityData, psychProfile, careers = [], userAps = 0, onRetake, navigate }: SkillsPageProps) {
   let caps: Capability[] = CAPS.map(c => ({ ...c }));
 
   if (capabilityData) {
@@ -159,6 +160,47 @@ export default function SkillsPage({ capabilityData, psychProfile, careers = [],
         }))
         .sort((a, b) => (a.yours - a.required) - (b.yours - b.required)) // worst gaps first
     : [];
+
+  // ── Careers within reach ───────────────────────────────────────────────────
+  // Pre-rank all careers once; find those where 1–2 small capability gaps are the blocker
+  interface WithinReachCareer {
+    name: string;
+    currentScore: number;
+    gaps: Array<{ label: string; yours: number; required: number; gap: number }>;
+  }
+
+  const withinReachCareers: WithinReachCareer[] = (() => {
+    if (!capabilityData || !psychProfile || careers.length === 0) return [];
+
+    const ranked = rankCareersByMatch(careers, psychProfile, capabilityData, userAps);
+    const result: WithinReachCareer[] = [];
+
+    for (const career of ranked) {
+      // Skip careers already well-matched or very poor fits
+      if (career.personalScore >= 78 || career.personalScore < 40) continue;
+
+      const reqs = getCareerCapRequirements(career.name);
+      if (!reqs) continue;
+
+      const gaps = (Object.keys(reqs) as Array<keyof CapabilityData>)
+        .map(key => {
+          const required = reqs[key] ?? 60;
+          const yours = (capabilityData[key] as number) ?? 60;
+          return { label: CAP_DB_LABEL[key] ?? key, yours, required, gap: Math.max(0, required - yours) };
+        })
+        .filter(g => g.gap > 0)
+        .sort((a, b) => a.gap - b.gap);
+
+      // Within reach = 1–2 gaps, each small enough to close in < 2 months
+      if (gaps.length >= 1 && gaps.length <= 2 && gaps.every(g => g.gap <= 18)) {
+        result.push({ name: career.name, currentScore: career.personalScore, gaps });
+      }
+
+      if (result.length >= 4) break;
+    }
+
+    return result;
+  })();
 
   return (
     <div className="page-anim">
@@ -406,6 +448,81 @@ export default function SkillsPage({ capabilityData, psychProfile, careers = [],
           Consistent 4-week effort is more effective than sporadic intensive sessions.
         </div>
       </div>
+
+      {/* Careers within reach */}
+      {withinReachCareers.length > 0 && (
+        <div className="card" style={{ marginTop: '1.25rem' }}>
+          <div className="row-between" style={{ marginBottom: '1rem' }}>
+            <div>
+              <div className="eyebrow"><span className="dot" />Capability roadmap</div>
+              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Careers within reach</h3>
+              <p className="caption" style={{ marginTop: '0.25rem', maxWidth: '36rem' }}>
+                These careers are close — one or two targeted capability improvements would make them strong matches for you.
+              </p>
+            </div>
+            <span className="badge brand">{withinReachCareers.length} within reach</span>
+          </div>
+          <div className="grid-2">
+            {withinReachCareers.map(career => (
+              <div
+                key={career.name}
+                style={{
+                  padding: '1rem',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: 8,
+                  background: 'hsl(var(--muted) / 0.2)',
+                  cursor: navigate ? 'pointer' : 'default',
+                }}
+                onClick={() => navigate?.('careers')}
+              >
+                <div className="row-between" style={{ marginBottom: '0.625rem' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{career.name}</div>
+                  <span className="badge warning">Match: {career.currentScore}</span>
+                </div>
+                <div className="stack" style={{ gap: '0.5rem' }}>
+                  {career.gaps.map(g => (
+                    <div key={g.label}>
+                      <div className="row-between" style={{ marginBottom: '0.25rem' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{g.label}</span>
+                        <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: '0.75rem', color: 'hsl(var(--warning))' }}>
+                          +{g.gap} pts needed
+                        </span>
+                      </div>
+                      <div className="meter warning" style={{ position: 'relative' }}>
+                        <i style={{ width: `${g.yours}%`, background: 'hsl(var(--warning))' }} />
+                        <span style={{
+                          position: 'absolute', top: 0, bottom: 0,
+                          left: `${Math.min(g.required, 100)}%`,
+                          width: 2,
+                          background: 'hsl(var(--fg) / 0.35)',
+                        }} />
+                      </div>
+                      <div className="caption" style={{ marginTop: '0.2rem', fontSize: '0.6875rem' }}>
+                        {DEVELOPMENT_ACTIONS[g.label]?.[0]?.action ?? `Lift ${g.label} by ${g.gap} points`}
+                        {DEVELOPMENT_ACTIONS[g.label]?.[0] && ` · ${DEVELOPMENT_ACTIONS[g.label][0].timeframe}`}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {navigate && (
+                  <div style={{ marginTop: '0.75rem', paddingTop: '0.625rem', borderTop: '1px solid hsl(var(--border))' }}>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ width: '100%' }}
+                      onClick={e => { e.stopPropagation(); navigate('careers'); }}
+                    >
+                      View career →
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="caption" style={{ marginTop: '0.875rem', paddingTop: '0.75rem', borderTop: '1px solid hsl(var(--border))', fontSize: '0.6875rem' }}>
+            Scores calculated using the scoring engine. Gap sizes reflect capability requirements for each career archetype.
+          </div>
+        </div>
+      )}
     </div>
   );
 }

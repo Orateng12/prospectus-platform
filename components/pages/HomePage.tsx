@@ -481,14 +481,14 @@ export default function HomePage({ subjects, navigate, programmes, applications 
             <div className="row-between" style={{ marginBottom: '0.875rem' }}>
               <div>
                 <div className="eyebrow"><span className="dot" />Top matched programmes</div>
-                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Personalised by capability + market fit</h3>
+                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Highest fit scores you qualify for now</h3>
               </div>
               <button className="btn btn-ghost btn-sm" onClick={() => navigate('programmes')}>
                 All {eligible.length} →
               </button>
             </div>
             <div className="stack">
-              {eligible.slice(0, 4).map(p => (
+              {[...eligible].sort((a, b) => b.fit - a.fit).slice(0, 4).map(p => (
                 <button
                   key={p.id}
                   className="prog-row"
@@ -511,6 +511,56 @@ export default function HomePage({ subjects, navigate, programmes, applications 
               ))}
             </div>
           </div>
+
+          {/* Near-miss programmes */}
+          {(() => {
+            const nearMiss = [...allProgs]
+              .filter(p => p.aps > aps && p.aps <= aps + 4)
+              .sort((a, b) => (a.aps - aps) - (b.aps - aps) || b.fit - a.fit)
+              .slice(0, 3);
+            if (nearMiss.length === 0) return null;
+            return (
+              <div className="card">
+                <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+                  <div>
+                    <div className="eyebrow"><span className="dot" />Within reach</div>
+                    <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
+                      Programmes unlocked by raising 1–4 APS points
+                    </h3>
+                  </div>
+                  <button className="btn btn-ghost btn-sm" onClick={() => navigate('simulator')}>Simulate →</button>
+                </div>
+                <div className="stack">
+                  {nearMiss.map(p => {
+                    const gap = p.aps - aps;
+                    return (
+                      <button
+                        key={p.id}
+                        className="prog-row"
+                        onClick={() => navigate('programmes', p.id)}
+                        style={{ opacity: 0.9 }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.name}</div>
+                          <div className="caption" style={{ marginTop: 2 }}>
+                            {p.uni} · APS {p.aps} · {fmtR(p.fees)} / yr
+                          </div>
+                        </div>
+                        <span className="badge warning">+{gap} APS</span>
+                        <div className="fit">
+                          <span className="n">{p.fit}</span>
+                          <span className="caption">fit</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="caption" style={{ marginTop: '0.625rem', paddingTop: '0.625rem', borderTop: '1px solid hsl(var(--border))' }}>
+                  Use the APS Simulator to see exactly which subject marks need to move.
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Right column */}
