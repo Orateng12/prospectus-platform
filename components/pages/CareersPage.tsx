@@ -343,12 +343,20 @@ export default function CareersPage({
                   <div className="sec"><h3>Careers</h3><span className="caption">{filteredCareers.length} results</span></div>
                   <div className="stack">
                     {filteredCareers.map(c => (
-                      <div key={c.name} className="card compact" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('fit')}>
+                      <div key={c.name} className="card compact" style={{ cursor: 'pointer' }} onClick={() => onOpenDetail?.(c)}>
                         <div className="row-between">
                           <div style={{ fontWeight: 700 }}>{c.name}</div>
-                          <span className={`badge ${c.demand === 'High' ? 'success' : 'warning'}`}>{c.demand} demand</span>
+                          <div className="row" style={{ gap: '0.375rem' }}>
+                            {c.scarce_skill && <span className="badge accent" style={{ height: '1.125rem', fontSize: '0.5625rem' }}>Scarce skill</span>}
+                            <span className={`badge ${c.demand === 'High' ? 'success' : 'warning'}`}>{c.demand} demand</span>
+                          </div>
                         </div>
                         <div className="caption" style={{ marginTop: '0.25rem' }}>{fmtR(c.salary)}/mo · {c.growth} growth</div>
+                        <div className="row" style={{ gap: '0.25rem', marginTop: '0.375rem', flexWrap: 'wrap' }}>
+                          {c.tags.slice(0, 3).map(t => (
+                            <span key={t} className="career-tag" style={{ fontSize: '0.625rem' }}>{t}</span>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -456,26 +464,49 @@ export default function CareersPage({
             </div>
           )}
 
-          <div className="card stack-3" style={{ marginTop: '1.25rem' }}>
-            <div className="row-between">
-              <div>
-                <div className="eyebrow"><span className="dot" />AI commentary</div>
-                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Reading your top 3</h3>
+          {(() => {
+            if (!displayed[0] || !displayed[1] || !displayed[2]) return null;
+            const top3 = displayed.slice(0, 3);
+            const minSal = Math.min(...top3.map(c => c.salary));
+            const maxSal = Math.max(...top3.map(c => c.salary));
+            const highDemandTop = top3.filter(c => c.demand === 'High').length;
+            const scarceTop = top3.filter(c => c.scarce_skill).length;
+            const growthLeader = [...top3].sort((a, b) => parseGrowth(b.growth) - parseGrowth(a.growth))[0];
+            const salaryVsGradAvg = minSal > 22000;
+            return (
+              <div className="card" style={{ marginTop: '1.25rem' }}>
+                <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+                  <div>
+                    <div className="eyebrow"><span className="dot" />AI commentary</div>
+                    <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Reading your top 3</h3>
+                  </div>
+                  <div className="row" style={{ gap: '0.375rem' }}>
+                    {scarceTop > 0 && <span className="badge accent">{scarceTop} scarce skill{scarceTop > 1 ? 's' : ''}</span>}
+                    {highDemandTop > 0 && <span className="badge success">{highDemandTop} high demand</span>}
+                  </div>
+                </div>
+                <p className="body-text" style={{ margin: 0, fontSize: '0.875rem', lineHeight: 1.65 }}>
+                  <strong>{top3[0].name}</strong>, <strong>{top3[1].name}</strong> and{' '}
+                  <strong>{top3[2].name}</strong> lead your ranking.{' '}
+                  {minSal === maxSal
+                    ? `All three pay ${fmtR(minSal)}/mo median`
+                    : `Your salary range across the top 3 is ${fmtR(minSal)}–${fmtR(maxSal)}/mo median`}
+                  {salaryVsGradAvg ? ', well above the SA graduate average of ~R22,000/mo' : ''}.{' '}
+                  <strong>{growthLeader.name}</strong> leads on growth at{' '}
+                  <span style={{ color: 'hsl(var(--success))' }}>{growthLeader.growth}</span> over 10 years.{' '}
+                  {highDemandTop === 3
+                    ? 'All 3 have high employer demand — strong labour-market positioning.'
+                    : highDemandTop > 0
+                    ? `${highDemandTop} of 3 have high employer demand. Check the High demand tab to compare alternatives.`
+                    : 'Switch to the High demand tab to find roles with stronger current hiring in SA.'}
+                </p>
+                <div className="row" style={{ marginTop: '0.875rem' }}>
+                  <button className="btn btn-outline btn-sm" onClick={() => setActiveTab('discover')}>Explore For You →</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => navigate?.('intelligence')}>Full intelligence →</button>
+                </div>
               </div>
-            </div>
-            <p className="body-text" style={{ margin: 0, fontSize: '0.875rem' }}>
-              {displayed[0] && displayed[1] && displayed[2]
-                ? <>
-                    <strong>{displayed[0].name}</strong>, <strong>{displayed[1].name}</strong> and{' '}
-                    <strong>{displayed[2].name}</strong> lead your ranking.{' '}
-                    {displayed.filter(c => c.demand === 'High').length > 0
-                      ? `${displayed.filter(c => c.demand === 'High').length} of your top careers have high market demand in South Africa.`
-                      : 'Explore the High demand tab to filter for fastest-growing roles.'}
-                  </>
-                : 'Complete your profile to unlock personalised career commentary.'
-              }
-            </p>
-          </div>
+            );
+          })()}
         </>
       )}
     </div>

@@ -105,6 +105,36 @@ const NEXT_STEPS: Record<string, string[]> = {
   'Entrepreneur':            ['Identify a real problem in your community to solve', 'Apply to Allan Gray Orbis Foundation (entrepreneurial scholarship)', 'Explore UCT / Wits / UJ entrepreneurship and innovation programmes', 'SEDA offers free business mentorship — register early'],
 };
 
+const DAY_IN_LIFE: Record<string, string[]> = {
+  'Software Engineer':       ['Write and review code in daily stand-up sprints', 'Debug production issues and write unit tests', 'Collaborate with designers and product managers on features', 'Deploy updates via CI/CD pipelines and monitor performance'],
+  'Data Scientist':          ['Extract and clean large datasets from SQL / cloud storage', 'Build and evaluate ML models in Python / Jupyter notebooks', 'Present findings and actionable insights to business stakeholders', 'Iterate on model accuracy based on real-world feedback'],
+  'Data Analyst':            ['Pull data from databases and dashboards (SQL, Power BI)', 'Build reports and track KPIs for business teams', 'Identify trends and flag anomalies to decision-makers', 'Collaborate with engineers to improve data pipelines and quality'],
+  'Actuary':                 ['Model insurance risk using mortality and claims tables', 'Run pricing analyses and stress-test reserve assumptions', 'Present risk reports to compliance and executive committees', 'Collaborate with product teams on new insurance product design'],
+  'Quantitative Analyst':    ['Develop and back-test algorithmic trading strategies', 'Model derivative pricing and risk sensitivities in Python/R', 'Review risk exposure reports and present to risk committees', 'Research academic literature for new quantitative methods'],
+  'ML Engineer':             ['Train and optimise deep learning models on GPU clusters', 'Deploy models as REST APIs and monitor drift in production', 'Profile and improve inference latency for real-time systems', 'Review pull requests and mentor junior engineers'],
+  'Civil Engineer':          ['Visit construction sites to inspect structural progress', 'Review engineering drawings and sign off on compliance', 'Coordinate with contractors, surveyors, and local authorities', 'Use AutoCAD / Civil 3D to update project designs and plans'],
+  'Mechanical Engineer':     ['Inspect machinery and equipment on the production floor', 'Run simulations and stress analyses using CAD/FEA software', 'Troubleshoot equipment failures and write maintenance reports', 'Coordinate with procurement for parts and with production planning'],
+  'Doctor (MBChB)':          ['Conduct ward rounds and review patient notes and vitals', 'Diagnose conditions, order tests, and adjust treatment plans', 'Consult with specialists and communicate findings to families', 'Complete clinical documentation and participate in case discussions'],
+  'Doctor':                  ['Conduct ward rounds and review patient notes and vitals', 'Diagnose conditions, order tests, and adjust treatment plans', 'Consult with specialists and communicate findings to families', 'Complete clinical documentation and participate in case discussions'],
+  'Nurse':                   ['Administer medications and monitor patient vitals every 2-4 hours', 'Communicate patient updates to doctors and handover to next shift', 'Educate patients and families on care plans and discharge instructions', 'Document all care interventions accurately in medical records'],
+  'Lawyer':                  ['Research case law and draft legal opinions or contracts', 'Consult clients on their legal options and risks', 'Attend court hearings, negotiations, or arbitration sessions', 'Review documents for due diligence or compliance purposes'],
+  'Accountant':              ['Capture and reconcile financial transactions in the accounting system', 'Prepare management accounts and variance reports for leadership', 'Liaise with auditors and prepare audit support schedules', 'Ensure SARS tax deadlines and CIPC submissions are met on time'],
+  'Financial Advisor':       ['Meet with clients to review their investment portfolios and goals', 'Analyse market conditions and adjust asset allocation strategies', 'Complete compliance documentation and FAIS requirements', 'Research new financial products to recommend to suitable clients'],
+  'Teacher':                 ['Deliver curriculum-aligned lessons and manage classroom dynamics', 'Mark assessments and give individual feedback to learners', 'Track student progress and prepare intervention strategies', 'Attend staff meetings, training sessions, and parent consultations'],
+  'Entrepreneur':            ['Review business metrics — revenue, CAC, churn — each morning', 'Hold team standups, unblock blockers, and make product decisions', 'Meet potential investors, partners, or key customers', 'Test new growth channels and analyse marketing campaign data'],
+  'Product Manager (Tech)':  ['Prioritise the product backlog and refine user stories with engineers', 'Conduct user interviews and analyse in-app usage data', 'Write product requirement documents (PRDs) and roadmaps', 'Coordinate releases and run retrospectives with the delivery team'],
+  'Product Manager':         ['Review user feedback, support tickets, and NPS trends', 'Align sales, marketing, and engineering around the product roadmap', 'Write specs for new features and define acceptance criteria', 'Track feature launch metrics and iterate based on adoption data'],
+};
+
+function getDayInLife(careerName: string, tags: string[]): string[] {
+  if (DAY_IN_LIFE[careerName]) return DAY_IN_LIFE[careerName];
+  if (tags.includes('Health')) return ['Attend patient rounds and review care plans', 'Administer treatments and document clinical notes', 'Collaborate with the multidisciplinary team on complex cases', 'Educate patients and families on health management'];
+  if (tags.includes('Engineering')) return ['Review project specifications and engineering drawings', 'Coordinate with contractors and site inspectors on progress', 'Run technical simulations and check compliance standards', 'Attend project status meetings and update delivery timelines'];
+  if (tags.includes('Finance')) return ['Analyse financial data and market trends each morning', 'Prepare reports and models for senior stakeholders', 'Review transactions, positions, or client portfolios', 'Ensure regulatory and compliance obligations are met'];
+  if (tags.includes('Tech')) return ['Review code, resolve tickets, and unblock team members', 'Attend daily stand-ups and planning ceremonies', 'Design and test new features in the development environment', 'Monitor system performance and respond to incidents'];
+  return ['Review priorities and plan the day with your team', 'Complete core deliverables and collaborate cross-functionally', 'Attend meetings, present progress, and gather feedback', "Reflect on outcomes and prepare for tomorrow's priorities"];
+}
+
 function getNextSteps(careerName: string, aps: number, minAps: number): string[] {
   const specific = NEXT_STEPS[careerName];
   if (specific) return specific;
@@ -369,6 +399,30 @@ export default function CareerDetailPage({ career, programmes: propProgrammes, c
               ))}
             </div>
           </div>
+
+          {/* Day in the life */}
+          {(() => {
+            const tasks = getDayInLife(career.name, career.tags);
+            return (
+              <div className="card">
+                <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />A day in the life</div>
+                <div className="stack">
+                  {tasks.map((task, i) => (
+                    <div key={i} className="row" style={{ gap: '0.625rem', padding: '0.4375rem 0', borderBottom: '1px solid hsl(var(--border))', alignItems: 'flex-start' }}>
+                      <span style={{
+                        width: 6, height: 6, borderRadius: 999, flexShrink: 0,
+                        background: 'hsl(var(--primary))', marginTop: '0.375rem',
+                      }} />
+                      <span style={{ fontSize: '0.8125rem', lineHeight: 1.5 }}>{task}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="caption" style={{ marginTop: '0.625rem', fontSize: '0.6875rem' }}>
+                  Typical responsibilities across a working day as a {career.name} in South Africa.
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Actionable next steps */}
           {(() => {
