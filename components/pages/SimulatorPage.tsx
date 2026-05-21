@@ -29,6 +29,51 @@ function markForNextPoint(mark: number): number | null {
   return null; // already at max (80+)
 }
 
+interface UnlockStep {
+  subjectId: string;
+  subjectName: string;
+  fromMark: number;
+  toMark: number;
+  markDelta: number;
+  ptsGained: number;
+}
+
+// Greedy: find cheapest subject mark increases to gain `gap` APS points
+function optimalPathToAps(subjects: Subject[], gap: number): UnlockStep[] | null {
+  if (gap <= 0) return [];
+  const BOUNDARIES = [30, 40, 50, 60, 70, 80];
+  // For each subject, all valid upgrade steps (cheapest first)
+  const allSteps: UnlockStep[] = subjects
+    .filter(s => s.id !== 'lo' && s.designated)
+    .flatMap(s => {
+      const currentPts = apsPoints(s.mark);
+      return BOUNDARIES
+        .filter(b => b > s.mark)
+        .map(b => ({
+          subjectId: s.id,
+          subjectName: s.name,
+          fromMark: s.mark,
+          toMark: b,
+          markDelta: b - s.mark,
+          ptsGained: apsPoints(b) - currentPts,
+        }))
+        .filter(step => step.ptsGained > 0);
+    })
+    .sort((a, b) => (a.markDelta / a.ptsGained) - (b.markDelta / b.ptsGained));
+
+  let ptsLeft = gap;
+  const chosen: UnlockStep[] = [];
+  const used = new Set<string>();
+  for (const step of allSteps) {
+    if (ptsLeft <= 0) break;
+    if (used.has(step.subjectId)) continue;
+    used.add(step.subjectId);
+    chosen.push(step);
+    ptsLeft -= step.ptsGained;
+  }
+  return ptsLeft <= 0 ? chosen : null;
+}
+
 interface GradeBoundaryProps {
   subjects: Subject[];
   aps: number;
@@ -262,6 +307,7 @@ export default function SimulatorPage({
       .slice(0, 3);
   }, [currentCareerData]);
 
+  const [expandedNearMiss, setExpandedNearMiss] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [savedCascade, setSavedCascade] = useState<{
@@ -674,8 +720,9 @@ export default function SimulatorPage({
               <div className="stack">
                 {nearMiss.map(p => {
                   const gap = p.aps - aps;
-                  // Find the cheapest single lever to bridge this specific gap
-                  const lever = levers.find(l => l.lever !== null && l.lever.apsDelta >= gap);
+                  const path = optimalPathToAps(subjects, gap);
+                  const isExpanded = expandedNearMiss === p.id;
+                  const totalMarkDelta = path ? path.reduce((s, x) => s + x.markDelta, 0) : null;
                   return (
                     <div
                       key={p.id}
@@ -689,16 +736,80 @@ export default function SimulatorPage({
                     >
                       <div className="row-between">
                         <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.name}</div>
-                        <span className={`badge ${gap <= 2 ? 'warning' : 'default'}`}>
-                          APS {p.aps} · gap +{gap}
-                        </span>
+                        <div className="row" style={{ gap: '0.375rem' }}>
+                          <span className={`badge ${gap <= 2 ? 'warning' : 'default'}`}>
+                            +{gap} APS
+                          </span>
+                          {path && (
+                            <button
+                              className="btn btn-ghost btn-sm"
+                              style={{ height: '1.25rem', fontSize: '0.5625rem', padding: '0 0.375rem', color: 'hsl(var(--primary))' }}
+                              onClick={() => setExpandedNearMiss(isExpanded ? null : p.id)}
+                            >
+                              {isExpanded ? 'Hide path ▲' : 'Show path ▼'}
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div className="caption">
-                        {p.uni} · {fmtR(p.fees)}/yr
-                      </div>
-                      {lever && (
+                      <div className="caption">{p.uni} · {fmtR(p.fees)}/yr · fit {p.fit}/100</div>
+
+                      {/* Collapsed hint */}
+                      {!isExpanded && path && (
                         <div className="caption" style={{ color: 'hsl(var(--success))', fontWeight: 600, fontSize: '0.75rem' }}>
-                          → Raise {lever.subject.name} by {lever.lever!.markDelta}% ({lever.subject.mark}% → {lever.lever!.targetMark}%) to unlock
+                          {path.length === 1
+                            ? `→ Raise ${path[0].subjectName} by ${path[0].markDelta}% to unlock`
+                            : `→ ${path.length} subjects · +${totalMarkDelta}% total effort to unlock`}
+                        </div>
+                      )}
+                      {!path && (
+                        <div className="caption" style={{ color: 'hsl(var(--muted-fg))', fontSize: '0.75rem' }}>
+                          Requires marks beyond current subject ceilings
+                        </div>
+                      )}
+
+                      {/* Expanded optimal path */}
+                      {isExpanded && path && (
+                        <div style={{
+                          marginTop: '0.375rem', padding: '0.75rem',
+                          background: 'hsl(var(--success) / 0.05)',
+                          border: '1px solid hsl(var(--success) / 0.2)',
+                          borderRadius: 8,
+                        }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--muted-fg))', marginBottom: '0.5rem' }}>
+                            Optimal unlock path · +{totalMarkDelta}% total
+                          </div>
+                          <div className="stack-2">
+                            {path.map((step, i) => (
+                              <div key={step.subjectId} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '0.5rem', alignItems: 'center' }}>
+                                <div>
+                                  <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{step.subjectName}</div>
+                                  <div className="caption" style={{ fontSize: '0.625rem' }}>
+                                    {step.fromMark}% → {step.toMark}% · +{step.ptsGained} APS pt{step.ptsGained !== 1 ? 's' : ''}
+                                  </div>
+                                </div>
+                                <div style={{ fontWeight: 800, fontSize: '1rem', color: 'hsl(var(--success))', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>
+                                  +{step.markDelta}%
+                                </div>
+                                <button
+                                  className="btn btn-ghost btn-sm"
+                                  style={{ height: '1.5rem', fontSize: '0.6875rem', padding: '0 0.375rem' }}
+                                  onClick={() => handleChange(step.subjectId, String(step.toMark))}
+                                  title="Apply this target mark"
+                                >
+                                  Apply
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          {onNavigateProgramme && (
+                            <button
+                              className="btn btn-outline btn-sm"
+                              style={{ marginTop: '0.75rem', width: '100%', fontSize: '0.75rem' }}
+                              onClick={() => onNavigateProgramme(p.id)}
+                            >
+                              View {p.name} →
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>

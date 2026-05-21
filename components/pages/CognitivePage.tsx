@@ -5,8 +5,17 @@ import { BIG5, RIASEC, CAPS } from '@/lib/data';
 import RadarChart from '@/components/RadarChart';
 import { rankCareersByMatch, getCareerCapRequirements, getCareerBigFiveRanges } from '@/lib/scoring';
 import type { CareerBigFiveRanges } from '@/lib/scoring';
-import type { BigFiveTrait, RiasecItem, PsychProfileData, CapabilityData, Capability, Career } from '@/lib/types';
+import type { BigFiveTrait, RiasecItem, PsychProfileData, CapabilityData, Capability, Career, Route } from '@/lib/types';
 import AiInsightCard from '@/components/AiInsightCard';
+
+const RIASEC_CAREERS: Record<string, string> = {
+  Realistic:     'Engineering · Architecture · Agriculture',
+  Investigative: 'Data Science · Research · Medicine',
+  Artistic:      'Design · Media · Architecture',
+  Social:        'Education · Healthcare · Social Work',
+  Enterprising:  'Management · Law · Entrepreneurship',
+  Conventional:  'Finance · Accounting · Administration',
+};
 
 interface AssessmentPageProps {
   psychProfile?: PsychProfileData | null;
@@ -15,6 +24,7 @@ interface AssessmentPageProps {
   userAps?: number;
   initialTab?: 'personality' | 'skills';
   onRetake?: () => void;
+  navigate?: (r: Route) => void;
 }
 
 type Tab = 'personality' | 'skills';
@@ -76,6 +86,7 @@ export default function CognitivePage({
   userAps = 0,
   initialTab = 'personality',
   onRetake,
+  navigate,
 }: AssessmentPageProps) {
   const [tab, setTab] = useState<Tab>(initialTab);
   const [showBig5Info, setShowBig5Info] = useState(false);
@@ -225,13 +236,40 @@ export default function CognitivePage({
               </p>
               <div style={{ marginTop: '1rem' }}>
                 {riasec.map(r => (
-                  <div key={r.l} className="progress-row" style={{ marginBottom: '0.5rem' }}>
-                    <span className="label">{r.l}</span>
-                    <div className={`meter ${r.v >= 80 ? 'success' : r.v >= 60 ? 'primary' : 'accent'}`}><i style={{ width: `${r.v}%` }} /></div>
-                    <span className="val">{r.v}</span>
+                  <div key={r.l} style={{ marginBottom: '0.625rem' }}>
+                    <div className="progress-row">
+                      <span className="label">{r.l}</span>
+                      <div className={`meter ${r.v >= 80 ? 'success' : r.v >= 60 ? 'primary' : 'accent'}`}><i style={{ width: `${r.v}%` }} /></div>
+                      <span className="val">{r.v}</span>
+                    </div>
+                    {RIASEC_CAREERS[r.l] && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.125rem', paddingLeft: '0.125rem' }}>
+                        <span className="caption" style={{ fontSize: '0.625rem', color: 'hsl(var(--muted-fg))' }}>{RIASEC_CAREERS[r.l]}</span>
+                        {navigate && (
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            style={{ height: '1.25rem', fontSize: '0.5625rem', padding: '0 0.375rem', color: 'hsl(var(--primary))' }}
+                            onClick={() => navigate('careers')}
+                          >
+                            Explore →
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
+              {navigate && topCareer && (
+                <div style={{ marginTop: '0.875rem', paddingTop: '0.875rem', borderTop: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>Top match: {topCareer.name}</div>
+                    <div className="caption" style={{ fontSize: '0.6875rem', marginTop: 1 }}>Score {topCareer.personalScore}/100 · explore the full list</div>
+                  </div>
+                  <button className="btn btn-outline btn-sm" onClick={() => navigate('careers')}>
+                    All careers →
+                  </button>
+                </div>
+              )}
             </div>
 
             <AiInsightCard

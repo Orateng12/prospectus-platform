@@ -274,6 +274,7 @@ export default function Dashboard({
             careers={careers}
             userAps={displayAps}
             onRetake={() => router.push('/onboarding?retake=true')}
+            navigate={navigate}
           />
         );
       case 'skills':
@@ -350,6 +351,7 @@ export default function Dashboard({
             emptyMode={emptyMode}
             onToggleEmptyMode={() => setEmptyMode(p => !p)}
             onSubjectsSaved={handleSubjectsSaved}
+            navigate={navigate}
           />
         );
       case 'application-detail':

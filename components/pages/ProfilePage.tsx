@@ -27,6 +27,7 @@ interface ProfilePageProps {
   emptyMode?: boolean;
   onToggleEmptyMode?: () => void;
   onSubjectsSaved?: (subjects: Subject[]) => void;
+  navigate?: (r: import('@/lib/types').Route) => void;
 }
 
 export default function ProfilePage({
@@ -43,6 +44,7 @@ export default function ProfilePage({
   emptyMode = false,
   onToggleEmptyMode,
   onSubjectsSaved,
+  navigate,
 }: ProfilePageProps) {
   const router = useRouter();
   const [editSection, setEditSection] = useState<string | null>(null);
@@ -282,6 +284,76 @@ export default function ProfilePage({
           </div>
         ))}
       </div>
+
+      {/* Completion guide — show when not 100% */}
+      {completionPct < 100 && !emptyMode && (
+        <div className="card" style={{ marginBottom: '1.25rem', borderColor: 'hsl(var(--warning) / 0.4)', background: 'hsl(var(--warning) / 0.03)' }}>
+          <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+            <div>
+              <div className="eyebrow"><span className="dot" />Complete your profile</div>
+              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
+                {completionPct}% complete · {completionSignals.filter(s => !s.done).length} step{completionSignals.filter(s => !s.done).length !== 1 ? 's' : ''} remaining
+              </h3>
+            </div>
+            <div style={{ width: 72, height: 72, position: 'relative', flexShrink: 0 }}>
+              <svg width="72" height="72" style={{ transform: 'rotate(-90deg)' }}>
+                <circle cx="36" cy="36" r="28" fill="none" stroke="hsl(var(--border))" strokeWidth="6" />
+                <circle cx="36" cy="36" r="28" fill="none"
+                  stroke={completionPct >= 85 ? 'hsl(var(--success))' : 'hsl(var(--warning))'}
+                  strokeWidth="6"
+                  strokeDasharray={`${(completionPct / 100) * 175.9} 175.9`}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.875rem', fontVariantNumeric: 'tabular-nums' }}>
+                {completionPct}%
+              </div>
+            </div>
+          </div>
+          <div className="stack-2">
+            {completionSignals.filter(s => !s.done).map(sig => {
+              let action: (() => void) | null = null;
+              let actionLabel = '';
+              let actionNote = '';
+              if (sig.label === 'Name' || sig.label === 'Province' || sig.label === 'Matric year') {
+                action = () => enterEdit('personal');
+                actionLabel = 'Fill in →';
+                actionNote = 'Needed for province-specific bursary matching';
+              } else if (sig.label === 'Household income') {
+                action = () => enterEdit('household');
+                actionLabel = 'Add income →';
+                actionNote = 'Required to determine NSFAS eligibility';
+              } else if (sig.label === 'Subjects') {
+                action = () => enterEdit('academic');
+                actionLabel = 'Add subjects →';
+                actionNote = 'Your marks calculate your APS score';
+              } else if (sig.label === 'Personality' || sig.label === 'Capabilities') {
+                action = () => router.push('/onboarding?retake=true');
+                actionLabel = 'Take assessment →';
+                actionNote = 'Unlocks career match scores and gap analysis';
+              }
+              return (
+                <div key={sig.label} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5625rem 0.875rem', background: 'hsl(var(--muted) / 0.4)', borderRadius: 8 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: 999, background: 'hsl(var(--warning))', flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{sig.label}</div>
+                    {actionNote && <div className="caption" style={{ fontSize: '0.6875rem', marginTop: 1 }}>{actionNote}</div>}
+                  </div>
+                  {action && (
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={action}
+                      style={{ flexShrink: 0 }}
+                    >
+                      {actionLabel}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid-2 stack-3">
         {/* Personal */}

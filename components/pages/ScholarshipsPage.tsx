@@ -225,31 +225,95 @@ export default function ScholarshipsPage({
             <div className="subheading" style={{ marginBottom: '0.5rem' }}>No applications yet</div>
             <p className="caption">Click &ldquo;Apply&rdquo; on any funding opportunity to start tracking here.</p>
           </div>
-        ) : (
-          <div className="card">
-            <div className="stack">
-              {appliedList.map(s => (
-                <div key={s.name} className="scholar-row">
+        ) : (() => {
+          const TYPICAL_COST = 165_420;
+          const appliedTotal = appliedList.reduce((s, x) => s + x.amount, 0);
+          const coveragePct  = Math.min(100, Math.round((appliedTotal / TYPICAL_COST) * 100));
+          const gapAmount    = Math.max(0, TYPICAL_COST - appliedTotal);
+          const serviceCount = appliedList.filter(s => s.service_contract).length;
+          const loanTotal    = appliedList.filter(s => s.type === 'loan').reduce((s, x) => s + x.amount, 0);
+          const grantTotal   = appliedTotal - loanTotal;
+          return (
+            <div className="stack-3">
+              {/* Stack summary */}
+              <div className="card" style={{
+                borderColor: coveragePct >= 100 ? 'hsl(var(--success) / 0.4)' : 'hsl(var(--warning) / 0.4)',
+                background:  coveragePct >= 100 ? 'hsl(var(--success) / 0.03)' : 'hsl(var(--warning) / 0.03)',
+              }}>
+                <div className="row-between" style={{ marginBottom: '0.875rem' }}>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>{s.name}</div>
-                    <div className="caption" style={{ marginTop: 1 }}>{s.eligibility} · {s.deadline === 'Rolling' ? 'Rolling deadline' : `closes ${s.deadline}`}</div>
+                    <div className="eyebrow"><span className="dot" />Your funding stack</div>
+                    <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
+                      {appliedList.length} application{appliedList.length !== 1 ? 's' : ''} · {fmtR(appliedTotal)}/yr combined
+                    </h3>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 800, fontSize: '1.125rem', fontVariantNumeric: 'tabular-nums' }}>{fmtR(s.amount)}</div>
-                    <div className="caption">/ year</div>
-                  </div>
-                  <div className="row" style={{ gap: '0.5rem' }}>
-                    <div className={`match-circle${s.match < 80 ? ' med' : ''}`}>{s.match}</div>
-                    <span className="badge success" style={{ height: '1.75rem' }}>Applied</span>
-                    <button className="btn btn-ghost btn-sm" onClick={() => handleApply(s.name)} disabled={applying === s.name}>
-                      {applying === s.name ? '…' : 'Withdraw'}
-                    </button>
-                  </div>
+                  <span className={`badge ${coveragePct >= 100 ? 'success' : coveragePct >= 70 ? 'warning' : 'destructive'}`} style={{ fontSize: '0.875rem', height: '1.75rem' }}>
+                    {coveragePct}% covered
+                  </span>
                 </div>
-              ))}
+                <div className="grid-3" style={{ gap: '0.75rem', marginBottom: '1rem' }}>
+                  {[
+                    { l: 'Grant / bursary',  v: fmtR(grantTotal),   h: 'does not need repayment', c: 'success' },
+                    { l: 'Student loans',    v: loanTotal > 0 ? fmtR(loanTotal) : '—', h: loanTotal > 0 ? 'repayment required' : 'none in stack', c: loanTotal > 0 ? 'destructive' : '' },
+                    { l: 'Remaining gap',    v: gapAmount > 0 ? fmtR(gapAmount) : 'Closed', h: gapAmount > 0 ? `vs ${fmtR(TYPICAL_COST)} yr 1 cost` : 'fully covered', c: gapAmount > 0 ? 'warning' : 'success' },
+                  ].map(({ l, v, h, c }) => (
+                    <div key={l} style={{ padding: '0.75rem', background: 'hsl(var(--muted) / 0.4)', borderRadius: 8 }}>
+                      <div className="caption" style={{ fontSize: '0.625rem', marginBottom: '0.25rem' }}>{l}</div>
+                      <div style={{ fontWeight: 800, fontSize: '1.0625rem', fontVariantNumeric: 'tabular-nums', color: c ? `hsl(var(--${c}))` : undefined }}>{v}</div>
+                      <div className="caption" style={{ fontSize: '0.625rem', marginTop: '0.125rem' }}>{h}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* Coverage bar */}
+                <div style={{ height: '0.5rem', borderRadius: 999, background: 'hsl(var(--border))', overflow: 'hidden', marginBottom: '0.375rem', display: 'flex' }}>
+                  <div style={{ height: '100%', width: `${Math.min(100, Math.round(grantTotal / TYPICAL_COST * 100))}%`, background: 'hsl(var(--success))', borderRadius: 999, flexShrink: 0, transition: 'width 0.3s ease' }} />
+                  {loanTotal > 0 && (
+                    <div style={{ height: '100%', width: `${Math.min(100 - Math.round(grantTotal / TYPICAL_COST * 100), Math.round(loanTotal / TYPICAL_COST * 100))}%`, background: 'hsl(var(--destructive) / 0.6)', flexShrink: 0, transition: 'width 0.3s ease' }} />
+                  )}
+                </div>
+                <div className="caption" style={{ fontSize: '0.6875rem' }}>
+                  {coveragePct >= 100
+                    ? 'Your stack covers the full estimated year 1 cost. Review service contract terms below.'
+                    : `${fmtR(gapAmount)} gap remaining vs. estimated R 165,420 year 1 cost (tuition + residence + materials).`}
+                </div>
+                {serviceCount > 0 && (
+                  <div style={{ marginTop: '0.75rem', padding: '0.625rem 0.875rem', background: 'hsl(var(--warning) / 0.12)', border: '1px solid hsl(var(--warning) / 0.4)', borderRadius: 8, fontSize: '0.8125rem', fontWeight: 500 }}>
+                    {serviceCount} scholarship{serviceCount > 1 ? 's' : ''} in your stack require{serviceCount === 1 ? 's' : ''} a service contract — you must work for the sponsor for a fixed period after graduating.
+                  </div>
+                )}
+              </div>
+
+              {/* Applied list */}
+              <div className="card">
+                <div className="stack">
+                  {appliedList.map(s => (
+                    <div key={s.name} className="scholar-row">
+                      <div>
+                        <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 600, fontSize: '0.9375rem' }}>{s.name}</span>
+                          {s.service_contract && <span className="badge warning" style={{ fontSize: '0.6rem', padding: '0 4px' }}>Service</span>}
+                          {s.type === 'loan' && <span className="badge destructive" style={{ fontSize: '0.6rem', padding: '0 4px' }}>Loan</span>}
+                        </div>
+                        <div className="caption" style={{ marginTop: 1 }}>{s.eligibility} · {s.deadline === 'Rolling' ? 'Rolling deadline' : `closes ${s.deadline}`}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 800, fontSize: '1.125rem', fontVariantNumeric: 'tabular-nums' }}>{fmtR(s.amount)}</div>
+                        <div className="caption">/ year</div>
+                      </div>
+                      <div className="row" style={{ gap: '0.5rem' }}>
+                        <div className={`match-circle${s.match < 80 ? ' med' : ''}`}>{s.match}</div>
+                        <span className="badge success" style={{ height: '1.75rem' }}>Applied</span>
+                        <button className="btn btn-ghost btn-sm" onClick={() => handleApply(s.name)} disabled={applying === s.name}>
+                          {applying === s.name ? '…' : 'Withdraw'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        )
+          );
+        })()
       ) : (
         <div className="card">
           <div className="stack">
