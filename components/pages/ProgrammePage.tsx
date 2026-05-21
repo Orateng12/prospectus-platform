@@ -257,19 +257,35 @@ function ProgDetail({
       <div className="prog-hero">
         <div>
           <h3 className="subheading">
-            Why this is a {p.fit >= 80 ? 'strong' : 'moderate'} match
+            Why this is a {p.fit >= 80 ? 'strong' : p.fit >= 60 ? 'moderate' : 'stretch'} match
           </h3>
           <p className="body-text" style={{ marginTop: '0.5rem' }}>
-            {p.fit >= 80
-              ? <>Your Analytical and Numerical capability scores sit well above the median for
-                  graduates of this programme. APS of <strong>{aps}</strong> exceeds the{' '}
-                  <strong>{p.aps}</strong> requirement by {aps - p.aps} points.
-                  Labour market signal is <strong>{p.demand.toLowerCase()}</strong> demand.</>
-              : <>Your APS of <strong>{aps}</strong>{' '}
-                  {aps >= p.aps ? 'meets the requirement of' : 'falls short of'}{' '}
-                  <strong>{p.aps}</strong>. Capability fit is mixed — verbal score may need lifting via
-                  the foundation pathway. Worth a conversation with the faculty.</>
-            }
+            {(() => {
+              const surplus = aps - p.aps;
+              const apsNote = surplus >= 5
+                ? <>APS <strong>{aps}</strong> is well above the {p.aps} entry threshold — a strong academic signal for this programme.</>
+                : surplus >= 0
+                ? <>APS <strong>{aps}</strong> meets the {p.aps} requirement.</>
+                : <>APS <strong>{aps}</strong> falls {Math.abs(surplus)} point{Math.abs(surplus) !== 1 ? 's' : ''} short of the {p.aps} requirement — the foundation pathway or extended programme may apply.</>;
+
+              if (capabilityData) {
+                const capPairs: [string, number][] = [
+                  ['Analytical', capabilityData.analytical_thinking],
+                  ['Technical', capabilityData.technical_aptitude],
+                  ['Creative', capabilityData.creative_thinking],
+                  ['Communication', capabilityData.communication_skills],
+                  ['Leadership', capabilityData.leadership_potential],
+                  ['Academic', capabilityData.academic_readiness],
+                ];
+                const sorted = [...capPairs].sort((a, b) => b[1] - a[1]);
+                const top2 = sorted.slice(0, 2);
+                const bottom = sorted[sorted.length - 1];
+                const capStrength = top2[0][1] >= 75 ? 'above average' : 'solid';
+                return <>{apsNote} Your {top2[0][0]} ({top2[0][1]}) and {top2[1][0]} ({top2[1][1]}) capabilities are {capStrength} for this pathway.{bottom[1] < 55 ? <> {bottom[0]} ({bottom[1]}) is your main growth area — this programme typically develops it in Year 2.</> : ''} Labour market demand is <strong>{p.demand.toLowerCase()}</strong>.</>;
+              }
+
+              return <>{apsNote} Labour market demand is <strong>{p.demand.toLowerCase()}</strong>. Complete the capability assessment to see a personalised fit breakdown.</>;
+            })()}
           </p>
 
           <div className="grid-4" style={{ marginTop: '1rem' }}>

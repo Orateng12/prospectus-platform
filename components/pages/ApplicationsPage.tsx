@@ -326,6 +326,60 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail, p
         </div>
       )}
 
+      {apps.length > 0 && programmes.length > 0 && userAps > 0 && (() => {
+        const classified = apps.map(a => ({ app: a, portfolio: classifyApp(a, programmes, userAps) }));
+        const safetyCount  = classified.filter(c => c.portfolio === 'safety').length;
+        const targetCount  = classified.filter(c => c.portfolio === 'target').length;
+        const reachCount   = classified.filter(c => c.portfolio === 'reach').length;
+        const unknownCount = classified.filter(c => c.portfolio === 'unknown').length;
+        const total = safetyCount + targetCount + reachCount + unknownCount || 1;
+        const ideal = safetyCount >= 1 && targetCount >= 2 && reachCount >= 1;
+        const advice = safetyCount === 0
+          ? 'Add at least 1 safety school (programmes where your APS exceeds the requirement by 5+ points) to guarantee an offer.'
+          : reachCount === 0
+          ? 'Consider adding a reach programme (APS just below requirement) — you may still qualify via motivation letter or alternative entry.'
+          : targetCount < 2
+          ? 'Aim for 2–3 target programmes (close APS match). They balance realistic acceptance odds with strong outcomes.'
+          : 'Your portfolio is well balanced — safety, target, and reach schools all represented.';
+        return (
+          <div className="card" style={{ marginTop: '1.25rem', borderColor: ideal ? 'hsl(var(--success) / 0.4)' : 'hsl(var(--warning) / 0.4)', background: ideal ? 'hsl(var(--success) / 0.02)' : 'hsl(var(--warning) / 0.02)' }}>
+            <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+              <div>
+                <div className="eyebrow"><span className="dot" />Portfolio balance</div>
+                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>Safety · Target · Reach distribution</h3>
+              </div>
+              <span className={`badge ${ideal ? 'success' : 'warning'}`}>{ideal ? 'Balanced' : 'Needs work'}</span>
+            </div>
+            {/* Stacked bar */}
+            <div style={{ display: 'flex', height: '0.75rem', borderRadius: 999, overflow: 'hidden', marginBottom: '0.5rem', gap: 2 }}>
+              {safetyCount > 0 && <div style={{ flex: safetyCount / total, background: 'hsl(var(--success))', borderRadius: 999 }} />}
+              {targetCount > 0 && <div style={{ flex: targetCount / total, background: 'hsl(var(--primary))', borderRadius: 999 }} />}
+              {reachCount  > 0 && <div style={{ flex: reachCount  / total, background: 'hsl(var(--warning))', borderRadius: 999 }} />}
+              {unknownCount > 0 && <div style={{ flex: unknownCount / total, background: 'hsl(var(--border))', borderRadius: 999 }} />}
+            </div>
+            <div className="row" style={{ gap: '1rem', marginBottom: '0.875rem', flexWrap: 'wrap' }}>
+              {[
+                { label: 'Safety', count: safetyCount,  color: 'success',     note: 'APS +5 surplus' },
+                { label: 'Target', count: targetCount,  color: 'primary',     note: 'APS ±3 match' },
+                { label: 'Reach',  count: reachCount,   color: 'warning',     note: 'APS below req' },
+              ].map(({ label, count, color, note }) => (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 3, background: `hsl(var(--${color}))`, flexShrink: 0 }} />
+                  <div>
+                    <span style={{ fontWeight: 700, fontSize: '0.875rem', fontVariantNumeric: 'tabular-nums' }}>{count}</span>
+                    <span className="caption" style={{ marginLeft: '0.25rem' }}>{label}</span>
+                    <div className="caption" style={{ fontSize: '0.6rem' }}>{note}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: '0.8125rem', color: ideal ? 'hsl(var(--success))' : 'hsl(var(--warning))', fontWeight: 500 }}>
+              {advice}
+            </div>
+          </div>
+        );
+      })()}
+
       {apps.length > 0 && (
         <div className="grid-2 stack-3" style={{ marginTop: '1.25rem' }}>
           <div className="card">
