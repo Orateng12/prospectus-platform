@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Route } from '@/lib/types';
 import { signOut } from '@/app/actions/auth';
 import { PROGRAMMES, CAREERS } from '@/lib/data';
+import { fmtR } from '@/lib/utils';
 
 const GREET_TEMPLATE: Record<Route, string | ((name: string) => string)> = {
   home:         (n) => `Welcome back, ${n}`,
@@ -58,15 +59,15 @@ const ALL_CMDK: CmdkResult[] = [
   { id: 'p-applications', section: 'Pages', icon: '📝', title: 'Applications',          sub: '4 active · 1 accepted',             route: 'applications' },
   { id: 'p-deadlines',    section: 'Pages', icon: '📅', title: 'Deadlines',             sub: 'Upcoming · urgent · open',          route: 'deadlines' },
   { id: 'p-profile',      section: 'Pages', icon: '👤', title: 'Profile',               sub: 'Personal · academic · capability',  route: 'profile' },
-  // Top programmes
-  ...PROGRAMMES.slice(0, 4).map(p => ({
+  // All programmes (searchable)
+  ...PROGRAMMES.map(p => ({
     id: `prog-${p.id}`, section: 'Programmes', icon: 'P',
-    title: p.name, sub: `${p.uni} · APS ${p.aps} · fit ${p.fit}`, route: 'programmes' as Route,
+    title: p.name, sub: `${p.uni} · APS ${p.aps} · ${p.demand} demand`, route: 'programmes' as Route,
   })),
-  // Top careers
-  ...CAREERS.slice(0, 3).map(c => ({
+  // All careers (searchable)
+  ...CAREERS.map(c => ({
     id: `car-${c.name}`, section: 'Careers', icon: 'C',
-    title: c.name, sub: `Match ${c.match} · ${c.growth} growth · ${c.demand} demand`, route: 'careers' as Route,
+    title: c.name, sub: `${c.growth} growth · ${c.demand} demand · ${fmtR(c.salary)}/mo`, route: 'careers' as Route,
   })),
 ];
 
