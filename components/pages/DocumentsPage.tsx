@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Route, DbDocument } from '@/lib/types';
+import type { Route, DbDocument, DbApplication } from '@/lib/types';
 import { uploadDocument } from '@/app/actions/uploadDocument';
 import { deleteDocument } from '@/app/actions/deleteDocument';
 import { refreshDocumentUrl } from '@/app/actions/refreshDocumentUrl';
@@ -49,9 +49,10 @@ function fmtDate(iso: string): string {
 interface DocumentsPageProps {
   navigate?: (r: Route) => void;
   documents?: DbDocument[];
+  applications?: DbApplication[];
 }
 
-export default function DocumentsPage({ navigate, documents = [] }: DocumentsPageProps) {
+export default function DocumentsPage({ navigate, documents = [], applications = [] }: DocumentsPageProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingDocType, setPendingDocType] = useState<string | null>(null);
@@ -66,6 +67,30 @@ export default function DocumentsPage({ navigate, documents = [] }: DocumentsPag
   const uploadedMap: Record<string, DbDocument> = Object.fromEntries(
     documents.map(d => [d.doc_type, d]),
   );
+
+  // Derive which institutions the student has applied to, for priority highlighting
+  const appliedInstitutions = new Set(
+    applications.map(a => a.institution_name.split(' ')[0].toLowerCase())
+  );
+  const INST_ALIASES: Record<string, string[]> = {
+    uct:   ['university of cape town', 'uct'],
+    wits:  ['wits', 'university of the witwatersrand'],
+    nsfas: ['nsfas'],
+    uj:    ['uj', 'university of johannesburg'],
+    up:    ['up', 'university of pretoria', 'tuks'],
+    sun:   ['stellenbosch', 'sun'],
+    ukzn:  ['ukzn', 'university of kwazulu'],
+  };
+  function isRequiredByApplied(requiredList: string[]): boolean {
+    return requiredList.some(r => {
+      const rLow = r.toLowerCase();
+      if (appliedInstitutions.has(rLow)) return true;
+      for (const aliases of Object.values(INST_ALIASES)) {
+        if (aliases.includes(rLow) && aliases.some(a => appliedInstitutions.has(a))) return true;
+      }
+      return false;
+    });
+  }
 
   async function handleViewFresh(docType: string) {
     setRefreshingUrl(docType);
@@ -180,6 +205,7 @@ export default function DocumentsPage({ navigate, documents = [] }: DocumentsPag
                   const isDeletingThis = isPending && confirmDeleteType === null && !pendingDocType;
                   const err = rowError[doc.type];
                   const isConfirmingDelete = confirmDeleteType === doc.type;
+                  const isPriorityForApps = applications.length > 0 && !isUploaded && isRequiredByApplied(doc.required);
 
                   return (
                     <div
@@ -191,10 +217,18 @@ export default function DocumentsPage({ navigate, documents = [] }: DocumentsPag
                         alignItems: 'flex-start',
                         padding: '0.75rem 0',
                         borderBottom: '1px solid hsl(var(--border))',
+                        ...(isPriorityForApps ? { background: 'hsl(var(--warning) / 0.05)', margin: '0 -0.75rem', padding: '0.75rem' } : {}),
                       }}
                     >
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{doc.name}</div>
+                        <div style={{ fontWeight: 600, fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                          {doc.name}
+                          {isPriorityForApps && (
+                            <span className="badge warning" style={{ height: '1.125rem', fontSize: '0.5625rem', padding: '0 0.375rem' }}>
+                              Needed now
+                            </span>
+                          )}
+                        </div>
                         <div className="caption" style={{ marginTop: 2 }}>
                           {isUploaded
                             ? `${dbDoc.file_name}${dbDoc.file_size ? ` · ${fmtBytes(dbDoc.file_size)}` : ''} · ${fmtDate(dbDoc.uploaded_at)}`

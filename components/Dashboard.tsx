@@ -327,7 +327,7 @@ export default function Dashboard({
           />
         );
       case 'documents':
-        return <DocumentsPage navigate={navigate} documents={emptyMode ? [] : documents} />;
+        return <DocumentsPage navigate={navigate} documents={emptyMode ? [] : documents} applications={emptyMode ? [] : applications} />;
       case 'deadlines':
         return <DeadlinesPage navigate={navigate} applications={emptyMode ? [] : applications} customDeadlines={emptyMode ? [] : customDeadlines} fundingOpportunities={emptyMode ? undefined : fundingOpportunities} />;
       case 'profile':
