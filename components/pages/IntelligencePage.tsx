@@ -234,20 +234,20 @@ const FALLBACK_PROBS = [
 export default function IntelligencePage({ navigate, strategicScore, capabilityData, programmes = [], careers = [], psychProfile, subjects = [], userAps = 0, householdIncome, onOpenCareer }: IntelligencePageProps & { householdIncome?: number }) {
   const futureYear = new Date().getFullYear() + 5;
   const [expandedScore, setExpandedScore] = useState<string | null>(null);
-  const score = strategicScore?.overall ?? 74;
-  const prev  = strategicScore?.previous_score;
-  const delta = prev != null ? score - prev : 6;
-  const trend = strategicScore?.trend ?? 'improving';
+  const score = strategicScore?.overall ?? 0;
+  const prev  = strategicScore?.previous_score ?? null;
+  const delta = prev != null ? score - prev : null;
+  const trend = strategicScore?.trend ?? 'stable';
 
   const narratives = buildSubScoreNarratives(userAps, subjects, psychProfile ?? null, capabilityData ?? null, strategicScore ?? null, programmes, householdIncome);
 
   const subScores = [
-    { key: 'academic',    l: 'Academic readiness',    v: strategicScore?.academic_readiness        ?? 86, sub: 'APS, subject mix, prerequisite gaps',           c: 'success' },
-    { key: 'career',      l: 'Career alignment',      v: strategicScore?.career_demand_alignment    ?? 68, sub: 'Labour market signal vs. your top careers',     c: 'primary' },
-    { key: 'financial',   l: 'Financial feasibility', v: strategicScore?.financial_feasibility      ?? 71, sub: 'NSFAS + bursary fit · scholarship pipeline',    c: 'accent'  },
-    { key: 'personality', l: 'Personality fit',       v: strategicScore?.personality_career_fit     ?? 79, sub: 'Big Five · RIASEC vs. target career profiles',  c: 'warning' },
-    { key: 'global',      l: 'Global mobility',       v: strategicScore?.global_mobility_potential  ?? 68, sub: 'International demand × academic strength',      c: 'primary' },
-    { key: 'skills',      l: 'Skill readiness',       v: strategicScore?.skill_readiness            ?? 72, sub: 'Mean of 8 core capability dimensions',          c: 'success' },
+    { key: 'academic',    l: 'Academic readiness',    v: strategicScore?.academic_readiness        ?? 0, sub: 'APS, subject mix, prerequisite gaps',           c: 'success' },
+    { key: 'career',      l: 'Career alignment',      v: strategicScore?.career_demand_alignment    ?? 0, sub: 'Labour market signal vs. your top careers',     c: 'primary' },
+    { key: 'financial',   l: 'Financial feasibility', v: strategicScore?.financial_feasibility      ?? 0, sub: 'NSFAS + bursary fit · scholarship pipeline',    c: 'accent'  },
+    { key: 'personality', l: 'Personality fit',       v: strategicScore?.personality_career_fit     ?? 0, sub: 'Big Five · RIASEC vs. target career profiles',  c: 'warning' },
+    { key: 'global',      l: 'Global mobility',       v: strategicScore?.global_mobility_potential  ?? 0, sub: 'International demand × academic strength',      c: 'primary' },
+    { key: 'skills',      l: 'Skill readiness',       v: strategicScore?.skill_readiness            ?? 0, sub: 'Mean of 8 core capability dimensions',          c: 'success' },
   ];
 
   const caps: Capability[] = capabilityData
@@ -323,6 +323,21 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
         </div>
       </div>
 
+      {!hasData && (
+        <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+          <div>
+            <div className="subheading" style={{ fontSize: '0.9375rem' }}>Your strategic score is locked</div>
+            <p className="body-text" style={{ marginTop: '0.25rem', maxWidth: '36rem' }}>
+              Complete the cognitive and capability assessments to unlock your real six-dimension score.
+              All values below show zero until the assessments are done.
+            </p>
+          </div>
+          <button className="btn btn-primary btn-sm" style={{ flexShrink: 0 }} onClick={() => navigate('cognitive')}>
+            Start assessment →
+          </button>
+        </div>
+      )}
+
       {/* Hero */}
       <div className="intel-hero">
         <div>
@@ -336,9 +351,10 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
             </div>
           </div>
           <div className="row" style={{ justifyContent: 'center', marginTop: '1rem', gap: '0.375rem' }}>
-            <span className={`badge ${delta >= 0 ? 'success' : 'destructive'}`}>
-              {delta >= 0 ? '+' : ''}{delta} {trend}
-            </span>
+            {delta != null
+              ? <span className={`badge ${delta >= 0 ? 'success' : 'destructive'}`}>{delta >= 0 ? '+' : ''}{delta} {trend}</span>
+              : <span className="badge">No prior score</span>
+            }
             <span className="badge">Composite</span>
           </div>
         </div>

@@ -298,7 +298,7 @@ export default function Dashboard({
           />
         );
       case 'map':
-        return <MapPage navigate={navigate} userProvince={userProvince} />;
+        return <MapPage navigate={navigate} userProvince={userProvince} programmes={emptyMode ? undefined : initialProgrammes} />;
       case 'unis':
         return <UniversitiesPage subjects={displaySubjects} navigate={navigate} compareItems={compareItems} onToggleCompare={toggleCompare} userProvince={userProvince} />;
       case 'compare':

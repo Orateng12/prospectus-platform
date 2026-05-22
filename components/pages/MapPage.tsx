@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { PROVINCES } from '@/lib/data';
+import { useMemo, useState } from 'react';
+import { PROVINCES, UNIS } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
-import type { Route } from '@/lib/types';
+import type { Programme, Route } from '@/lib/types';
 
 const PROVINCE_NAME_TO_ID: Record<string, string> = {
   'Gauteng':       'gp',
@@ -20,20 +20,47 @@ const PROVINCE_NAME_TO_ID: Record<string, string> = {
 interface MapPageProps {
   navigate?: (r: Route) => void;
   userProvince?: string;
+  programmes?: Programme[];
 }
 
-export default function MapPage({ navigate, userProvince }: MapPageProps) {
+export default function MapPage({ navigate, userProvince, programmes }: MapPageProps) {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
-  const totalProgs = PROVINCES.reduce((s, p) => s + p.n, 0);
-  const sortedByN   = [...PROVINCES].sort((a, b) => b.n - a.n);
-  const sortedByFee = [...PROVINCES].sort((a, b) => b.fees - a.fees);
+
+  // Build live province counts and avg fees from DB programmes when available
+  const liveProvinces = useMemo(() => {
+    if (!programmes || programmes.length === 0) return null;
+    const uniToProvId: Record<string, string> = {};
+    UNIS.forEach(u => {
+      const provId = PROVINCE_NAME_TO_ID[u.province];
+      if (provId) uniToProvId[u.name] = provId;
+    });
+    const counts: Record<string, number> = {};
+    const feesSum: Record<string, number> = {};
+    const feesCnt: Record<string, number> = {};
+    programmes.forEach(p => {
+      const id = uniToProvId[p.uni];
+      if (!id) return;
+      counts[id] = (counts[id] ?? 0) + 1;
+      if (p.fees) { feesSum[id] = (feesSum[id] ?? 0) + p.fees; feesCnt[id] = (feesCnt[id] ?? 0) + 1; }
+    });
+    return PROVINCES.map(p => ({
+      ...p,
+      n: counts[p.id] ?? p.n,
+      fees: feesCnt[p.id] ? Math.round(feesSum[p.id] / feesCnt[p.id]) : p.fees,
+    }));
+  }, [programmes]);
+
+  const provinces = liveProvinces ?? PROVINCES;
+  const totalProgs = provinces.reduce((s, p) => s + p.n, 0);
+  const sortedByN   = [...provinces].sort((a, b) => b.n - a.n);
+  const sortedByFee = [...provinces].sort((a, b) => b.fees - a.fees);
 
   const homeId = userProvince ? (PROVINCE_NAME_TO_ID[userProvince] ?? null) : null;
-  const homeProv = homeId ? PROVINCES.find(p => p.id === homeId) : PROVINCES.find(p => p.you);
+  const homeProv = homeId ? provinces.find(p => p.id === homeId) : provinces.find(p => p.you);
   const spotlightIds = homeId && !['gp', 'wc', 'kzn'].includes(homeId)
     ? [homeId, 'gp', 'wc']
     : ['gp', 'wc', 'kzn'];
-  const spotlightProvs = spotlightIds.map(id => PROVINCES.find(p => p.id === id)).filter(Boolean) as typeof PROVINCES;
+  const spotlightProvs = spotlightIds.map(id => provinces.find(p => p.id === id)).filter(Boolean) as typeof PROVINCES;
 
   return (
     <div className="page-anim">
@@ -50,6 +77,9 @@ export default function MapPage({ navigate, userProvince }: MapPageProps) {
           </div>
           <div className="row">
             {homeProv && <span className="badge success">Home: {homeProv.name}</span>}
+            {liveProvinces
+              ? <span className="badge success">Live · {totalProgs} programmes</span>
+              : <span className="badge">Estimates</span>}
             <button className="btn btn-outline btn-sm" onClick={() => navigate?.('unis')}>View universities →</button>
             <button className="btn btn-primary btn-sm" onClick={() => navigate?.('programmes')}>Browse programmes →</button>
           </div>
@@ -69,7 +99,7 @@ export default function MapPage({ navigate, userProvince }: MapPageProps) {
             <div>
               <div className="eyebrow"><span className="dot" />South Africa</div>
               <div style={{ fontWeight: 700, fontSize: '0.9375rem', marginTop: '0.125rem' }}>
-                {PROVINCES.length} provinces · {totalProgs} programmes
+                {provinces.length} provinces · {totalProgs} programmes
               </div>
             </div>
             <div className="row" style={{ gap: '0.375rem' }}>
@@ -89,7 +119,7 @@ export default function MapPage({ navigate, userProvince }: MapPageProps) {
               />
 
               {/* Province bubbles */}
-              {PROVINCES.map(p => {
+              {provinces.map(p => {
                 const r = 16 + Math.sqrt(p.n) * 4;
                 const isSelected = selectedProvince === p.id;
                 return (
@@ -133,7 +163,7 @@ export default function MapPage({ navigate, userProvince }: MapPageProps) {
             </svg>
           </div>
           {selectedProvince && (() => {
-            const p = PROVINCES.find(x => x.id === selectedProvince);
+            const p = provinces.find(x => x.id === selectedProvince);
             if (!p) return null;
             return (
               <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid hsl(var(--border))', background: 'hsl(var(--muted) / 0.4)' }}>
@@ -179,7 +209,7 @@ export default function MapPage({ navigate, userProvince }: MapPageProps) {
                     )}
                   </div>
                   <div className={`meter ${p.you ? 'accent' : p.n >= 15 ? 'success' : 'primary'}`}>
-                    <i style={{ width: `${(p.n / 21) * 100}%` }} />
+                    <i style={{ width: `${(p.n / (sortedByN[0]?.n || 1)) * 100}%` }} />
                   </div>
                   <div style={{ fontWeight: 800, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: '0.875rem' }}>
                     {p.n}
