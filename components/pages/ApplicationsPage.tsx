@@ -191,7 +191,7 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail, p
       {/* KPI bar */}
       <div className="grid-4" style={{ marginBottom: '1.25rem' }}>
         {[
-          { l: 'Submitted',     v: String(apps.filter(a => a.submitted).length || apps.length), h: `of ${apps.length} total`,               c: '' },
+          { l: 'Submitted',     v: String(apps.filter(a => a.submitted).length), h: `of ${apps.length} total`,               c: '' },
           { l: 'Accepted',      v: String(counts.accepted),                                     h: counts.accepted > 0 ? 'Confirmed offer' : 'Awaiting decisions', c: counts.accepted > 0 ? 'success' : '' },
           { l: 'Pending',       v: String(counts.pending + counts.review),                      h: 'awaiting response',                      c: counts.pending + counts.review > 0 ? 'warning' : '' },
           { l: 'Avg response',  v: (() => { const withDates = apps.filter(a => a.submitted && a.decided && !a.decided.startsWith('Deadline')); if (withDates.length === 0) return '—'; const avg = Math.round(withDates.reduce((sum, a) => { try { return sum + Math.abs(new Date(a.decided!).getTime() - new Date(a.submitted!).getTime()) / 86_400_000; } catch { return sum; } }, 0) / withDates.length); return isNaN(avg) || avg <= 0 ? '—' : `${avg}d`; })(), h: 'submitted → decision window', c: 'success' },
