@@ -603,47 +603,51 @@ export default function HomePage({ subjects, navigate, programmes, applications 
         {/* Right column */}
         <div className="stack-3">
           {/* Strategic score */}
-          {(() => {
-            const scoreVal = strategicScore?.overall ?? 74;
-            const prev     = strategicScore?.previous_score;
-            const delta    = prev != null ? scoreVal - prev : 6;
-            const subRows  = [
-              ['Academic',           strategicScore?.academic_readiness    ?? 86],
-              ['Career alignment',   strategicScore?.career_demand_alignment ?? 68],
-              ['Financial',         strategicScore?.financial_feasibility  ?? 71],
-              ['Personality fit',    strategicScore?.personality_career_fit ?? 79],
-            ] as const;
-            return (
-              <div className="card">
-                <div className="eyebrow"><span className="dot" />Strategic Score</div>
+          <div className="card">
+            <div className="eyebrow"><span className="dot" />Strategic Score</div>
+            {strategicScore ? (
+              <>
                 <div className="row" style={{ alignItems: 'baseline', gap: '0.375rem', marginTop: '0.5rem' }}>
-                  <span className="stat-num" style={{ fontSize: '3rem', lineHeight: 0.95 }}>{scoreVal}</span>
+                  <span className="stat-num" style={{ fontSize: '3rem', lineHeight: 0.95 }}>{strategicScore.overall}</span>
                   <span className="caption">/ 100</span>
-                  <span className={`badge ${delta >= 0 ? 'success' : 'destructive'}`} style={{ marginLeft: 'auto' }}>
-                    {delta >= 0 ? '+' : ''}{delta}
-                  </span>
+                  {strategicScore.previous_score != null && (
+                    <span className={`badge ${strategicScore.overall - strategicScore.previous_score >= 0 ? 'success' : 'destructive'}`} style={{ marginLeft: 'auto' }}>
+                      {strategicScore.overall - strategicScore.previous_score >= 0 ? '+' : ''}{strategicScore.overall - strategicScore.previous_score}
+                    </span>
+                  )}
                 </div>
-                <div className="meter lg" style={{ marginTop: '0.5rem' }}><i style={{ width: `${scoreVal}%` }} /></div>
+                <div className="meter lg" style={{ marginTop: '0.5rem' }}><i style={{ width: `${strategicScore.overall}%` }} /></div>
                 <div className="caption" style={{ marginTop: '0.625rem' }}>
                   Composite of academic readiness, funding coverage, application momentum and capability fit.
                 </div>
                 <hr className="divider" />
-                {subRows.map(([l, v]) => (
+                {([
+                  ['Academic',        strategicScore.academic_readiness],
+                  ['Career align.',   strategicScore.career_demand_alignment],
+                  ['Financial',       strategicScore.financial_feasibility],
+                  ['Personality fit', strategicScore.personality_career_fit],
+                ] as [string, number][]).map(([l, v]) => (
                   <div key={l} className="row-between" style={{ fontSize: '0.8125rem', marginTop: '0.5rem' }}>
                     <span className="caption">{l}</span>
                     <span style={{ fontWeight: 700 }}>{v}</span>
                   </div>
                 ))}
-                <button
-                  className="btn btn-outline btn-sm"
-                  onClick={() => navigate('intelligence')}
-                  style={{ marginTop: '0.875rem', width: '100%' }}
-                >
-                  Open Intelligence →
-                </button>
+              </>
+            ) : (
+              <div style={{ padding: '1.25rem 0', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.5rem', marginBottom: '0.375rem', opacity: 0.3 }}>◎</div>
+                <div className="body-text" style={{ marginBottom: '0.625rem' }}>Score unlocks after your assessment</div>
+                <button className="btn btn-primary btn-sm" onClick={() => navigate('cognitive')}>Start assessment →</button>
               </div>
-            );
-          })()}
+            )}
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={() => navigate('intelligence')}
+              style={{ marginTop: '0.875rem', width: '100%' }}
+            >
+              Open Intelligence →
+            </button>
+          </div>
 
           {/* Deadlines */}
           <div className="card">
