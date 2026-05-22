@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition, useState, useMemo } from 'react';
-import type { Subject, Programme, PsychProfileData, CapabilityData } from '@/lib/types';
+import type { Subject, Programme, Career, PsychProfileData, CapabilityData } from '@/lib/types';
 import { PROGRAMMES, CAREERS } from '@/lib/data';
 import { calcAPS, apsPoints, fmtR } from '@/lib/utils';
 import { saveSubjectMarks } from '@/app/actions/saveSubjects';
@@ -18,6 +18,7 @@ interface SimulatorPageProps {
   psychProfile?: PsychProfileData | null;
   capabilityData?: CapabilityData | null;
   householdIncome?: number;
+  careers?: Career[];
 }
 
 // Find minimum mark to reach the next higher NSC point level
@@ -229,8 +230,10 @@ export default function SimulatorPage({
   psychProfile,
   capabilityData,
   householdIncome,
+  careers,
 }: SimulatorPageProps) {
   const allProgs = programmes ?? PROGRAMMES;
+  const allCareers = careers && careers.length > 0 ? careers : CAREERS;
   const aps = calcAPS(subjects);
 
   // Capture the APS on first render as the baseline for all delta displays
@@ -240,7 +243,7 @@ export default function SimulatorPage({
   const [baselineCareerData] = useState(() => {
     if (!psychProfile || !capabilityData) return null;
     const initAps = calcAPS(subjects);
-    return CAREERS.map(c => ({
+    return allCareers.map(c => ({
       name: c.name,
       demand: c.demand,
       salary: c.salary,

@@ -207,6 +207,10 @@ export default function Dashboard({
             programmes={initialProgrammes}
             onNavigateProgramme={(progId) => navigate('programmes', progId)}
             onOpenDetail={(s) => navigateToDetail('subject-detail', s)}
+            psychProfile={displayPsych}
+            capabilityData={displayCap}
+            householdIncome={householdIncome}
+            careers={careers}
           />
         );
       case 'programmes':
