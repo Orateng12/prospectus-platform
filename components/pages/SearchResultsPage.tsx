@@ -45,9 +45,9 @@ const STATIC_RESULTS: SearchResult[] = [
   { id: 'f-nsfas',     section: 'Funding', icon: 'N',  title: 'NSFAS Bursary',               sub: 'Means-tested · covers full fees + living', route: 'nsfas' },
   { id: 'f-sasol',     section: 'Funding', icon: '⚡', title: 'Sasol Bursary (Engineering)',  sub: 'R198 000 · engineering · service contract', route: 'scholarships' },
   // Actions
-  { id: 'a-simulator', section: 'Actions', icon: '⟳', title: 'Run scenario: drop History, add Geography', sub: 'Open simulator →', route: 'simulator' },
-  { id: 'a-rerank',    section: 'Actions', icon: '✦', title: 'Re-rank programmes by fit',                 sub: 'Refresh AI ranking', route: 'programmes' },
-  { id: 'a-compare',   section: 'Actions', icon: '⇄', title: 'Compare UCT vs Wits CS',                   sub: 'Open compare →', route: 'compare' },
+  { id: 'a-simulator', section: 'Actions', icon: '⟳', title: 'Simulate mark changes in APS calculator', sub: 'Adjust any subject → see programmes unlocked', route: 'simulator' },
+  { id: 'a-careers',   section: 'Actions', icon: '📊', title: 'Explore career matches for your profile',  sub: 'Ranked by RIASEC + capability fit',            route: 'careers'   },
+  { id: 'a-compare',   section: 'Actions', icon: '⇄', title: 'Compare two career paths side by side',    sub: 'Salary · demand · required subjects',          route: 'compare'   },
 ];
 
 export default function SearchResultsPage({ query, navigate, onOpenCareer }: SearchResultsPageProps) {

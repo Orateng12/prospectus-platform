@@ -30,9 +30,29 @@ function buildFocusItems(
   householdIncome?: number,
   capabilityData?: CapabilityData | null,
   documents?: DbDocument[],
+  psychProfile?: PsychProfileData | null,
 ): Array<{ icon: string; text: string; detail?: string; urgency: 'high' | 'med' | 'low'; route: Route }> {
   const items: Array<{ icon: string; text: string; detail?: string; urgency: 'high' | 'med' | 'low'; route: Route }> = [];
   const today = new Date();
+
+  // 0. Profile completion — highest priority if assessment not yet taken
+  if (!psychProfile && !capabilityData) {
+    items.push({
+      icon: '🧠',
+      text: 'Complete your cognitive assessment',
+      detail: 'Takes 8 minutes. Unlocks personalised career matching, capability gap analysis, and your Intelligence score.',
+      urgency: 'high',
+      route: 'cognitive',
+    });
+  } else if (!capabilityData) {
+    items.push({
+      icon: '⬡',
+      text: 'Complete the capability assessment',
+      detail: 'Your RIASEC profile is set — add 8-dimension capability data to unlock Skills Map and gap analysis.',
+      urgency: 'med',
+      route: 'skills',
+    });
+  }
 
   // 1. Urgent application deadlines
   const urgentApp = applications
@@ -274,7 +294,7 @@ export default function HomePage({ subjects, navigate, programmes, applications 
         .slice(0, 3)
     : [];
 
-  const rawFocuses = buildFocusItems(applications, subjects, allProgs, aps, savedProgrammeIds, householdIncome, capabilityData, documents);
+  const rawFocuses = buildFocusItems(applications, subjects, allProgs, aps, savedProgrammeIds, householdIncome, capabilityData, documents, psychProfile);
   // Pad to 3 items with a fallback if needed
   const focusFallbacks: typeof rawFocuses = [
     { icon: '📚', text: 'Re-rank programmes after subject update', urgency: 'low', route: 'simulator' },

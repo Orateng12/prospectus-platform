@@ -5,6 +5,7 @@ import type { Route, StrategicScoreData, CapabilityData, Capability, Programme, 
 import { CAPS, CAREERS } from '@/lib/data';
 import { scoreCareerMatch } from '@/lib/scoring';
 import { fmtR, apsPoints } from '@/lib/utils';
+import { DB_TO_CAP } from '@/lib/capability';
 import DonutChart from '@/components/DonutChart';
 import AiInsightCard from '@/components/AiInsightCard';
 
@@ -19,17 +20,6 @@ interface IntelligencePageProps {
   userAps?: number;
   onOpenCareer?: (careerName: string) => void;
 }
-
-const DB_TO_CAP: Array<[keyof CapabilityData, string]> = [
-  ['analytical_thinking',  'Analytical'],
-  ['technical_aptitude',   'Technical'],
-  ['communication_skills', 'Social'],
-  ['creative_thinking',    'Creative'],
-  ['leadership_potential', 'Verbal'],
-  ['academic_readiness',   'Numerical'],
-  ['risk_tolerance_score', 'Spatial'],
-  ['entrepreneurial_drive','Practical'],
-];
 
 interface SubScoreNarrative { why: string; action: string; fixable: boolean }
 

@@ -24,6 +24,38 @@ function fitScore(userAps: number, minAps: number): number {
   return Math.max(10, Math.round((userAps / minAps) * 80));
 }
 
+// Infers a realistic monthly salary from a programme name by matching against
+// SA career salary bands. Used when the DB doesn't carry a salary on the programme row.
+function inferProgrammeSalary(name: string): number {
+  const n = name.toLowerCase();
+  if (n.includes('actuarial'))                                    return 45_200;
+  if (n.includes('mbchb') || n.includes('medicine') || n.includes('medical')) return 52_000;
+  if (n.includes('ml engineer') || n.includes('machine learning'))             return 42_800;
+  if (n.includes('data science') || n.includes('data scientist'))              return 41_200;
+  if (n.includes('computer science') || n.includes('software') || n.includes('beng comp')) return 38_500;
+  if (n.includes('electrical') || n.includes('electronic'))      return 37_500;
+  if (n.includes('chemical engineering'))                         return 38_000;
+  if (n.includes('informatics') || n.includes('information technology') || n.includes('ict') || n.includes('ndip') || n.includes('software dev')) return 34_000;
+  if (n.includes('industrial engineering'))                       return 36_000;
+  if (n.includes('mechanical engineering'))                       return 33_800;
+  if (n.includes('civil engineering') || n.includes('bsc eng'))  return 32_400;
+  if (n.includes('accounting') || n.includes('bcom acc'))        return 34_000;
+  if (n.includes('finance') || n.includes('bcom fin'))           return 32_400;
+  if (n.includes('pharmacy') || n.includes('bpharm'))            return 30_000;
+  if (n.includes('quantity surveying') || n.includes('town') || n.includes('architecture')) return 27_000;
+  if (n.includes('physiotherapy') || n.includes('physio'))       return 28_000;
+  if (n.includes('llb') || n.includes('law'))                    return 34_500;
+  if (n.includes('accounting sciences'))                         return 33_000;
+  if (n.includes('bcom'))                                        return 26_000;
+  if (n.includes('nursing') || n.includes('bcur'))               return 22_000;
+  if (n.includes('psychology') || n.includes('psych'))           return 22_000;
+  if (n.includes('social work'))                                 return 18_000;
+  if (n.includes('bed') || n.includes('pgce') || n.includes('education')) return 19_000;
+  if (n.includes('agriculture') || n.includes('agri'))           return 19_500;
+  if (n.includes('environmental'))                               return 22_000;
+  return 24_000; // conservative default
+}
+
 function normaliseCompetition(c?: string | null): Programme['demand'] {
   const s = (c ?? '').toLowerCase();
   if (s === 'high') return 'High';
@@ -162,7 +194,7 @@ export default async function Page() {
       dur: p.duration_years ?? 3,
       fit: fitScore(userAps, p.min_aps ?? 0),
       pathway: pathwayFromQualType(p.qualification_type, p.nqf_level),
-      salary: 35_000,
+      salary: inferProgrammeSalary(p.name),
       demand: normaliseCompetition(p.competition_level),
     }));
   }
