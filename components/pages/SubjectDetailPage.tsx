@@ -12,6 +12,67 @@ interface SubjectDetailPageProps {
   navigate: (r: Route, prog?: string) => void;
 }
 
+const SUBJECT_TO_CAREERS: Record<string, Array<{ name: string; why: string; minAps: number }>> = {
+  math: [
+    { name: 'Actuary',              why: 'Maths 80%+ is a hard requirement for actuarial programmes',        minAps: 38 },
+    { name: 'Data Scientist',       why: 'Statistical modelling requires strong Maths at tertiary level',    minAps: 36 },
+    { name: 'Software Engineer',    why: 'Algorithmic thinking built through advanced Mathematics',           minAps: 32 },
+    { name: 'Quantitative Analyst', why: 'Quant finance requires Maths as both prerequisite and daily tool', minAps: 40 },
+    { name: 'Civil Engineer',       why: 'Engineering calculations depend on Maths (70%+ required)',         minAps: 32 },
+  ],
+  pscience: [
+    { name: 'Mechanical Engineer',  why: 'Physical Sciences is compulsory for all engineering programmes',   minAps: 32 },
+    { name: 'Civil Engineer',       why: 'Physics and chemistry underpin structural and civil engineering',  minAps: 32 },
+    { name: 'ML Engineer',          why: 'Physics intuition directly translates to algorithm design',        minAps: 36 },
+    { name: 'Doctor (MBChB)',        why: 'Physical Sciences required alongside Life Sciences for medicine',  minAps: 42 },
+  ],
+  lifesciences: [
+    { name: 'Doctor (MBChB)',        why: 'Life Sciences is compulsory for all medical programmes',          minAps: 42 },
+    { name: 'Nurse',                why: 'Biological sciences underpin nursing and allied health training',  minAps: 26 },
+    { name: 'Data Scientist',       why: 'Bioinformatics and health-data science draw on life science foundations', minAps: 36 },
+  ],
+  accounting: [
+    { name: 'Accountant',           why: 'Accounting at school is the direct entry path to CA(SA)',         minAps: 32 },
+    { name: 'Financial Advisor',    why: 'Accounting literacy is foundational for financial planning',       minAps: 30 },
+    { name: 'Actuary',              why: 'Accounting provides the financial reporting context actuaries use', minAps: 38 },
+  ],
+  eng: [
+    { name: 'Lawyer',               why: 'English HL is required for all LLB programmes (communication skill)', minAps: 33 },
+    { name: 'Teacher',              why: 'Language literacy is central for any teaching specialisation',     minAps: 26 },
+    { name: 'Entrepreneur',         why: 'Business writing and persuasion are core entrepreneurial skills',  minAps: 28 },
+  ],
+  it: [
+    { name: 'Software Engineer',    why: 'IT at school directly maps to Computer Science at university',     minAps: 32 },
+    { name: 'ML Engineer',          why: 'Programming foundations from IT accelerate the ML learning curve', minAps: 36 },
+    { name: 'Data Analyst',         why: 'Database and spreadsheet skills from IT feed directly into analytics', minAps: 32 },
+  ],
+  business: [
+    { name: 'Entrepreneur',         why: 'Business Studies covers the exact theory you apply in a startup',  minAps: 28 },
+    { name: 'Financial Advisor',    why: 'Business economics and management are core advisory skills',       minAps: 30 },
+    { name: 'Accountant',           why: 'Business Studies is a BCom Accounting prerequisite at many universities', minAps: 32 },
+  ],
+  economics: [
+    { name: 'Financial Advisor',    why: 'Macro/microeconomics is the theoretical foundation of financial planning', minAps: 30 },
+    { name: 'Quantitative Analyst', why: 'Economic modelling is a precursor to quantitative finance',       minAps: 40 },
+    { name: 'Entrepreneur',         why: 'Economics teaches market dynamics, pricing, and business cycles',  minAps: 28 },
+  ],
+};
+
+function getCareerConnections(subjectId: string, subjectName: string) {
+  const id = subjectId.toLowerCase();
+  const name = subjectName.toLowerCase();
+  if (SUBJECT_TO_CAREERS[id]) return SUBJECT_TO_CAREERS[id];
+  if (name.includes('mathematics') && !name.includes('literacy')) return SUBJECT_TO_CAREERS.math;
+  if (name.includes('physical science')) return SUBJECT_TO_CAREERS.pscience;
+  if (name.includes('life science')) return SUBJECT_TO_CAREERS.lifesciences;
+  if (name.includes('accounting')) return SUBJECT_TO_CAREERS.accounting;
+  if (name.includes('english')) return SUBJECT_TO_CAREERS.eng;
+  if (name.includes('information technology')) return SUBJECT_TO_CAREERS.it;
+  if (name.includes('business')) return SUBJECT_TO_CAREERS.business;
+  if (name.includes('economics')) return SUBJECT_TO_CAREERS.economics;
+  return null;
+}
+
 const APS_TABLE = [
   { range: '80–100%', pts: 7 },
   { range: '70–79%',  pts: 6 },
@@ -420,6 +481,37 @@ export default function SubjectDetailPage({ subject, subjects, programmes: propP
               </p>
             </div>
           )}
+
+          {/* Career pathway connections */}
+          {(() => {
+            const connections = getCareerConnections(subject.id, subject.name);
+            if (!connections || connections.length === 0) return null;
+            return (
+              <div className="card">
+                <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Career pathways this subject unlocks</div>
+                <div className="stack">
+                  {connections.map(c => {
+                    const apsGap = Math.max(0, c.minAps - currentAps);
+                    return (
+                      <div key={c.name} style={{ padding: '0.625rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                        <div className="row-between" style={{ marginBottom: '0.25rem' }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{c.name}</div>
+                          <span className={`badge ${apsGap === 0 ? 'success' : apsGap <= 4 ? 'warning' : 'accent'}`}
+                            style={{ fontSize: '0.5625rem' }}>
+                            {apsGap === 0 ? `APS ${c.minAps} ✓` : `+${apsGap} APS needed`}
+                          </span>
+                        </div>
+                        <div className="caption" style={{ fontSize: '0.6875rem', lineHeight: 1.4 }}>{c.why}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="caption" style={{ marginTop: '0.625rem', fontSize: '0.6875rem', borderTop: '1px solid hsl(var(--border))', paddingTop: '0.5rem' }}>
+                  Strong performance in {subject.name} expands your options across {connections.length} career path{connections.length !== 1 ? 's' : ''}.
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>

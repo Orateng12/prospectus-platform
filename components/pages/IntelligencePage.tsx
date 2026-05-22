@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { Route, StrategicScoreData, CapabilityData, Capability, Programme, Career, PsychProfileData, Subject } from '@/lib/types';
 import { CAPS, CAREERS } from '@/lib/data';
-import { scoreCareerMatch } from '@/lib/scoring';
+import { scoreCareerMatch, scoreCareerMatchBreakdown } from '@/lib/scoring';
 import { fmtR, apsPoints } from '@/lib/utils';
 import { DB_TO_CAP } from '@/lib/capability';
 import DonutChart from '@/components/DonutChart';
@@ -298,6 +298,10 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
   const hasData = !!strategicScore;
 
   const leverROI = buildLeverROI(subScores, psychProfile ?? null, userAps);
+  const [expandedCareer, setExpandedCareer] = useState<string | null>(null);
+  const toggleCareerExpand = useCallback((name: string) => {
+    setExpandedCareer(prev => prev === name ? null : name);
+  }, []);
 
   return (
     <div className="page-anim">
@@ -594,25 +598,84 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
             <button className="btn btn-ghost btn-sm" onClick={() => navigate('cognitive')}>Why?</button>
           </div>
           <div className="stack-2">
-            {careerProbs.map(({ name, score }) => (
-              <button
-                key={name}
-                className="progress-row"
-                style={{ background: 'none', border: 'none', padding: 0, cursor: onOpenCareer ? 'pointer' : 'default', textAlign: 'left', width: '100%' }}
-                onClick={() => onOpenCareer?.(name)}
-                title={onOpenCareer ? `Open ${name} detail` : undefined}
-              >
-                <span className="label" style={{ flex: 1 }}>{name}</span>
-                <div className={`meter ${score >= 80 ? 'success' : score >= 65 ? 'primary' : 'accent'}`} style={{ flex: 3 }}>
-                  <i style={{ width: `${score}%` }} />
+            {careerProbs.map(({ name, score }) => {
+              const isExpanded = expandedCareer === name;
+              const bd = psychProfile && capabilityData
+                ? scoreCareerMatchBreakdown(name, psychProfile, capabilityData, userAps)
+                : null;
+              return (
+                <div key={name} style={{ borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
+                    <button
+                      className="progress-row"
+                      style={{ background: 'none', border: 'none', padding: 0, cursor: onOpenCareer ? 'pointer' : 'default', textAlign: 'left', flex: 1 }}
+                      onClick={() => onOpenCareer?.(name)}
+                      title={onOpenCareer ? `Open ${name} detail` : undefined}
+                    >
+                      <span className="label" style={{ flex: 1 }}>{name}</span>
+                      <div className={`meter ${score >= 80 ? 'success' : score >= 65 ? 'primary' : 'accent'}`} style={{ flex: 3 }}>
+                        <i style={{ width: `${score}%` }} />
+                      </div>
+                      <span className="val">{score}</span>
+                      {(!psychProfile || !capabilityData) && (
+                        <span className="badge accent" style={{ fontSize: '0.5rem', marginLeft: '0.25rem' }}>Est.</span>
+                      )}
+                    </button>
+                    {bd && (
+                      <button
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.125rem 0.375rem', borderRadius: 4, fontSize: '0.6875rem', color: 'hsl(var(--muted-fg))', flexShrink: 0 }}
+                        onClick={() => toggleCareerExpand(name)}
+                        title="Why this score?"
+                        aria-label={isExpanded ? 'Collapse' : 'Explain score'}
+                      >
+                        {isExpanded ? '▲' : '▼'} Why?
+                      </button>
+                    )}
+                    {onOpenCareer && !bd && (
+                      <span className="caption" style={{ marginLeft: '0.375rem', color: 'hsl(var(--muted-fg))', flexShrink: 0 }}>→</span>
+                    )}
+                  </div>
+                  {bd && isExpanded && (
+                    <div style={{
+                      marginTop: '0.5rem',
+                      padding: '0.75rem',
+                      background: 'hsl(var(--muted) / 0.5)',
+                      borderRadius: 'var(--r-md)',
+                    }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        {[
+                          { l: 'RIASEC personality', v: bd.riasec, w: '38%' },
+                          { l: 'Capabilities',       v: bd.caps,   w: '30%' },
+                          { l: 'Big Five fit',       v: bd.bigFive, w: '15%' },
+                          { l: 'APS gate',           v: bd.aps,    w: '17%' },
+                        ].map(({ l, v, w }) => (
+                          <div key={l} style={{ background: 'hsl(var(--bg))', borderRadius: 6, padding: '0.375rem 0.5rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '0.625rem', color: 'hsl(var(--muted-fg))' }}>{l}</span>
+                              <span style={{ fontSize: '0.5625rem', color: 'hsl(var(--muted-fg))' }}>{w}</span>
+                            </div>
+                            <div style={{
+                              fontWeight: 800, fontVariantNumeric: 'tabular-nums',
+                              color: v >= 80 ? 'hsl(var(--success))' : v >= 65 ? 'hsl(var(--fg))' : 'hsl(var(--warning))',
+                            }}>{v}</div>
+                          </div>
+                        ))}
+                      </div>
+                      {bd.apsGap > 0 && (
+                        <div className="caption" style={{ fontSize: '0.6875rem', color: 'hsl(var(--warning))' }}>
+                          APS gate: {bd.apsGap} point{bd.apsGap !== 1 ? 's' : ''} below the {bd.archMinAps} threshold — open Simulator to close it.
+                        </div>
+                      )}
+                      {bd.weakestCap && bd.caps < 80 && (
+                        <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.25rem' }}>
+                          Lowest capability: {bd.weakestCap.label} ({bd.weakestCap.yours}/100, need {bd.weakestCap.required}) — open Skills Map for a 6-week plan.
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <span className="val">{score}</span>
-                {(!psychProfile || !capabilityData) && (
-                  <span className="badge accent" style={{ fontSize: '0.5rem', marginLeft: '0.25rem' }}>Est.</span>
-                )}
-                {onOpenCareer && <span className="caption" style={{ marginLeft: '0.375rem', color: 'hsl(var(--muted-fg))' }}>→</span>}
-              </button>
-            ))}
+              );
+            })}
             {!psychProfile && (
               <div className="caption" style={{ marginTop: '0.375rem', color: 'hsl(var(--warning))' }}>
                 Estimated · complete profile assessment to personalise

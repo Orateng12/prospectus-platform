@@ -1,14 +1,15 @@
 'use client';
 
-import type { Career, Programme, CapabilityData, Route } from '@/lib/types';
+import type { Career, Programme, CapabilityData, PsychProfileData, Route } from '@/lib/types';
 import { PROGRAMMES } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
-import { getCareerCapRequirements } from '@/lib/scoring';
+import { getCareerCapRequirements, scoreCareerMatchBreakdown } from '@/lib/scoring';
 
 interface CareerDetailPageProps {
   career: Career | null;
   programmes?: Programme[];
   capabilityData?: CapabilityData | null;
+  psychProfile?: PsychProfileData | null;
   navigate: (r: Route, prog?: string) => void;
   savedProgrammeIds?: string[];
   userAps?: number;
@@ -266,7 +267,7 @@ function sparklinePoints(_baseSalary: number): string {
     .join(' ');
 }
 
-export default function CareerDetailPage({ career, programmes: propProgrammes, capabilityData, navigate, savedProgrammeIds = [], userAps = 0 }: CareerDetailPageProps) {
+export default function CareerDetailPage({ career, programmes: propProgrammes, capabilityData, psychProfile, navigate, savedProgrammeIds = [], userAps = 0 }: CareerDetailPageProps) {
   if (!career) {
     return (
       <div className="page-anim">
@@ -331,6 +332,96 @@ export default function CareerDetailPage({ career, programmes: propProgrammes, c
           </div>
         </div>
       </div>
+
+      {/* Score breakdown — only when psychProfile + capabilityData are available */}
+      {psychProfile && capabilityData && (() => {
+        const bd = scoreCareerMatchBreakdown(career.name, psychProfile, capabilityData, userAps);
+        const components: Array<{ label: string; score: number; weight: string; tip: string }> = [
+          {
+            label: 'Personality type (RIASEC)',
+            score: bd.riasec,
+            weight: '38%',
+            tip: bd.weakestRiasec && bd.riasec < 85
+              ? `Your ${bd.weakestRiasec.trait} trait (${bd.weakestRiasec.yours}/100) is lower than the ${bd.weakestRiasec.required} ideal for this career.`
+              : 'Your personality type aligns well with what this career demands.',
+          },
+          {
+            label: 'Capability readiness',
+            score: bd.caps,
+            weight: '30%',
+            tip: bd.weakestCap && bd.caps < 85
+              ? `${bd.weakestCap.label} (${bd.weakestCap.yours}/100) is below the ${bd.weakestCap.required} required. Open Skills Map for a specific development plan.`
+              : 'Your capabilities match what this career requires.',
+          },
+          {
+            label: 'Big Five personality fit',
+            score: bd.bigFive,
+            weight: '15%',
+            tip: bd.bigFive < 80
+              ? 'Some Big Five traits fall outside the ideal zone for this career. Personality is stable short-term but develops naturally with practice.'
+              : 'Your personality traits are within the ideal range for this career.',
+          },
+          {
+            label: 'APS academic gate',
+            score: bd.aps,
+            weight: '17%',
+            tip: bd.apsGap > 0
+              ? `Your APS (${userAps}) is ${bd.apsGap} point${bd.apsGap !== 1 ? 's' : ''} below the ${bd.archMinAps} required. Open the Simulator to find the cheapest path.`
+              : `Your APS meets the ${bd.archMinAps ?? 'minimum'} requirement — this gate is cleared.`,
+          },
+        ];
+        const lowestComponent = [...components].sort((a, b) => a.score - b.score)[0];
+        return (
+          <div className="card" style={{ marginBottom: '1.25rem' }}>
+            <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+              <div>
+                <div className="eyebrow"><span className="dot" />Why this match score?</div>
+                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
+                  {bd.overall}/100 overall · 4 engines
+                </h3>
+              </div>
+              <span className={`badge ${bd.overall >= 80 ? 'success' : bd.overall >= 65 ? 'primary' : 'warning'}`}>
+                {bd.overall >= 80 ? 'Strong match' : bd.overall >= 65 ? 'Good match' : 'Gaps exist'}
+              </span>
+            </div>
+            <div className="stack-2">
+              {components.map(({ label, score, weight, tip }) => (
+                <div key={label}>
+                  <div className="row-between" style={{ marginBottom: '0.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{label}</span>
+                      <span className="caption" style={{ fontSize: '0.6rem', color: 'hsl(var(--muted-fg))' }}>{weight}</span>
+                    </div>
+                    <span style={{
+                      fontWeight: 800, fontSize: '0.9375rem', fontVariantNumeric: 'tabular-nums',
+                      color: score >= 80 ? 'hsl(var(--success))' : score >= 65 ? 'hsl(var(--fg))' : 'hsl(var(--warning))',
+                    }}>{score}</span>
+                  </div>
+                  <div className="meter" style={{ position: 'relative' }}>
+                    <i style={{ width: `${score}%`, background: score >= 80 ? undefined : score >= 65 ? 'hsl(var(--primary))' : 'hsl(var(--warning))' }} />
+                  </div>
+                  <div className="caption" style={{ marginTop: '0.25rem', fontSize: '0.6875rem', lineHeight: 1.4 }}>{tip}</div>
+                </div>
+              ))}
+            </div>
+            {lowestComponent.score < 75 && (
+              <div style={{
+                marginTop: '0.875rem', padding: '0.75rem',
+                background: 'hsl(var(--primary) / 0.04)',
+                border: '1px solid hsl(var(--primary) / 0.2)',
+                borderRadius: 'var(--r-md)',
+              }}>
+                <div style={{ fontWeight: 700, fontSize: '0.8125rem', marginBottom: '0.25rem' }}>
+                  Highest-leverage improvement: {lowestComponent.label}
+                </div>
+                <p className="caption" style={{ fontSize: '0.75rem', lineHeight: 1.5, margin: 0 }}>
+                  {lowestComponent.tip}
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Path visualization */}
       <div className="card" style={{ marginBottom: '1.25rem' }}>
