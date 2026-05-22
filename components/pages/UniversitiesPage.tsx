@@ -438,7 +438,7 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
             </div>
             <p className="body-text" style={{ margin: 0, fontSize: '0.875rem' }}>
               With an APS of <strong>{aps}</strong>, you sit within the direct-entry range at{' '}
-              <strong>{PROGRAMMES.filter(p => p.aps <= aps).length} of {PROGRAMMES.length}</strong> shortlisted programmes across these institutions.
+              <strong>{allProgs.filter(p => p.aps <= aps).length} of {allProgs.length}</strong> shortlisted programmes across these institutions.
               Tier 1 institutions (UCT, Wits, SUN, UP, UKZN) require APS 36–48 depending on faculty.
             </p>
           </div>

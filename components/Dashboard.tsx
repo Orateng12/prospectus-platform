@@ -319,6 +319,8 @@ export default function Dashboard({
             capabilityData={displayCap}
             userAps={displayAps}
             liveCareerMatches={liveCareerMatches}
+            programmes={initialProgrammes}
+            allCareersData={careers}
           />
         );
       case 'scholarships':
