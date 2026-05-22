@@ -196,6 +196,9 @@ export default async function Page() {
       pathway: pathwayFromQualType(p.qualification_type, p.nqf_level),
       salary: inferProgrammeSalary(p.name),
       demand: normaliseCompetition(p.competition_level),
+      nsfas_fundable: p.nsfas_fundable,
+      career_outcomes: p.career_outcomes,
+      application_deadline: p.application_deadline,
     }));
   }
 

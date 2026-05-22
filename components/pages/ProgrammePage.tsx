@@ -363,10 +363,12 @@ function ProgDetail({
           </div>
 
           {(() => {
-            const nsfasEligible = householdIncome === undefined || householdIncome <= 350_000;
-            const fundingLabel = nsfasEligible ? 'High' : householdIncome! <= 600_000 ? 'Medium' : 'Low';
-            const fundingPct   = nsfasEligible ? 88 : householdIncome! <= 600_000 ? 52 : 22;
-            const fundingCls   = nsfasEligible ? 'success' : householdIncome! <= 600_000 ? 'warning' : 'destructive';
+            const progNsfasFundable = p.nsfas_fundable !== false; // true or null = fundable
+            const incomeEligible = householdIncome === undefined || householdIncome <= 350_000;
+            const nsfasEligible = progNsfasFundable && incomeEligible;
+            const fundingLabel = nsfasEligible ? 'High' : !progNsfasFundable ? 'Low' : householdIncome! <= 600_000 ? 'Medium' : 'Low';
+            const fundingPct   = nsfasEligible ? 88 : !progNsfasFundable ? 18 : householdIncome! <= 600_000 ? 52 : 22;
+            const fundingCls   = nsfasEligible ? 'success' : !progNsfasFundable ? 'destructive' : householdIncome! <= 600_000 ? 'warning' : 'destructive';
             return (
               <div className="card compact" style={{ marginTop: '1rem' }}>
                 <div className="eyebrow"><span className="dot" />Funding likelihood</div>
@@ -375,7 +377,11 @@ function ProgDetail({
                   <span className={`badge ${fundingCls}`}>{fundingPct}%</span>
                 </div>
                 <div className="caption" style={{ marginTop: '0.375rem' }}>
-                  {nsfasEligible ? 'NSFAS-eligible · ' : ''}{fundingPct >= 80 ? '4 bursaries match' : '2 bursaries may match'}
+                  {!progNsfasFundable
+                    ? 'Private institution — NSFAS does not cover this programme'
+                    : nsfasEligible
+                      ? 'NSFAS-eligible · 4 bursaries may match'
+                      : '2 merit bursaries may match · above NSFAS threshold'}
                 </div>
                 <button
                   className="btn btn-outline btn-sm"
@@ -489,6 +495,18 @@ function ProgDetail({
                     ))}
                   </div>
                 </div>
+                {p.career_outcomes && p.career_outcomes.length > 0 && (
+                  <div>
+                    <div className="row-between" style={{ fontSize: '0.8125rem' }}>
+                      <span>Career outcomes</span><span className="caption">From programme catalogue</span>
+                    </div>
+                    <div className="row" style={{ marginTop: '0.375rem', flexWrap: 'wrap' }}>
+                      {p.career_outcomes.slice(0, 6).map(c => (
+                        <span key={c} className="badge info" style={{ fontSize: '0.6875rem' }}>{c}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           );
