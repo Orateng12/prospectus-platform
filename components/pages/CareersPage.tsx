@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { CAREERS, PROGRAMMES } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
 import { scoreCareerMatch } from '@/lib/scoring';
-import type { Career, CompareItem, PsychProfileData, CapabilityData, Route } from '@/lib/types';
+import type { Career, CompareItem, PsychProfileData, CapabilityData, Route, Programme } from '@/lib/types';
 
 interface CareersPageProps {
   careers?: Career[];
@@ -16,6 +16,7 @@ interface CareersPageProps {
   onOpenDetail?: (career: Career) => void;
   navigate?: (r: Route) => void;
   initialTab?: Tab;
+  programmes?: Programme[];
 }
 
 type Tab = 'fit' | 'demand' | 'growth' | 'salary' | 'discover';
@@ -138,8 +139,10 @@ export default function CareersPage({
   onOpenDetail,
   navigate,
   initialTab,
+  programmes,
 }: CareersPageProps) {
   const allCareers = propCareers && propCareers.length > 0 ? propCareers : CAREERS;
+  const allProgs = (programmes && programmes.length > 0 ? programmes : PROGRAMMES);
   const [activeTab, setActiveTab] = useState<Tab>(initialTab ?? 'fit');
   const [query, setQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(9);
@@ -170,11 +173,11 @@ export default function CareersPage({
   const highDemandCount = allCareers.filter(c => c.demand === 'High').length;
 
   const filteredProgs = query
-    ? PROGRAMMES.filter(p =>
+    ? allProgs.filter(p =>
         p.name.toLowerCase().includes(query.toLowerCase()) ||
         p.uni.toLowerCase().includes(query.toLowerCase())
       )
-    : PROGRAMMES.slice(0, 4);
+    : allProgs.slice(0, 4);
 
   const filteredCareers = query
     ? allCareers.filter(c =>

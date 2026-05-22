@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { UNIS, PROGRAMMES, PROVINCES } from '@/lib/data';
 import { calcAPS, fmtR, uniToneClass, uniLogoPath } from '@/lib/utils';
-import type { Subject, Route, CompareItem } from '@/lib/types';
+import type { Subject, Route, CompareItem, Programme } from '@/lib/types';
 
 type Tab = 'all' | 'eligible' | 'tier1' | 'comprehensive' | 'uot' | 'tvet' | 'private' | 'distance';
 type ViewMode = 'list' | 'map';
@@ -27,6 +27,7 @@ interface UniversitiesPageProps {
   compareItems: CompareItem[];
   onToggleCompare: (item: CompareItem) => void;
   userProvince?: string;
+  programmes?: Programme[];
 }
 
 // APS-adjusted acceptance probability — Tier 1 is competitive, UoT/TVET is accessible
@@ -53,37 +54,38 @@ const GRAD_OUTCOMES: Record<string, { startingSalary: number; top20pct: number; 
 };
 
 
-export default function UniversitiesPage({ subjects, navigate, compareItems, onToggleCompare, userProvince }: UniversitiesPageProps) {
+export default function UniversitiesPage({ subjects, navigate, compareItems, onToggleCompare, userProvince, programmes }: UniversitiesPageProps) {
   const [tab, setTab] = useState<Tab>('all');
   const [view, setView] = useState<ViewMode>('list');
   const [visibleCount, setVisibleCount] = useState(9);
   const aps = calcAPS(subjects);
   const homeProvinceId = userProvince ? (PROVINCE_NAME_TO_ID[userProvince] ?? null) : null;
+  const allProgs = (programmes && programmes.length > 0 ? programmes : PROGRAMMES);
 
   const eligibleUniShorts = useMemo(() => {
     return new Set(
-      PROGRAMMES.filter(p => p.aps <= aps).map(p => {
+      allProgs.filter(p => p.aps <= aps).map(p => {
         const match = UNIS.find(u => u.name === p.uni);
         return match?.short;
       }).filter(Boolean)
     );
-  }, [aps]);
+  }, [aps, allProgs]);
 
   // Per-university count of eligible programmes
   const eligibleProgsByUni = useMemo(() => {
-    return PROGRAMMES.filter(p => p.aps <= aps).reduce<Record<string, number>>((acc, p) => {
+    return allProgs.filter(p => p.aps <= aps).reduce<Record<string, number>>((acc, p) => {
       const uni = UNIS.find(u => u.name === p.uni);
       if (uni) acc[uni.short] = (acc[uni.short] ?? 0) + 1;
       return acc;
     }, {});
-  }, [aps]);
+  }, [aps, allProgs]);
 
   // Universities the student is within 6 APS points of qualifying at
   const nearlyEligible = useMemo(() => {
     return UNIS
       .filter(u => !eligibleUniShorts.has(u.short))
       .map(u => {
-        const uProgs = PROGRAMMES.filter(p => p.uni === u.name);
+        const uProgs = allProgs.filter(p => p.uni === u.name);
         if (uProgs.length === 0) return null;
         const minAps = Math.min(...uProgs.map(p => p.aps));
         const gap = minAps - aps;
@@ -92,7 +94,7 @@ export default function UniversitiesPage({ subjects, navigate, compareItems, onT
       .filter(Boolean)
       .sort((a, b) => a!.gap - b!.gap)
       .slice(0, 3) as Array<typeof UNIS[number] & { gap: number; minAps: number }>;
-  }, [aps, eligibleUniShorts]);
+  }, [aps, eligibleUniShorts, allProgs]);
 
   const displayed = useMemo(() => {
     if (tab === 'eligible')      return UNIS.filter(u => eligibleUniShorts.has(u.short));

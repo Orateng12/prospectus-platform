@@ -252,6 +252,7 @@ export default function Dashboard({
             capabilityData={displayCap}
             onOpenDetail={(c) => navigateToDetail('career-detail', c)}
             navigate={navigate}
+            programmes={emptyMode ? undefined : initialProgrammes}
           />
         );
       case 'discover':
@@ -303,7 +304,7 @@ export default function Dashboard({
       case 'map':
         return <MapPage navigate={navigate} userProvince={userProvince} programmes={emptyMode ? undefined : initialProgrammes} />;
       case 'unis':
-        return <UniversitiesPage subjects={displaySubjects} navigate={navigate} compareItems={compareItems} onToggleCompare={toggleCompare} userProvince={userProvince} />;
+        return <UniversitiesPage subjects={displaySubjects} navigate={navigate} compareItems={compareItems} onToggleCompare={toggleCompare} userProvince={userProvince} programmes={emptyMode ? undefined : initialProgrammes} />;
       case 'compare':
         return (
           <CareerComparePage
