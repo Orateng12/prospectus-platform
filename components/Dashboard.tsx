@@ -121,7 +121,8 @@ export default function Dashboard({
     ['draft', 'pending', 'submitted'].includes(a.status.toLowerCase())
   ).length;
   const appliedSet = new Set(appliedScholarshipNames);
-  const unappliedScholarshipCount = FUNDING_OPPORTUNITIES.filter(f => !appliedSet.has(f.name)).length;
+  const allFunding = fundingOpportunities ?? FUNDING_OPPORTUNITIES;
+  const unappliedScholarshipCount = allFunding.filter(f => !appliedSet.has(f.name)).length;
 
   const emptySubjects = (initialSubjects ?? SUBJECTS).map(s => ({ ...s, mark: 50 }));
   const displaySubjects = emptyMode ? emptySubjects : subjects;
@@ -322,7 +323,7 @@ export default function Dashboard({
             onToggleCompare={toggleCompare}
             onOpenDetail={(s) => navigateToDetail('scholarship-detail', s)}
             appliedScholarshipNames={emptyMode ? [] : appliedScholarshipNames}
-            fundingOpportunities={emptyMode ? undefined : (fundingOpportunities ?? FUNDING_OPPORTUNITIES)}
+            fundingOpportunities={emptyMode ? undefined : allFunding}
           />
         );
       case 'applications':
