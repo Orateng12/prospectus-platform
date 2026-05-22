@@ -83,7 +83,7 @@ export async function generateInsight(context: InsightContext): Promise<{ text: 
     }
     const client = new Anthropic({ apiKey });
     const msg = await client.messages.create({
-      model: 'claude-opus-4-6',
+      model: 'claude-opus-4-7',
       max_tokens: 400,
       system: 'You are an expert South African university admissions counsellor with deep knowledge of the SA higher education system, APS requirements, NSFAS funding, and the SA labour market. Give concise, actionable, personalised advice. Write in second person. Be specific — reference the actual numbers given.',
       messages: [{ role: 'user', content: buildPrompt(context) }],
