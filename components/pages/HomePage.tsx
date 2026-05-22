@@ -321,7 +321,7 @@ export default function HomePage({ subjects, navigate, programmes, applications 
           <div className="hint">
             Above threshold for{' '}
             <strong style={{ color: 'hsl(var(--fg))' }}>
-              {Math.round((eligible.length / PROGRAMMES.length) * 100)}%
+              {Math.round((eligible.length / (allProgs.length || 1)) * 100)}%
             </strong>{' '}
             of shortlisted programmes.
           </div>
@@ -356,14 +356,27 @@ export default function HomePage({ subjects, navigate, programmes, applications 
           )}
         </div>
 
-        <div className="card kpi">
+        <div className="card kpi" style={{ cursor: strategicScore ? undefined : 'pointer' }} onClick={strategicScore ? undefined : () => navigate('cognitive')}>
           <div className="lbl">Strategic Score</div>
-          <div className="row" style={{ alignItems: 'baseline', gap: '0.375rem' }}>
-            <span className="val">{strategicScore?.overall ?? 74}</span>
-            <span className="caption">/ 100</span>
-            {(() => { const d = strategicScore?.previous_score != null ? (strategicScore.overall - strategicScore.previous_score) : 6; return <span className={`badge ${d >= 0 ? 'success' : 'destructive'}`} style={{ marginLeft: 'auto' }}>{d >= 0 ? '+' : ''}{d}</span>; })()}
-          </div>
-          <div className="hint">{strategicScore?.trend ? `Trending ${strategicScore.trend}.` : 'Best month yet.'}</div>
+          {strategicScore ? (
+            <>
+              <div className="row" style={{ alignItems: 'baseline', gap: '0.375rem' }}>
+                <span className="val">{strategicScore.overall}</span>
+                <span className="caption">/ 100</span>
+                {strategicScore.previous_score != null && (
+                  <span className={`badge ${strategicScore.overall - strategicScore.previous_score >= 0 ? 'success' : 'destructive'}`} style={{ marginLeft: 'auto' }}>
+                    {strategicScore.overall - strategicScore.previous_score >= 0 ? '+' : ''}{strategicScore.overall - strategicScore.previous_score}
+                  </span>
+                )}
+              </div>
+              <div className="hint">Trending {strategicScore.trend}.</div>
+            </>
+          ) : (
+            <>
+              <div className="val" style={{ color: 'hsl(var(--muted-fg))' }}>—</div>
+              <div className="hint">Take the assessment to unlock your score →</div>
+            </>
+          )}
         </div>
       </div>
 
