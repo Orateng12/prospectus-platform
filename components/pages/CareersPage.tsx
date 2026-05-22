@@ -92,14 +92,20 @@ const CATEGORIES = [
 
 function careerTileClass(name: string): string {
   const n = name.toLowerCase();
-  if (n.includes('software') || n.includes('engineer') && n.includes('soft')) return 'swe';
-  if (n.includes('data scientist')) return 'data';
+  if (n.includes('machine learning') || n.includes('ml eng')) return 'ml';
+  if (n.includes('software') || n.includes('developer') || n.includes('cloud eng') || n.includes('blockchain')) return 'swe';
+  if (n.includes('data scientist') || n.includes('data analyst')) return 'data';
   if (n.includes('actuar')) return 'actuary';
   if (n.includes('quant')) return 'quant';
-  if (n.includes('machine learning') || n.includes('ml ') || n.includes(' ml')) return 'ml';
-  if (n.includes('product manager')) return 'pm';
-  if (n.includes('civil') || n.includes('structural') || n.includes('mechanical')) return 'civil';
-  if (n.includes('doctor') || n.includes('medicine') || n.includes('mbchb')) return 'med';
+  if (n.includes('product manager') || n.includes('ux') || n.includes('ui design')) return 'pm';
+  if (n.includes('civil') || n.includes('structural') || n.includes('mechanical') || n.includes('architect')) return 'civil';
+  if (n.includes('doctor') || n.includes('medicine') || n.includes('mbchb') || n.includes('nurse') ||
+      n.includes('pharma') || n.includes('physio') || n.includes('radiograph') || n.includes('lab tech') ||
+      n.includes('veterinar')) return 'med';
+  if (n.includes('account') || n.includes('chartered') || n.includes('financial') || n.includes('compliance')) return 'finance';
+  if (n.includes('teacher') || n.includes('educator') || n.includes('psycholog') || n.includes('social work')) return 'edu';
+  if (n.includes('electrician') || n.includes('plumber') || n.includes('welder') || n.includes('boilermaker') ||
+      n.includes('instrument') || n.includes('mineral')) return 'trades';
   if (n.includes('data')) return 'data';
   if (n.includes('engineer')) return 'swe';
   return 'default-career';
@@ -114,6 +120,9 @@ const CAREER_ICON: Record<string, string> = {
   pm:             '◈',
   civil:          '△',
   med:            '⚕',
+  finance:        '§',
+  edu:            '✎',
+  trades:         '⚡',
   'default-career':'✦',
 };
 
