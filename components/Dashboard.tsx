@@ -403,6 +403,8 @@ export default function Dashboard({
           <SearchResultsPage
             query={searchQuery}
             navigate={navigate}
+            programmes={initialProgrammes}
+            careers={careers}
             onOpenCareer={(name) => {
               const c = (careers ?? STATIC_CAREERS).find(x => x.name === name);
               if (c) navigateToDetail('career-detail', c);
