@@ -51,18 +51,7 @@ function printLetter(title: string, content: string) {
   win.onload = () => win.print();
 }
 
-const SEED_MESSAGES: ChatMessage[] = [
-  { role: 'user', text: 'Which Wits programmes have the highest funding match for me?' },
-  {
-    role: 'ai',
-    text: 'Three Wits programmes line up well for you, in this order:\n\n**BSc Actuarial Science** (88% match) — your strongest funding signal because Investec, Old Mutual and Sanlam all run named bursaries here and you clear the 75% Maths threshold on every one. Expected stack: NSFAS + Investec + merit = full cover.\n\n**BSc Computer Science** (84% match) — Standard Bank and FNB bursaries open here, but their thresholds are softer than Actuarial.\n\n**BEng Industrial** (71% match) — Sasol service-contract bursary fits but locks 2–3 years post-graduation.',
-    citations: [
-      { label: 'Funding Strategy', route: 'funding' },
-      { label: 'Scholarships', route: 'scholarships' },
-      { label: 'Programmes', route: 'programmes' },
-    ],
-  },
-];
+const SEED_MESSAGES: ChatMessage[] = [];
 
 function buildSuggestedPrompts(userAps?: number, householdIncome?: number, psychProfile?: { realistic?: number; investigative?: number; social?: number; enterprising?: number; artistic?: number } | null, applicationCount?: number): string[] {
   const prompts: string[] = [];
@@ -208,10 +197,17 @@ export default function DiscoverPage({ navigate, psychProfile, capabilityData, u
           <div className="chat-shell">
             <div className="chat-transcript" ref={transcriptRef}>
               {messages.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '2rem', color: 'hsl(var(--muted-fg))' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✦</div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>Ask your personal advisor anything</div>
-                  <div className="caption" style={{ marginTop: '0.25rem' }}>Try one of the prompts on the right to get started.</div>
+                <div style={{ textAlign: 'center', padding: '2rem 1.5rem' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>✦</div>
+                  <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.375rem' }}>
+                    Your personal admissions advisor
+                  </div>
+                  <p className="caption" style={{ maxWidth: '22rem', margin: '0 auto 1rem', color: 'hsl(var(--fg))' }}>
+                    Ask anything about programmes, funding, or your next step. The advisor knows your APS, profile and applications — and gives you real SA-specific answers, not generic advice.
+                  </p>
+                  <p className="caption" style={{ maxWidth: '22rem', margin: '0 auto', fontSize: '0.75rem' }}>
+                    Were you rejected with no explanation? Told no alternatives exist? Use the panel on the right to get real routes forward.
+                  </p>
                 </div>
               )}
               {messages.map((msg, i) => (
@@ -311,6 +307,21 @@ export default function DiscoverPage({ navigate, psychProfile, capabilityData, u
         </div>
 
         <div className="stack-3">
+          <div className="card" style={{ borderLeft: '4px solid hsl(var(--primary))' }}>
+            <div className="eyebrow" style={{ marginBottom: '0.5rem' }}><span className="dot" />Were you told &quot;no&quot;?</div>
+            <p className="caption" style={{ marginBottom: '0.75rem', color: 'hsl(var(--fg))', fontSize: '0.8125rem' }}>
+              Being rejected with no explanation and no alternatives is not right. Tell the advisor what happened — get real routes forward.
+            </p>
+            <button
+              className="btn btn-primary"
+              style={{ width: '100%', justifyContent: 'center' }}
+              disabled={isLoading}
+              onClick={() => sendMessage("I applied to a programme and was told I don't qualify. I wasn't given any alternatives or explanation. What are my real options right now — including TVET, foundation programmes, and similar programmes I might already qualify for?")}
+            >
+              I was told no — what now?
+            </button>
+          </div>
+
           <div className="card">
             <div className="eyebrow"><span className="dot" />Try one of these</div>
             <div className="stack" style={{ marginTop: '0.625rem' }}>
