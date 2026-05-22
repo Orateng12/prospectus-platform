@@ -165,11 +165,31 @@ export default function SkillsPage({ capabilityData, psychProfile, careers = [],
           </div>
           <div className="row">
             <span className="badge brand">Composite: {composite}</span>
-            {hasData && <span className="badge success">Real data</span>}
+            {hasData ? (
+              <span className="badge success">Real data</span>
+            ) : (
+              <span className="badge warning">Example data · take assessment</span>
+            )}
             <button className="btn btn-outline" onClick={onRetake}>Update inputs</button>
           </div>
         </div>
       </div>
+
+      {!hasData && (
+        <div className="card" style={{ marginBottom: '1.25rem', borderLeft: '4px solid hsl(var(--warning))', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '0.9375rem', marginBottom: '0.25rem' }}>
+              You&apos;re seeing an example skills profile
+            </div>
+            <p className="caption" style={{ color: 'hsl(var(--fg))' }}>
+              These scores are illustrative. Complete the capability assessment to see your real eight-dimension breakdown and career gap analysis.
+            </p>
+          </div>
+          <button className="btn btn-primary btn-sm" style={{ flexShrink: 0 }} onClick={() => navigate?.('cognitive')}>
+            Go to assessment →
+          </button>
+        </div>
+      )}
 
       <div className="grid-2-asym">
         <div className="card" style={{ display: 'grid', placeItems: 'center', padding: '1.5rem' }}>

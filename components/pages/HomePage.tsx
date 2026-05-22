@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { Route, Subject, Programme, DbApplication, StrategicScoreData, PsychProfileData, CapabilityData, Deadline, Career, DbCustomDeadline, DbDocument } from '@/lib/types';
-import { PROGRAMMES, DEADLINES } from '@/lib/data';
+import { PROGRAMMES } from '@/lib/data';
 import { calcAPS, fmtR, apsPoints } from '@/lib/utils';
 import AiInsightCard from '@/components/AiInsightCard';
 
@@ -235,13 +235,7 @@ function buildDeadlines(applications: DbApplication[], customDeadlines: DbCustom
     };
   });
 
-  // Fill remaining slots with static deadlines (future ones only)
-  const year = new Date().getFullYear();
-  const staticFuture: (Deadline & { ts: number })[] = DEADLINES
-    .map(d => ({ ...d, ts: new Date(`${d.d} ${d.m} ${year}`).getTime() }))
-    .filter(d => d.ts >= now);
-
-  const merged = [...appDeadlines, ...customItems, ...staticFuture].sort((a, b) => a.ts - b.ts);
+  const merged = [...appDeadlines, ...customItems].sort((a, b) => a.ts - b.ts);
   return merged.slice(0, 10);
 }
 
@@ -681,6 +675,36 @@ export default function HomePage({ subjects, navigate, programmes, applications 
               >
                 {showAllDeadlines ? 'Show less' : `Show ${deadlineItems.length - 3} more deadlines`}
               </button>
+            )}
+            {deadlineItems.length < 3 && (
+              <div style={{ borderTop: deadlineItems.length > 0 ? '1px solid hsl(var(--border))' : undefined, marginTop: deadlineItems.length > 0 ? '0.75rem' : 0, paddingTop: deadlineItems.length > 0 ? '0.75rem' : 0 }}>
+                <div className="caption" style={{ marginBottom: '0.5rem', fontWeight: 600, color: 'hsl(var(--muted-fg))' }}>
+                  Common SA dates to be aware of
+                </div>
+                {[
+                  { t: 'NSFAS application opens', m: 'Sep', tagL: 'Suggested' },
+                  { t: 'Most public universities close', m: 'Sep', tagL: 'Suggested' },
+                  { t: 'NSC supplementary exam registration', m: 'Jun', tagL: 'Suggested' },
+                ].slice(0, 3 - deadlineItems.length).map(s => (
+                  <div className="deadline" key={s.t} style={{ opacity: 0.7 }}>
+                    <div className="dl-date">
+                      <span className="d">—</span>
+                      <span className="m">{s.m}</span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{s.t}</div>
+                    </div>
+                    <span className="badge accent">{s.tagL}</span>
+                  </div>
+                ))}
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ width: '100%', marginTop: '0.5rem' }}
+                  onClick={() => navigate('deadlines')}
+                >
+                  Add your real deadlines →
+                </button>
+              </div>
             )}
           </div>
 

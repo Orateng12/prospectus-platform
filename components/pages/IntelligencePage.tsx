@@ -568,6 +568,9 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
                   <i style={{ width: `${score}%` }} />
                 </div>
                 <span className="val">{score}</span>
+                {(!psychProfile || !capabilityData) && (
+                  <span className="badge accent" style={{ fontSize: '0.5rem', marginLeft: '0.25rem' }}>Est.</span>
+                )}
                 {onOpenCareer && <span className="caption" style={{ marginLeft: '0.375rem', color: 'hsl(var(--muted-fg))' }}>→</span>}
               </button>
             ))}

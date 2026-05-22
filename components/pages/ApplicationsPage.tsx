@@ -212,13 +212,51 @@ export default function ApplicationsPage({ applications: dbApps, onOpenDetail, p
       </div>
 
       {apps.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>📋</div>
-          <div className="subheading" style={{ marginBottom: '0.5rem' }}>No applications yet</div>
-          <p className="body-text" style={{ maxWidth: '28rem', margin: '0 auto 1rem' }}>
-            Add applications from the Programme Explorer or click &ldquo;+ Add application&rdquo; above.
-          </p>
-          <button className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>+ Add application</button>
+        <div className="stack">
+          <div className="card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>📋</div>
+            <div className="subheading" style={{ marginBottom: '0.5rem' }}>No applications yet</div>
+            <p className="body-text" style={{ maxWidth: '28rem', margin: '0 auto 1rem' }}>
+              Add applications from the Programme Explorer or click &ldquo;+ Add application&rdquo; above.
+            </p>
+            <div className="row" style={{ justifyContent: 'center', gap: '0.5rem' }}>
+              <button className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>+ Add application</button>
+              <button className="btn btn-outline btn-sm" onClick={() => navigate?.('programmes')}>Browse programmes →</button>
+            </div>
+          </div>
+
+          {/* Ghost example card — shows what a real application looks like */}
+          <div className="card" style={{ opacity: 0.72, pointerEvents: 'none', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem' }}>
+              <span className="badge accent" style={{ fontSize: '0.625rem' }}>Example</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>BSc Computer Science — University of Cape Town</div>
+                <div className="caption" style={{ marginTop: '0.25rem' }}>Submitted 3 Aug · Deadline 30 Sep 2026</div>
+              </div>
+              <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
+                {['Applied', 'Under review', 'Decision', 'Outcome'].map((label, i) => (
+                  <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <span style={{
+                      width: 10, height: 10, borderRadius: '50%',
+                      background: i === 0 ? 'hsl(var(--success))' : i === 1 ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+                      display: 'inline-block', flexShrink: 0,
+                    }} />
+                    <span className="caption" style={{ fontSize: '0.6875rem' }}>{label}</span>
+                    {i < 3 && <span className="caption" style={{ color: 'hsl(var(--border))' }}>—</span>}
+                  </div>
+                ))}
+              </div>
+              <div className="row" style={{ gap: '0.5rem' }}>
+                <span className="badge warning">Under review</span>
+                <span className="badge info">30 days left</span>
+              </div>
+            </div>
+            <div className="caption" style={{ marginTop: '0.875rem', paddingTop: '0.875rem', borderTop: '1px solid hsl(var(--border))', fontStyle: 'italic' }}>
+              Your real applications will look exactly like this — with live deadline countdowns, document checklists and status tracking.
+            </div>
+          </div>
         </div>
       ) : (
         <div className="app-grid grid-2 stack-3" style={{ gridTemplateColumns: selectedApp ? '1fr 1fr' : '1fr', alignItems: 'start' }}>

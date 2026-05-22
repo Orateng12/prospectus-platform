@@ -259,10 +259,50 @@ export default function ScholarshipsPage({
 
       {tab === 'mine' ? (
         appliedList.length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', padding: '2.5rem' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>🏆</div>
-            <div className="subheading" style={{ marginBottom: '0.5rem' }}>No applications yet</div>
-            <p className="caption">Click &ldquo;Apply&rdquo; on any funding opportunity to start tracking here.</p>
+          <div className="stack">
+            <div className="card">
+              <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />How this works</div>
+              <div className="row" style={{ gap: '1.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+                {[
+                  { n: '1', label: 'Browse funding', desc: 'Go to the All or Bursaries tab — filter by type, income, or study field' },
+                  { n: '2', label: 'Click Apply', desc: 'Opens the official site and logs your application here automatically' },
+                  { n: '3', label: 'Track here', desc: 'Monitor status, deadlines and any service-contract obligations in one place' },
+                ].map(step => (
+                  <div key={step.n} style={{ flex: '1 1 10rem' }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'hsl(var(--primary) / 0.12)', color: 'hsl(var(--primary))', fontWeight: 800, fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem' }}>
+                      {step.n}
+                    </div>
+                    <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: '0.25rem' }}>{step.label}</div>
+                    <p className="caption" style={{ color: 'hsl(var(--fg))' }}>{step.desc}</p>
+                  </div>
+                ))}
+              </div>
+              <button className="btn btn-primary btn-sm" onClick={() => setTab('all')}>Browse all funding →</button>
+            </div>
+
+            {/* Ghost scholarship example */}
+            <div className="card" style={{ opacity: 0.72, pointerEvents: 'none', position: 'relative' }}>
+              <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem' }}>
+                <span className="badge accent" style={{ fontSize: '0.625rem' }}>Example</span>
+              </div>
+              <div className="row-between" style={{ marginBottom: '0.5rem' }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>Investec Bursary Programme</div>
+                  <div className="caption" style={{ marginTop: '0.25rem' }}>Corporate · Engineering, Commerce, Science</div>
+                </div>
+                <div className="row" style={{ gap: '0.375rem' }}>
+                  <span className="badge info">Applied</span>
+                  <span className="badge success" style={{ fontWeight: 800 }}>R165,000/yr</span>
+                </div>
+              </div>
+              <div className="row" style={{ gap: '0.5rem' }}>
+                <span className="badge warning">Deadline 31 Aug 2026</span>
+                <span className="badge destructive" style={{ fontSize: '0.5625rem' }}>Service contract</span>
+              </div>
+              <div className="caption" style={{ marginTop: '0.875rem', paddingTop: '0.875rem', borderTop: '1px solid hsl(var(--border))', fontStyle: 'italic' }}>
+                Your tracked funding applications will look exactly like this.
+              </div>
+            </div>
           </div>
         ) : (() => {
           const TYPICAL_COST = 165_420;
