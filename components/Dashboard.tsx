@@ -263,6 +263,8 @@ export default function Dashboard({
             userAps={displayAps}
             householdIncome={householdIncome}
             userFirstName={userFirstName}
+            userLastName={userLastName}
+            applicationCount={emptyMode ? 0 : applications.length}
           />
         );
       case 'notifications':
