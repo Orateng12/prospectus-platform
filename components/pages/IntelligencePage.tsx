@@ -404,12 +404,51 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
         </div>
       </div>
 
+      {/* Weekly action plan — top 2 highest-ROI levers, framed as a focused plan */}
+      {leverROI.length >= 2 && (
+        <div className="card" style={{ marginTop: '1.25rem', borderColor: 'hsl(var(--primary) / 0.3)', background: 'hsl(var(--primary) / 0.03)' }}>
+          <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+            <div>
+              <div className="eyebrow"><span className="dot" />Your plan this week</div>
+              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>2 actions · highest return on your time</h3>
+            </div>
+            <span className="badge primary" style={{ height: '1.5rem', fontSize: '0.6875rem' }}>Do first</span>
+          </div>
+          <div className="stack" style={{ gap: '0.75rem' }}>
+            {leverROI.slice(0, 2).map((lever, idx) => (
+              <div key={lever.key} style={{
+                display: 'flex', gap: '0.875rem', alignItems: 'flex-start',
+              }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                  background: 'hsl(var(--primary))', color: 'white',
+                  display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: '0.75rem',
+                }}>{idx + 1}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.875rem' }}>{lever.label}</span>
+                    <span className="badge" style={{ height: '1.125rem', fontSize: '0.5625rem' }}>+{lever.estGain} pts</span>
+                    <span className="caption" style={{ fontSize: '0.6875rem', color: 'hsl(var(--muted-fg))' }}>{lever.effort}</span>
+                  </div>
+                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', lineHeight: 1.5, color: 'hsl(var(--muted-fg))' }}>
+                    {lever.action}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="caption" style={{ marginTop: '0.75rem', paddingTop: '0.625rem', borderTop: '1px solid hsl(var(--border))', fontSize: '0.6875rem' }}>
+            Full breakdown of all 6 levers below — these 2 have the highest score gain per hour of effort.
+          </div>
+        </div>
+      )}
+
       {/* Lever ROI */}
       <div className="card" style={{ marginTop: '1.25rem' }}>
         <div className="row-between" style={{ marginBottom: '0.875rem' }}>
           <div>
             <div className="eyebrow"><span className="dot" />Score optimiser</div>
-            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>What to move first — ranked by effort-to-impact</h3>
+            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>All levers — ranked by effort-to-impact</h3>
           </div>
           <span className="badge success">ROI ranked</span>
         </div>

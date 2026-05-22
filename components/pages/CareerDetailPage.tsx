@@ -155,6 +155,103 @@ function inferSubjectsFromAps(minAps: number): string {
   return 'English Home Language, any 4 NSC subjects at minimum marks';
 }
 
+const CAREER_MILESTONES: Record<string, Array<{ title: string; focus: string; milestone: string }>> = {
+  'Software Engineer':      [
+    { title: 'Junior Developer',        focus: 'Build features under senior guidance, fix bugs, write tests',          milestone: 'Ship your first feature to production' },
+    { title: 'Mid-level Engineer',      focus: 'Own features end-to-end, review PRs, contribute to architecture',       milestone: 'Lead a small cross-team delivery' },
+    { title: 'Senior Engineer',         focus: 'Drive technical direction, mentor juniors, design system components',   milestone: 'Architect a new product module independently' },
+    { title: 'Principal / Staff Eng',   focus: 'Set engineering standards, influence roadmap, scale complex systems',   milestone: 'Define the tech stack for a new product line' },
+  ],
+  'Data Scientist':         [
+    { title: 'Junior Data Scientist',   focus: 'Clean data, run EDA, build baseline models under guidance',             milestone: 'Deploy your first model to production' },
+    { title: 'Data Scientist',          focus: 'Own model development, write production pipelines, present insights',   milestone: 'Drive a business decision with your analysis' },
+    { title: 'Senior Data Scientist',   focus: 'Lead modelling projects, define methodology, mentor analysts',          milestone: 'Build a prediction system that runs at scale' },
+    { title: 'Lead / Principal DS',     focus: 'Set ML strategy, hire and grow the team, partner with C-suite',         milestone: 'Ship an AI product used by 1M+ users' },
+  ],
+  'Data Analyst':           [
+    { title: 'Junior Analyst',          focus: 'Pull SQL queries, build dashboards, learn the data model',              milestone: 'Own your first recurring business report' },
+    { title: 'Data Analyst',            focus: 'Design dashboards, surface trends, run A/B test analyses',              milestone: 'Deliver an insight that changes a key process' },
+    { title: 'Senior Analyst',          focus: 'Define analytics frameworks, mentor juniors, liaise with leadership',   milestone: 'Lead a self-serve data culture initiative' },
+    { title: 'Analytics Manager',       focus: 'Manage analyst team, set data strategy, partner with product & execs', milestone: 'Build the analytics infrastructure for the company' },
+  ],
+  'Actuary':                [
+    { title: 'Actuarial Graduate',      focus: 'Study and write professional exams, run pricing models under supervision', milestone: 'Pass your first two actuarial board exams' },
+    { title: 'Actuarial Analyst',       focus: 'Own pricing models, reserving work, and regulatory submissions',         milestone: 'Sign off your first statutory valuation' },
+    { title: 'Senior Actuary',          focus: 'Lead product pricing teams, present to boards, drive risk strategy',    milestone: 'Qualify as a Fellow (FASSA designation)' },
+    { title: 'Chief Actuary / Partner', focus: 'Set enterprise risk appetite, advise regulators, lead large teams',     milestone: 'Lead a multi-billion rand actuarial function' },
+  ],
+  'Civil Engineer':         [
+    { title: 'Graduate Engineer',       focus: 'Assist with designs, site inspections, AutoCAD drafting under P.Eng',   milestone: 'Pass your EC engineering registration board exam' },
+    { title: 'Professional Engineer',   focus: 'Lead project designs, manage contractors, ensure ECSA compliance',      milestone: 'Register with ECSA as a Professional Engineer' },
+    { title: 'Senior Engineer',         focus: 'Manage multiple projects, mentor juniors, oversee QA processes',        milestone: 'Deliver a major public infrastructure project' },
+    { title: 'Director / Partner',      focus: 'Bid and win contracts, build client relationships, set firm strategy',  milestone: 'Run a R500M+ civil engineering portfolio' },
+  ],
+  'Mechanical Engineer':    [
+    { title: 'Graduate Engineer',       focus: 'Assist with CAD designs, equipment inspection, technical drawings',     milestone: 'First full engineering design signed off by P.Eng' },
+    { title: 'Professional Engineer',   focus: 'Lead mechanical design projects, coordinate with production teams',     milestone: 'Register with ECSA — Professional Engineer status' },
+    { title: 'Senior Engineer',         focus: 'Manage plant equipment lifecycles, lead maintenance teams',             milestone: 'Own a major plant upgrade or new facility project' },
+    { title: 'Engineering Manager',     focus: 'Run the engineering department, capex planning, headcount strategy',    milestone: 'Deliver a greenfield facility commissioning' },
+  ],
+  'Doctor (MBChB)':         [
+    { title: 'Intern Doctor',           focus: 'Supervised patient management across 4 rotations (12 months)',          milestone: 'Complete internship — HPCSA full registration' },
+    { title: 'Medical Officer',         focus: 'Independent diagnosis and treatment in district / regional hospitals',  milestone: 'Complete community service year independently' },
+    { title: 'Registrar (Specialist)',  focus: 'Specialist training programme (4–5 years), exams, research',           milestone: 'Pass FC (Fellowship of College) specialist exams' },
+    { title: 'Consultant / Specialist', focus: 'Run specialist practice, teach medical students, conduct research',     milestone: 'Lead a department or open a private practice' },
+  ],
+  'Nurse':                  [
+    { title: 'Professional Nurse',      focus: 'Patient care, medication administration, clinical documentation',        milestone: 'First independent ward assignment' },
+    { title: 'Charge Nurse',            focus: 'Shift management, junior nurse supervision, quality assurance',         milestone: 'Lead a ward team of 8–12 nurses' },
+    { title: 'Senior Professional Nurse', focus: 'Policy implementation, clinical training, department coordination',  milestone: 'Obtain a post-basic specialty qualification' },
+    { title: 'Unit / Nursing Manager',  focus: 'Manage nursing staff, rosters, budget, and clinical standards',         milestone: 'Run a fully staffed clinical unit' },
+  ],
+  'Lawyer':                 [
+    { title: 'Candidate Attorney',      focus: '2-year articles — draft pleadings, research, client briefing under principal', milestone: 'Admission as an Attorney of the High Court' },
+    { title: 'Associate Attorney',      focus: 'Manage own caseload, draft contracts, conduct research',                milestone: 'First successful litigated matter as lead attorney' },
+    { title: 'Senior Associate',        focus: 'Lead complex matters, mentor candidates, build client relationships',   milestone: 'Recognised specialty area (M&A, litigation, etc.)' },
+    { title: 'Partner / Director',      focus: 'Originate clients, run practice groups, set firm strategy',             milestone: 'Invited to the partnership / directorship' },
+  ],
+  'Accountant':             [
+    { title: 'SAICA Trainee (Articles)', focus: 'Rotate across audit, tax, and advisory under a registered CA(SA)',     milestone: 'Pass ITC and APC board exams — CA(SA) designation' },
+    { title: 'Financial Accountant',    focus: 'Month-end close, management accounts, SARS submissions',               milestone: 'First solo statutory audit or annual report sign-off' },
+    { title: 'Senior Accountant',       focus: 'Lead finance team, produce consolidated financials, liaise with auditors', milestone: 'Promoted to Finance Manager or Controller' },
+    { title: 'CFO / Finance Director',  focus: 'Capital allocation, investor relations, M&A, and board reporting',     milestone: 'Drive a company listing or major acquisition' },
+  ],
+  'Teacher':                [
+    { title: 'Newly Qualified Teacher', focus: 'Deliver lessons, manage classroom, implement curriculum',               milestone: 'First class of students who pass their exams' },
+    { title: 'Experienced Teacher',     focus: 'Lead subject department, mentor NQTs, run extramurals',                milestone: 'Appointed as Head of Department' },
+    { title: 'Senior Teacher / HOD',    focus: 'Curriculum leadership, SGB participation, staff development',           milestone: 'Deliver sustained improvement in learner outcomes' },
+    { title: 'School Principal / Deputy', focus: 'Manage the whole school — staff, budget, safety, community',         milestone: 'Turn around a school\'s matric pass rate' },
+  ],
+  'Financial Advisor':      [
+    { title: 'Financial Planner (Junior)', focus: 'Assist senior advisors, product research, client admin',             milestone: 'Obtain RE5 + first class of own clients' },
+    { title: 'Financial Advisor',       focus: 'Manage own client book, financial plans, investment reviews',           milestone: 'Build a R20M+ AUM book of clients' },
+    { title: 'Senior Financial Advisor', focus: 'HNW client advice, complex estate planning, team leadership',         milestone: 'CFP® designation and R100M+ AUM' },
+    { title: 'Wealth Manager / Director', focus: 'Run an advisory practice, lead a team, develop new business',        milestone: 'Own an independent advisory firm' },
+  ],
+  'Entrepreneur':           [
+    { title: 'Founder / Early Stage',   focus: 'Validate problem, build MVP, find first paying customers',              milestone: 'First R10,000 in monthly recurring revenue' },
+    { title: 'Growing Startup CEO',     focus: 'Hire first team, close seed funding, define product-market fit',       milestone: 'Close your first external funding round' },
+    { title: 'Scale-up CEO',            focus: 'Build management team, expand to new markets, hit profitability',      milestone: 'First year of EBITDA-positive operations' },
+    { title: 'Serial Entrepreneur',     focus: 'Back other founders, angel invest, run portfolio of ventures',          milestone: 'Exit a venture or list on AltX / JSE' },
+  ],
+};
+
+function getCareerMilestones(careerName: string, tags: string[]): Array<{ title: string; focus: string; milestone: string }> {
+  if (CAREER_MILESTONES[careerName]) return CAREER_MILESTONES[careerName];
+  if (tags.includes('Tech') || tags.includes('STEM')) return [
+    { title: 'Graduate / Junior', focus: 'Learn internal systems, complete supervised deliverables, build domain knowledge', milestone: 'First solo project delivered on time' },
+    { title: 'Mid-level Professional', focus: 'Own deliverables independently, contribute to team decisions', milestone: 'Recognised as the go-to person for one domain' },
+    { title: 'Senior Professional', focus: 'Lead projects, mentor juniors, drive strategic decisions', milestone: 'First formal leadership or management appointment' },
+    { title: 'Director / Principal', focus: 'Shape organisational strategy, build and grow teams, set standards', milestone: 'Run a function or business unit independently' },
+  ];
+  return [
+    { title: 'Entry level', focus: 'Learn the role, contribute to team output, build core competencies', milestone: 'Complete probation and take on own responsibilities' },
+    { title: 'Mid-career', focus: 'Manage projects independently, develop expertise, influence outcomes', milestone: 'Promoted to senior individual contributor or team lead' },
+    { title: 'Senior professional', focus: 'Drive strategy in your domain, mentor others, manage key relationships', milestone: 'Recognised as a subject matter expert internally' },
+    { title: 'Leadership', focus: 'Manage teams or functions, set direction, build organisational capability', milestone: 'Lead a significant business outcome or transformation' },
+  ];
+}
+
 function sparklinePoints(_baseSalary: number): string {
   const w = 160;
   const h = 48;
@@ -311,34 +408,61 @@ export default function CareerDetailPage({ career, programmes: propProgrammes, c
 
           {/* Salary progression */}
           <div className="card">
-            <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Salary progression</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
-              {[
-                { level: 'Entry',   years: '0–3 yrs',  mult: 0.55, cls: '' },
-                { level: 'Mid',     years: '4–7 yrs',  mult: 1.0,  cls: '' },
-                { level: 'Senior',  years: '8–14 yrs', mult: 1.6,  cls: 'success' },
-                { level: 'Lead',    years: '15+ yrs',  mult: 2.2,  cls: 'success' },
-              ].map(({ level, years, mult, cls }) => {
-                const amt = Math.round(career.salary * mult);
-                return (
-                  <div key={level} className="card compact" style={{ padding: '0.75rem' }}>
-                    <div className="caption" style={{ fontSize: '0.6875rem' }}>{level}</div>
-                    <div style={{
-                      fontWeight: 900, fontSize: '1.25rem', letterSpacing: '-0.03em',
-                      fontVariantNumeric: 'tabular-nums',
-                      color: cls ? `hsl(var(--${cls}))` : undefined,
-                    }}>
-                      {fmtR(amt)}
-                    </div>
-                    <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.125rem' }}>/mo · {years}</div>
-                    <div className="meter sm" style={{ marginTop: '0.5rem' }}>
-                      <i style={{ width: `${Math.min(100, Math.round((mult / 2.2) * 100))}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="row-between" style={{ marginTop: '0.875rem', paddingTop: '0.75rem', borderTop: '1px solid hsl(var(--border))' }}>
+            <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />Salary progression &amp; career arc</div>
+            {(() => {
+              const milestones = getCareerMilestones(career.name, career.tags);
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {[
+                    { level: 'Entry',  years: '0–3 yrs',  mult: 0.55, cls: '' },
+                    { level: 'Mid',    years: '4–7 yrs',  mult: 1.0,  cls: '' },
+                    { level: 'Senior', years: '8–14 yrs', mult: 1.6,  cls: 'success' },
+                    { level: 'Lead',   years: '15+ yrs',  mult: 2.2,  cls: 'success' },
+                  ].map(({ level, years, mult, cls }, idx) => {
+                    const amt = Math.round(career.salary * mult);
+                    const m = milestones[idx];
+                    return (
+                      <div key={level} style={{
+                        display: 'grid', gridTemplateColumns: '7rem 1fr',
+                        gap: '0.875rem', alignItems: 'start',
+                        paddingBottom: '0.75rem',
+                        borderBottom: idx < 3 ? '1px solid hsl(var(--border))' : 'none',
+                      }}>
+                        <div className="card compact" style={{ padding: '0.625rem 0.75rem' }}>
+                          <div className="caption" style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{level}</div>
+                          <div style={{
+                            fontWeight: 900, fontSize: '1.125rem', letterSpacing: '-0.03em',
+                            fontVariantNumeric: 'tabular-nums',
+                            color: cls ? `hsl(var(--${cls}))` : undefined,
+                            marginTop: '0.125rem',
+                          }}>
+                            {fmtR(amt)}
+                          </div>
+                          <div className="caption" style={{ fontSize: '0.5625rem', marginTop: '0.0625rem' }}>/mo · {years}</div>
+                          <div className="meter sm" style={{ marginTop: '0.5rem' }}>
+                            <i style={{ width: `${Math.min(100, Math.round((mult / 2.2) * 100))}%`, background: cls ? `hsl(var(--${cls}))` : undefined }} />
+                          </div>
+                        </div>
+                        {m && (
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: '0.8125rem' }}>{m.title}</div>
+                            <div className="caption" style={{ marginTop: '0.25rem', fontSize: '0.75rem', lineHeight: 1.4 }}>{m.focus}</div>
+                            <div style={{
+                              marginTop: '0.375rem', display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+                              fontSize: '0.6875rem', color: 'hsl(var(--primary))', fontWeight: 600,
+                            }}>
+                              <span>★</span>
+                              <span>{m.milestone}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+            <div style={{ borderTop: '1px solid hsl(var(--border))', marginTop: '0.875rem', paddingTop: '0.75rem' }}>
               <svg width="100%" viewBox="0 0 160 36" preserveAspectRatio="none" style={{ display: 'block', height: 36 }}>
                 <polyline
                   points={sparklinePoints(career.salary)}
@@ -349,10 +473,10 @@ export default function CareerDetailPage({ career, programmes: propProgrammes, c
                   strokeLinecap="round"
                 />
               </svg>
-            </div>
-            <div className="row-between" style={{ marginTop: '0.25rem' }}>
-              <span className="caption" style={{ fontSize: '0.625rem' }}>Year 1</span>
-              <span className="caption" style={{ fontSize: '0.625rem', color: 'hsl(var(--success))' }}>10-yr growth: {career.growth}</span>
+              <div className="row-between" style={{ marginTop: '0.25rem' }}>
+                <span className="caption" style={{ fontSize: '0.625rem' }}>Year 1</span>
+                <span className="caption" style={{ fontSize: '0.625rem', color: 'hsl(var(--success))' }}>10-yr growth: {career.growth}</span>
+              </div>
             </div>
           </div>
 

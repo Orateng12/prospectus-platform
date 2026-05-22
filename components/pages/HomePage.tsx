@@ -70,26 +70,36 @@ function buildFocusItems(
     });
   }
 
-  // 2. APS leverage: name the exact subject + mark target + programmes unlocked
-  const nearMissProgs = programmes.filter(p => p.aps > userAps && p.aps <= userAps + 2);
+  // 2. APS leverage: concrete subject → mark → programme + funding outcome
+  const nearMissProgs = programmes.filter(p => p.aps > userAps && p.aps <= userAps + 2)
+    .sort((a, b) => b.fit - a.fit);
   const lowestSubject = [...subjects].filter(s => s.id !== 'lo').sort((a, b) => apsPoints(a.mark) - apsPoints(b.mark))[0];
+
+  const FUNDING_THRESHOLDS = [26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 45];
+  const nextFundingThreshold = FUNDING_THRESHOLDS.find(t => t > userAps);
+  const apsToNextFunding = nextFundingThreshold ? nextFundingThreshold - userAps : null;
+
   if (lowestSubject && nearMissProgs.length > 0) {
     const nextMark = lowestSubject.mark < 50 ? 50 : lowestSubject.mark < 60 ? 60 : 70;
-    const unlockCount = nearMissProgs.length;
+    const topProg = nearMissProgs[0];
+    const fundingNote = apsToNextFunding === 1 ? ' and a new bursary tier' : apsToNextFunding === 2 ? ' · 2 pts unlocks next bursary tier' : '';
     items.push({
       icon: '📈',
-      text: `Raise ${lowestSubject.name} from ${lowestSubject.mark}% → ${nextMark}%`,
-      detail: `Adds 1 APS point and unlocks ${unlockCount} programme${unlockCount !== 1 ? 's' : ''} you can't access yet.`,
+      text: `Raise ${lowestSubject.name} to ${nextMark}% → qualify for ${topProg.name}`,
+      detail: `${topProg.uni} · APS ${topProg.aps} · ${nearMissProgs.length > 1 ? `+${nearMissProgs.length - 1} more programme${nearMissProgs.length > 2 ? 's' : ''}` : 'now within reach'}${fundingNote}. Open Simulator to model it.`,
       urgency: 'med',
       route: 'simulator',
     });
   } else if (lowestSubject) {
-    const nextProg = programmes.filter(p => p.aps > userAps && p.aps <= userAps + 6).sort((a, b) => a.aps - b.aps)[0];
+    const nextProg = programmes.filter(p => p.aps > userAps && p.aps <= userAps + 6)
+      .sort((a, b) => (a.aps - userAps) - (b.aps - userAps))[0];
     if (nextProg) {
+      const apsGap = nextProg.aps - userAps;
+      const fundingNote = apsToNextFunding && apsToNextFunding <= apsGap ? ` — also unlocks a new bursary tier at APS ${nextFundingThreshold}` : '';
       items.push({
         icon: '📈',
-        text: `Raise ${lowestSubject.name} to reach ${nextProg.name}`,
-        detail: `${nextProg.uni} requires APS ${nextProg.aps} — you need ${nextProg.aps - userAps} more point${nextProg.aps - userAps !== 1 ? 's' : ''}.`,
+        text: `${apsGap === 1 ? 'One APS point' : `${apsGap} APS points`} away from ${nextProg.name}`,
+        detail: `${nextProg.uni} · needs APS ${nextProg.aps}${fundingNote}. Raise ${lowestSubject.name} from ${lowestSubject.mark}% to unlock it.`,
         urgency: 'med',
         route: 'simulator',
       });
