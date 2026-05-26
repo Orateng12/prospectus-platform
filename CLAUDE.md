@@ -1,5 +1,8 @@
 @AGENTS.md
 
+# Workflow rules
+- **Always update `CHANGELOG.md`** before every commit and push. Add entries under the relevant `[Unreleased]` section (or create a new dated section). Include what changed and why.
+
 # Architecture
 
 ## Routes
