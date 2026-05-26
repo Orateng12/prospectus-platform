@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Fraunces, Plus_Jakarta_Sans } from 'next/font/google';
+import { Fraunces, Plus_Jakarta_Sans, Inter, Instrument_Serif, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 
 const fraunces = Fraunces({
@@ -15,6 +15,28 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   variable: '--font-body',
   display: 'swap',
   weight: ['400', '500', '600', '700'],
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+  weight: ['400', '500', '600', '700', '800', '900'],
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ['latin'],
+  variable: '--font-instrument-serif',
+  display: 'swap',
+  weight: ['400'],
+  style: ['normal', 'italic'],
+});
+
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  variable: '--font-ibm-plex-mono',
+  display: 'swap',
+  weight: ['400', '500'],
 });
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://prospectus.co.za';
@@ -58,7 +80,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${plusJakartaSans.variable} h-full antialiased`}>
+    <html lang="en" className={`${fraunces.variable} ${plusJakartaSans.variable} ${inter.variable} ${instrumentSerif.variable} ${ibmPlexMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
