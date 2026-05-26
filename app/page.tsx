@@ -109,6 +109,8 @@ export default function LandingPage() {
   else if (aps >= 24) apsDescr = 'foundation & TVET routes open';
   else apsDescr = 'TVET pathways · foundation possible';
 
+  const dialColor = aps >= 38 ? 'hsl(152 55% 36%)' : aps >= 30 ? 'hsl(22 88% 52%)' : 'hsl(18 82% 44%)';
+
   const eligibleProgs = PROGRAMMES
     .filter(p => p.aps <= aps + 2)
     .sort((a, b) => b.aps - a.aps)
@@ -160,6 +162,74 @@ export default function LandingPage() {
     tweenText(setFutureRole, s.role, 50);
     tweenText(setFutureCompany, s.company, 300);
     tweenText(setFutureSalary, s.salary, 600);
+  }, []);
+
+  /* ── Mobile nav ── */
+  const [navOpen, setNavOpen] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setNavOpen(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  /* ── Scroll-spy: track active section for nav highlight ── */
+  const [activeSection, setActiveSection] = useState('');
+  useEffect(() => {
+    const ids = ['how', 'pathways', 'cockpit', 'pricing'];
+    const els = ids.map(id => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+    const io = new IntersectionObserver(
+      entries => { entries.forEach(e => { if (e.isIntersecting) setActiveSection(e.target.id); }); },
+      { rootMargin: '-20% 0px -70% 0px', threshold: 0 }
+    );
+    els.forEach(el => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
+  /* ── APS threshold crossing feedback ── */
+  const prevApsRef = useRef(aps);
+  const [apsFlash, setApsFlash] = useState<string | null>(null);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const thresholds = [
+      { at: 44, label: 'Medicine · top direct-entry range' },
+      { at: 40, label: 'Actuarial / Engineering unlocked' },
+      { at: 36, label: 'Strong direct-entry profile' },
+      { at: 30, label: 'Wide eligibility unlocked' },
+      { at: 24, label: 'Foundation routes open' },
+    ];
+    const prev = prevApsRef.current;
+    const crossed = thresholds.find(t => (prev < t.at && aps >= t.at) || (prev >= t.at && aps < t.at));
+    prevApsRef.current = aps;
+    if (crossed) {
+      setApsFlash(crossed.label);
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = setTimeout(() => setApsFlash(null), 2500);
+    }
+  }, [aps]);
+
+  /* ── Mobile sticky CTA visibility ── */
+  const [showStickyCta, setShowStickyCta] = useState(false);
+  useEffect(() => {
+    const hero = document.querySelector('.hero') as HTMLElement | null;
+    if (!hero) return;
+    const io = new IntersectionObserver(([e]) => setShowStickyCta(!e.isIntersecting), { threshold: 0.05 });
+    io.observe(hero);
+    return () => io.disconnect();
+  }, []);
+
+  /* ── Hero grid parallax ── */
+  useEffect(() => {
+    if (window.matchMedia('(hover: none)').matches) return;
+    const hero = document.querySelector('.hero') as HTMLElement | null;
+    if (!hero) return;
+    const onMove = (e: MouseEvent) => {
+      const x = ((e.clientX / window.innerWidth) - 0.5) * 18;
+      const y = ((e.clientY / window.innerHeight) - 0.5) * 8;
+      hero.style.setProperty('--grid-x', `${x}px`);
+      hero.style.setProperty('--grid-y', `${y}px`);
+    };
+    window.addEventListener('mousemove', onMove, { passive: true });
+    return () => window.removeEventListener('mousemove', onMove);
   }, []);
 
   /* ── Live counter ── */
@@ -292,30 +362,59 @@ export default function LandingPage() {
 
   return (
     <div className="lp">
+      <a className="skip-link" href="#main-content">Skip to main content</a>
+
       {/* Custom cursor */}
-      <div className="lp-cursor" ref={cursorRef} />
-      <div className="lp-cursor-ring" ref={ringRef} />
+      <div className="lp-cursor" ref={cursorRef} aria-hidden="true" />
+      <div className="lp-cursor-ring" ref={ringRef} aria-hidden="true" />
 
       {/* ── NAV ── */}
       <header className="nav">
         <div className="container nav-row">
-          <Link href="/" className="brand" data-hover="">
-            <div className="brand-mark">P</div>
+          <Link href="/" className="brand" data-hover="" aria-label="Prospectus home">
+            <div className="brand-mark" aria-hidden="true">P</div>
             <span className="brand-name">Prospectus</span>
             <span className="brand-tag">built in SA · est. 2026</span>
           </Link>
-          <nav className="nav-links">
-            <a href="#how" data-hover="">The problem</a>
-            <a href="#pathways" data-hover="">Pathways</a>
-            <a href="#cockpit" data-hover="">The cockpit</a>
-            <a href="#pricing" data-hover="">Pricing</a>
+          <nav className="nav-links" aria-label="Site navigation">
+            <a href="#how" data-hover="" className={activeSection === 'how' ? 'nav-active' : ''}>The problem</a>
+            <a href="#pathways" data-hover="" className={activeSection === 'pathways' ? 'nav-active' : ''}>Pathways</a>
+            <a href="#cockpit" data-hover="" className={activeSection === 'cockpit' ? 'nav-active' : ''}>The cockpit</a>
+            <a href="#pricing" data-hover="" className={activeSection === 'pricing' ? 'nav-active' : ''}>Pricing</a>
           </nav>
           <div className="nav-cta">
             <Link href="/login" className="btn btn-ghost btn-sm" data-hover="">Sign in</Link>
-            <Link href="/signup" className="btn btn-primary btn-sm" data-hover="">Start free <span className="arr">→</span></Link>
+            <Link href="/signup" className="btn btn-primary btn-sm" data-hover="">Start free <span className="arr" aria-hidden="true">→</span></Link>
+            <button
+              className="nav-mob-btn"
+              aria-expanded={navOpen}
+              aria-controls="mobile-nav"
+              aria-label={navOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              onClick={() => setNavOpen(v => !v)}
+            >
+              <span className="bar" aria-hidden="true" />
+              <span className="bar" aria-hidden="true" />
+              <span className="bar" aria-hidden="true" />
+            </button>
           </div>
         </div>
-        <div className="container live-strip">
+        <nav
+          id="mobile-nav"
+          className={`nav-drawer${navOpen ? ' open' : ''}`}
+          aria-label="Mobile navigation"
+          aria-hidden={!navOpen}
+        >
+          <a href="#how" onClick={() => setNavOpen(false)}>The problem</a>
+          <a href="#pathways" onClick={() => setNavOpen(false)}>Pathways</a>
+          <a href="#cockpit" onClick={() => setNavOpen(false)}>The cockpit</a>
+          <a href="#pricing" onClick={() => setNavOpen(false)}>Pricing</a>
+          <div className="drawer-divider" aria-hidden="true" />
+          <div className="drawer-cta">
+            <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
+            <Link href="/signup" className="btn btn-primary" onClick={() => setNavOpen(false)}>Start free <span aria-hidden="true">→</span></Link>
+          </div>
+        </nav>
+        <div className="container live-strip" aria-hidden="true">
           <span><span className="pulse" /> Live</span>
           <span>·</span>
           <span><span className="live-counter tabular">{fmtCount}</span> futures rendered this month</span>
@@ -328,8 +427,10 @@ export default function LandingPage() {
         </div>
       </header>
 
+      <main id="main-content">
+
       {/* ── HERO ── */}
-      <section className="hero" id="hero">
+      <section className="hero">
         <div className="container">
           <div className="hero-top">
             <div className="l">
@@ -348,6 +449,7 @@ export default function LandingPage() {
               <span className="word"><span>Marks</span></span>
               {' '}
               <span className="word d2"><span>in.</span></span>
+              {' '}<span className="accent-bar" aria-hidden="true" />
             </span>
             <span className="row">
               <span className="word d3"><span className="serif">Future</span></span>
@@ -433,13 +535,16 @@ export default function LandingPage() {
               <div className="rend-dial">
                 <div className="dial-wrap">
                   <div className="dial">
+                    {apsFlash && (
+                      <div className="aps-flash" role="status" aria-live="polite">{apsFlash}</div>
+                    )}
                     <svg viewBox="0 0 100 100" aria-hidden="true">
                       <circle className="track" cx="50" cy="50" r="42"
                         strokeDasharray="197.92" strokeDashoffset="65.97" />
                       <circle className="fill" cx="50" cy="50" r="42"
                         strokeDasharray={DIAL_CIRC}
                         strokeDashoffset={dialOffset}
-                        style={{ transition: 'stroke-dashoffset .5s cubic-bezier(.2,.8,.2,1)' }}
+                        style={{ stroke: dialColor, transition: 'stroke-dashoffset .5s cubic-bezier(.2,.8,.2,1), stroke .6s ease' }}
                       />
                     </svg>
                     <div className="center">
@@ -733,12 +838,16 @@ export default function LandingPage() {
             <span className="caret" />
           </p>
 
-          <div className="scenarios">
-            {(Object.entries(SCENARIOS) as [ScenarioKey, typeof SCENARIOS[ScenarioKey]][]).map(([key, scen]) => (
+          <div className="scenarios" role="group" aria-label="Future-You scenarios">
+            {(Object.entries(SCENARIOS) as [ScenarioKey, typeof SCENARIOS[ScenarioKey]][]).map(([key]) => (
               <div
                 key={key}
                 className={`scen-card${activeScenario === key ? ' active' : ''}`}
                 onClick={() => selectScenario(key)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectScenario(key); } }}
+                role="button"
+                tabIndex={0}
+                aria-pressed={activeScenario === key}
                 data-hover=""
               >
                 <div className="sk">Scenario · {key === 'actuary' ? 'A' : key === 'doctor' ? 'B' : 'C'}</div>
@@ -793,7 +902,7 @@ export default function LandingPage() {
           </div>
 
           <div className="cockpit reveal-up">
-            <div className="cockpit-chrome">
+            <div className="cockpit-chrome" aria-hidden="true">
               <span className="cdots"><i /><i /><i /></span>
               <div className="curl"><span className="lock">●</span> prospectus.co.za / dashboard</div>
               <span className="clive"><i /> live</span>
@@ -982,7 +1091,7 @@ export default function LandingPage() {
           <div className="sa-wrap">
             <div className="sa-map reveal-up" aria-label="Coverage map of South African institutions">
               <div className="mgrid" />
-              <svg viewBox="0 0 500 400" preserveAspectRatio="xMidYMid meet">
+              <svg viewBox="0 0 500 400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map of South Africa showing Prospectus coverage across Cape Town, Gqeberha, Durban, Johannesburg, Pretoria, Bloemfontein and Polokwane">
                 <path d="M70 200 Q75 130 130 100 Q190 70 260 75 Q330 80 380 110 Q440 145 445 215 Q450 290 395 330 Q330 365 250 360 Q170 355 115 320 Q70 285 70 200 Z"
                   fill="hsl(var(--bg-2))" stroke="hsl(var(--ink) / 0.5)" strokeWidth="1.5" strokeDasharray="3 4" />
                 <ellipse cx="295" cy="250" rx="30" ry="20" fill="hsl(var(--bg))" stroke="hsl(var(--ink) / 0.3)" strokeWidth="1" strokeDasharray="2 3" />
@@ -1149,6 +1258,8 @@ export default function LandingPage() {
         </div>
       </section>
 
+      </main>
+
       {/* ── FOOTER ── */}
       <footer className="footer">
         <div className="container">
@@ -1170,6 +1281,12 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* ── MOBILE STICKY CTA ── */}
+      <div className={`mob-cta${showStickyCta ? ' visible' : ''}`} aria-hidden={!showStickyCta}>
+        <a href="#renderer" className="btn btn-accent">Render my future <span aria-hidden="true">→</span></a>
+        <Link href="/signup" className="btn btn-primary">Sign up free</Link>
+      </div>
     </div>
   );
 }

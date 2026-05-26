@@ -35,6 +35,64 @@ All notable changes to the Prospectus platform.
 
 ---
 
+## [Unreleased] — Landing v2 full redesign + interactions (2026-05-26)
+
+### Added — Landing page v2 (`app/page.tsx`, `app/landing-v2.css`)
+
+Full replacement of the old landing page with an award-grade single-page design.
+
+**Sections:** Hero word-rise + live counter · Future Renderer (APS calculator) · Institution marquee · Index strip (4 count-up stats) · Problem section · Pathways drag-gallery · Future-You cinematic scene · Dashboard cockpit mockup · Persona + 4-step flow · SA map · Testimonials · Pricing · Final CTA · Footer
+
+**Fonts:** Inter, Instrument Serif, IBM Plex Mono — all self-hosted via `next/font/google` (CSP safe).
+
+**CSS architecture:** All tokens and component styles scoped under `.lp` class — zero bleed into dashboard which uses its own `:root` tokens.
+
+**APS calculator (Future Renderer):**
+- 7 subject sliders + master-scrub drive a live SVG dial (270° arc, `DIAL_CIRC = 2π×42`)
+- Dial fill colour transitions: amber → orange → green as APS crosses 30 / 38
+- APS threshold-crossing toast — "Strong direct-entry profile", "Wide eligibility unlocked", etc. — fires with a `lp-toast` animation when slider crosses 24/30/36/40/44
+- Programme ticker, funding readout, career readout all derived live from APS
+
+**Interactions:**
+- Custom cursor (difference blend-mode dot + ring) — desktop only via `(hover: hover) and (pointer: fine)`
+- Scroll-reveal: `IntersectionObserver` on `.reveal-up` / `.reveal-line` / `[data-count]` elements; count-up numbers use eased `requestAnimationFrame`
+- **Scroll-spy nav:** active section tracked via IntersectionObserver; matching nav link gets animated underline
+- **APS threshold feedback:** `useRef` tracks previous APS; toast badge with 2.5 s auto-dismiss
+- **Mobile sticky CTA:** slides up from bottom once hero scrolls out of view; `env(safe-area-inset-bottom)` for iPhone notch
+- **Hero grid parallax:** mouse position drives `--grid-x`/`--grid-y` on `::before` dot-grid overlay (inset extended to `-30px` to absorb movement)
+- Pathway rail: mouse drag-to-scroll with `scroll-snap-type`; touch native-scroll
+- Future-You typewriter: `tweenText` with `requestAnimationFrame` character-by-character reveal
+- Horizontal marquees: `lp-marquee` keyframe, `aria-hidden` on decorative tracks
+
+### Added — Responsive & accessibility pass
+
+- **Mobile hamburger nav drawer** (≤940px): toggle, Escape-to-close, `aria-expanded`, `aria-controls`
+- **Skip-to-main-content** link — visible on first Tab; jumps to `<main id="main-content">`
+- `<main>` landmark wrapping all page sections; `<footer>` outside main
+- `aria-hidden` on decorative elements (cursor divs, marquee tracks, cockpit chrome, icon bars)
+- Scenario cards: `role=button`, `tabIndex=0`, keyboard Enter/Space activation, `aria-pressed`
+- SA map SVG: `role=img` + descriptive `aria-label`
+- Hover transforms (pw-card, qcard, plan, prow) scoped to `(hover: hover) and (pointer: fine)` — eliminates sticky-hover on touch
+- Touch targets: `btn-sm` → 44 px, range sliders → 28 px touch area
+- `brand-tag` hidden ≤479px; live-strip scrolls horizontally on mobile; hero counter hidden ≤639px
+- Cockpit sidebar hidden ≤640px; portrait max-width 360px on mobile; pathway cards 90vw ≤479px
+- Sign-in ghost button hidden ≤479px (available in mobile drawer)
+
+### Fixed — Pixel-perfect bugs
+
+- **Pull strikethrough animation** never fired: `.pull.revealed` selector had no matching JS — changed to `.reveal-up.in .pull .strike::after`
+- **Index strip `nth-child` cascade order**: `4n` rule was overridden by following `2n` rule (4 is divisible by 2); swapped order so `4n` wins
+- **Index strip double bottom border** on mobile 2-col: last row cells had `border-bottom` + container had `border-bottom`; fixed with `nth-last-child(-n+2) { border-bottom: none }`
+- **`accent-bar` missing from JSX**: CSS keyframe and styles were defined but the element was never rendered in the heading; added `<span className="accent-bar">` after "in."
+- **`proxy.ts` 500 crash** on preview deployments: non-null assertions `!` on Supabase env vars caused `createServerClient` to throw when vars absent; added null guard with early `return response`
+
+### Changed
+
+- `app/layout.tsx` — added Inter, Instrument Serif, IBM Plex Mono font variables alongside existing Fraunces + Plus Jakarta Sans
+- `CLAUDE.md` — added workflow rule: always update `CHANGELOG.md` before every commit
+
+---
+
 ## [Unreleased]
 
 ### Fixed — Phase 13: Dashboard data integrity + live counts
