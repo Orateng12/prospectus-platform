@@ -109,6 +109,8 @@ export default function LandingPage() {
   else if (aps >= 24) apsDescr = 'foundation & TVET routes open';
   else apsDescr = 'TVET pathways · foundation possible';
 
+  const dialColor = aps >= 38 ? 'hsl(152 55% 36%)' : aps >= 30 ? 'hsl(22 88% 52%)' : 'hsl(18 82% 44%)';
+
   const eligibleProgs = PROGRAMMES
     .filter(p => p.aps <= aps + 2)
     .sort((a, b) => b.aps - a.aps)
@@ -168,6 +170,66 @@ export default function LandingPage() {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setNavOpen(false); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  /* ── Scroll-spy: track active section for nav highlight ── */
+  const [activeSection, setActiveSection] = useState('');
+  useEffect(() => {
+    const ids = ['how', 'pathways', 'cockpit', 'pricing'];
+    const els = ids.map(id => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+    const io = new IntersectionObserver(
+      entries => { entries.forEach(e => { if (e.isIntersecting) setActiveSection(e.target.id); }); },
+      { rootMargin: '-20% 0px -70% 0px', threshold: 0 }
+    );
+    els.forEach(el => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
+  /* ── APS threshold crossing feedback ── */
+  const prevApsRef = useRef(aps);
+  const [apsFlash, setApsFlash] = useState<string | null>(null);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const thresholds = [
+      { at: 44, label: 'Medicine · top direct-entry range' },
+      { at: 40, label: 'Actuarial / Engineering unlocked' },
+      { at: 36, label: 'Strong direct-entry profile' },
+      { at: 30, label: 'Wide eligibility unlocked' },
+      { at: 24, label: 'Foundation routes open' },
+    ];
+    const prev = prevApsRef.current;
+    const crossed = thresholds.find(t => (prev < t.at && aps >= t.at) || (prev >= t.at && aps < t.at));
+    prevApsRef.current = aps;
+    if (crossed) {
+      setApsFlash(crossed.label);
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = setTimeout(() => setApsFlash(null), 2500);
+    }
+  }, [aps]);
+
+  /* ── Mobile sticky CTA visibility ── */
+  const [showStickyCta, setShowStickyCta] = useState(false);
+  useEffect(() => {
+    const hero = document.querySelector('.hero') as HTMLElement | null;
+    if (!hero) return;
+    const io = new IntersectionObserver(([e]) => setShowStickyCta(!e.isIntersecting), { threshold: 0.05 });
+    io.observe(hero);
+    return () => io.disconnect();
+  }, []);
+
+  /* ── Hero grid parallax ── */
+  useEffect(() => {
+    if (window.matchMedia('(hover: none)').matches) return;
+    const hero = document.querySelector('.hero') as HTMLElement | null;
+    if (!hero) return;
+    const onMove = (e: MouseEvent) => {
+      const x = ((e.clientX / window.innerWidth) - 0.5) * 18;
+      const y = ((e.clientY / window.innerHeight) - 0.5) * 8;
+      hero.style.setProperty('--grid-x', `${x}px`);
+      hero.style.setProperty('--grid-y', `${y}px`);
+    };
+    window.addEventListener('mousemove', onMove, { passive: true });
+    return () => window.removeEventListener('mousemove', onMove);
   }, []);
 
   /* ── Live counter ── */
@@ -315,10 +377,10 @@ export default function LandingPage() {
             <span className="brand-tag">built in SA · est. 2026</span>
           </Link>
           <nav className="nav-links" aria-label="Site navigation">
-            <a href="#how" data-hover="">The problem</a>
-            <a href="#pathways" data-hover="">Pathways</a>
-            <a href="#cockpit" data-hover="">The cockpit</a>
-            <a href="#pricing" data-hover="">Pricing</a>
+            <a href="#how" data-hover="" className={activeSection === 'how' ? 'nav-active' : ''}>The problem</a>
+            <a href="#pathways" data-hover="" className={activeSection === 'pathways' ? 'nav-active' : ''}>Pathways</a>
+            <a href="#cockpit" data-hover="" className={activeSection === 'cockpit' ? 'nav-active' : ''}>The cockpit</a>
+            <a href="#pricing" data-hover="" className={activeSection === 'pricing' ? 'nav-active' : ''}>Pricing</a>
           </nav>
           <div className="nav-cta">
             <Link href="/login" className="btn btn-ghost btn-sm" data-hover="">Sign in</Link>
@@ -473,13 +535,16 @@ export default function LandingPage() {
               <div className="rend-dial">
                 <div className="dial-wrap">
                   <div className="dial">
+                    {apsFlash && (
+                      <div className="aps-flash" role="status" aria-live="polite">{apsFlash}</div>
+                    )}
                     <svg viewBox="0 0 100 100" aria-hidden="true">
                       <circle className="track" cx="50" cy="50" r="42"
                         strokeDasharray="197.92" strokeDashoffset="65.97" />
                       <circle className="fill" cx="50" cy="50" r="42"
                         strokeDasharray={DIAL_CIRC}
                         strokeDashoffset={dialOffset}
-                        style={{ transition: 'stroke-dashoffset .5s cubic-bezier(.2,.8,.2,1)' }}
+                        style={{ stroke: dialColor, transition: 'stroke-dashoffset .5s cubic-bezier(.2,.8,.2,1), stroke .6s ease' }}
                       />
                     </svg>
                     <div className="center">
@@ -1216,6 +1281,12 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* ── MOBILE STICKY CTA ── */}
+      <div className={`mob-cta${showStickyCta ? ' visible' : ''}`} aria-hidden={!showStickyCta}>
+        <a href="#renderer" className="btn btn-accent">Render my future <span aria-hidden="true">→</span></a>
+        <Link href="/signup" className="btn btn-primary">Sign up free</Link>
+      </div>
     </div>
   );
 }
