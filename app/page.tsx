@@ -162,6 +162,14 @@ export default function LandingPage() {
     tweenText(setFutureSalary, s.salary, 600);
   }, []);
 
+  /* ── Mobile nav ── */
+  const [navOpen, setNavOpen] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setNavOpen(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
   /* ── Live counter ── */
   const [liveCount, setLiveCount] = useState(12438);
   useEffect(() => {
@@ -292,19 +300,21 @@ export default function LandingPage() {
 
   return (
     <div className="lp">
+      <a className="skip-link" href="#main-content">Skip to main content</a>
+
       {/* Custom cursor */}
-      <div className="lp-cursor" ref={cursorRef} />
-      <div className="lp-cursor-ring" ref={ringRef} />
+      <div className="lp-cursor" ref={cursorRef} aria-hidden="true" />
+      <div className="lp-cursor-ring" ref={ringRef} aria-hidden="true" />
 
       {/* ── NAV ── */}
       <header className="nav">
         <div className="container nav-row">
-          <Link href="/" className="brand" data-hover="">
-            <div className="brand-mark">P</div>
+          <Link href="/" className="brand" data-hover="" aria-label="Prospectus home">
+            <div className="brand-mark" aria-hidden="true">P</div>
             <span className="brand-name">Prospectus</span>
             <span className="brand-tag">built in SA · est. 2026</span>
           </Link>
-          <nav className="nav-links">
+          <nav className="nav-links" aria-label="Site navigation">
             <a href="#how" data-hover="">The problem</a>
             <a href="#pathways" data-hover="">Pathways</a>
             <a href="#cockpit" data-hover="">The cockpit</a>
@@ -312,10 +322,37 @@ export default function LandingPage() {
           </nav>
           <div className="nav-cta">
             <Link href="/login" className="btn btn-ghost btn-sm" data-hover="">Sign in</Link>
-            <Link href="/signup" className="btn btn-primary btn-sm" data-hover="">Start free <span className="arr">→</span></Link>
+            <Link href="/signup" className="btn btn-primary btn-sm" data-hover="">Start free <span className="arr" aria-hidden="true">→</span></Link>
+            <button
+              className="nav-mob-btn"
+              aria-expanded={navOpen}
+              aria-controls="mobile-nav"
+              aria-label={navOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              onClick={() => setNavOpen(v => !v)}
+            >
+              <span className="bar" aria-hidden="true" />
+              <span className="bar" aria-hidden="true" />
+              <span className="bar" aria-hidden="true" />
+            </button>
           </div>
         </div>
-        <div className="container live-strip">
+        <nav
+          id="mobile-nav"
+          className={`nav-drawer${navOpen ? ' open' : ''}`}
+          aria-label="Mobile navigation"
+          aria-hidden={!navOpen}
+        >
+          <a href="#how" onClick={() => setNavOpen(false)}>The problem</a>
+          <a href="#pathways" onClick={() => setNavOpen(false)}>Pathways</a>
+          <a href="#cockpit" onClick={() => setNavOpen(false)}>The cockpit</a>
+          <a href="#pricing" onClick={() => setNavOpen(false)}>Pricing</a>
+          <div className="drawer-divider" aria-hidden="true" />
+          <div className="drawer-cta">
+            <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
+            <Link href="/signup" className="btn btn-primary" onClick={() => setNavOpen(false)}>Start free <span aria-hidden="true">→</span></Link>
+          </div>
+        </nav>
+        <div className="container live-strip" aria-hidden="true">
           <span><span className="pulse" /> Live</span>
           <span>·</span>
           <span><span className="live-counter tabular">{fmtCount}</span> futures rendered this month</span>
@@ -329,7 +366,7 @@ export default function LandingPage() {
       </header>
 
       {/* ── HERO ── */}
-      <section className="hero" id="hero">
+      <section className="hero" id="main-content">
         <div className="container">
           <div className="hero-top">
             <div className="l">
@@ -733,12 +770,16 @@ export default function LandingPage() {
             <span className="caret" />
           </p>
 
-          <div className="scenarios">
+          <div className="scenarios" role="group" aria-label="Future-You scenarios">
             {(Object.entries(SCENARIOS) as [ScenarioKey, typeof SCENARIOS[ScenarioKey]][]).map(([key, scen]) => (
               <div
                 key={key}
                 className={`scen-card${activeScenario === key ? ' active' : ''}`}
                 onClick={() => selectScenario(key)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectScenario(key); } }}
+                role="button"
+                tabIndex={0}
+                aria-pressed={activeScenario === key}
                 data-hover=""
               >
                 <div className="sk">Scenario · {key === 'actuary' ? 'A' : key === 'doctor' ? 'B' : 'C'}</div>
@@ -793,7 +834,7 @@ export default function LandingPage() {
           </div>
 
           <div className="cockpit reveal-up">
-            <div className="cockpit-chrome">
+            <div className="cockpit-chrome" aria-hidden="true">
               <span className="cdots"><i /><i /><i /></span>
               <div className="curl"><span className="lock">●</span> prospectus.co.za / dashboard</div>
               <span className="clive"><i /> live</span>
@@ -982,7 +1023,7 @@ export default function LandingPage() {
           <div className="sa-wrap">
             <div className="sa-map reveal-up" aria-label="Coverage map of South African institutions">
               <div className="mgrid" />
-              <svg viewBox="0 0 500 400" preserveAspectRatio="xMidYMid meet">
+              <svg viewBox="0 0 500 400" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map of South Africa showing Prospectus coverage across Cape Town, Gqeberha, Durban, Johannesburg, Pretoria, Bloemfontein and Polokwane">
                 <path d="M70 200 Q75 130 130 100 Q190 70 260 75 Q330 80 380 110 Q440 145 445 215 Q450 290 395 330 Q330 365 250 360 Q170 355 115 320 Q70 285 70 200 Z"
                   fill="hsl(var(--bg-2))" stroke="hsl(var(--ink) / 0.5)" strokeWidth="1.5" strokeDasharray="3 4" />
                 <ellipse cx="295" cy="250" rx="30" ry="20" fill="hsl(var(--bg))" stroke="hsl(var(--ink) / 0.3)" strokeWidth="1" strokeDasharray="2 3" />

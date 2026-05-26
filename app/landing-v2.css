@@ -951,3 +951,95 @@
   .lp .marquee-track { animation: none !important; }
   .lp .hero-h1 .word > span, .lp .hero-sub, .lp .hero-actions, .lp .renderer { animation: none !important; opacity: 1 !important; transform: none !important; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   Responsive & Accessibility additions
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Skip to main content ── */
+.lp .skip-link {
+  position: fixed; top: -100%; left: 1rem;
+  background: hsl(var(--ink)); color: hsl(var(--bg));
+  padding: 0.75rem 1.25rem; border-radius: var(--radius);
+  font-weight: 600; font-size: 0.9375rem;
+  z-index: 10000; text-decoration: none;
+  transition: top .2s;
+}
+.lp .skip-link:focus { top: 1rem; outline: 2px solid hsl(var(--accent)); outline-offset: 2px; }
+
+/* ── Mobile hamburger button ── */
+.lp .nav-mob-btn {
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 5px;
+  width: 40px; height: 40px; padding: 0 10px;
+  border-radius: 8px; border: 1px solid hsl(var(--line-strong));
+  background: transparent; color: hsl(var(--ink));
+  transition: background .15s, border-color .15s;
+  flex-shrink: 0;
+}
+.lp .nav-mob-btn:hover { background: hsl(var(--bg-2)); border-color: hsl(var(--ink) / 0.3); }
+@media (min-width: 940px) { .lp .nav-mob-btn { display: none; } }
+.lp .nav-mob-btn .bar {
+  display: block; width: 100%; height: 1.5px;
+  background: currentColor; border-radius: 99px;
+  transition: transform .25s cubic-bezier(.2,.8,.2,1), opacity .2s;
+  transform-origin: center;
+}
+.lp .nav-mob-btn[aria-expanded="true"] .bar:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.lp .nav-mob-btn[aria-expanded="true"] .bar:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.lp .nav-mob-btn[aria-expanded="true"] .bar:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+/* ── Mobile nav drawer ── */
+.lp .nav-drawer {
+  display: none;
+  border-top: 1px solid hsl(var(--line));
+  padding: 0.75rem var(--gutter) 1.25rem;
+  background: hsl(var(--bg) / 0.98);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  flex-direction: column; gap: 0.125rem;
+}
+@media (max-width: 939px) { .lp .nav-drawer.open { display: flex; animation: lp-fadein 0.18s ease; } }
+.lp .nav-drawer a {
+  display: block; padding: 0.9rem 0.75rem;
+  font-size: 1.0625rem; font-weight: 600; color: hsl(var(--ink-2));
+  border-radius: 8px; transition: background .15s, color .15s;
+}
+.lp .nav-drawer a:hover, .lp .nav-drawer a:focus-visible {
+  background: hsl(var(--bg-2)); color: hsl(var(--ink)); outline: none;
+}
+.lp .nav-drawer .drawer-divider { height: 1px; background: hsl(var(--line)); margin: 0.5rem 0.75rem; }
+.lp .nav-drawer .drawer-cta { display: flex; gap: 0.5rem; padding: 0.5rem 0.75rem 0; }
+.lp .nav-drawer .drawer-cta .btn { flex: 1; justify-content: center; height: 3rem; font-size: 1rem; }
+
+/* ── Responsive: very small screens (≤479px) ── */
+@media (max-width: 479px) {
+  .lp .brand-tag { display: none; }
+  .lp .prow { gap: 0.875rem; padding: 1.5rem 0; }
+  .lp .prow:hover { padding-left: 0; background: none; }
+  .lp .pw-card { width: 90vw; }
+  .lp .pw-card.coda { width: 80vw; }
+}
+
+/* ── Responsive: small screens (≤639px) ── */
+@media (max-width: 639px) {
+  .lp .hero-top .r { display: none; }
+  .lp .live-strip { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 0.375rem; }
+  .lp .live-strip::-webkit-scrollbar { display: none; }
+  .lp .cockpit-body { min-height: 360px; }
+  .lp .final h2 { font-size: clamp(2.75rem, 16vw, 5rem); }
+  .lp .dial { width: 140px; height: 140px; }
+  .lp .dial .center .val { font-size: 2.5rem; }
+}
+
+/* ── Responsive: touch devices — larger tap targets ── */
+@media (max-width: 939px) {
+  .lp .btn-sm { height: 2.75rem; padding: 0 1rem; }
+  .lp input[type="range"] { height: 28px; }
+}
+
+/* ── Keyboard-accessible scenario cards ── */
+.lp .scen-card:focus-visible { outline: 2px solid hsl(var(--accent)); outline-offset: 2px; }
+
+/* ── Cockpit sidebar hidden on narrow ── */
+@media (max-width: 640px) { .lp .ck-side { display: none !important; } .lp .cockpit-body { grid-template-columns: 1fr; } }
