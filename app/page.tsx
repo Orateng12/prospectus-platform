@@ -365,8 +365,10 @@ export default function LandingPage() {
         </div>
       </header>
 
+      <main id="main-content">
+
       {/* ── HERO ── */}
-      <section className="hero" id="main-content">
+      <section className="hero">
         <div className="container">
           <div className="hero-top">
             <div className="l">
@@ -385,6 +387,7 @@ export default function LandingPage() {
               <span className="word"><span>Marks</span></span>
               {' '}
               <span className="word d2"><span>in.</span></span>
+              {' '}<span className="accent-bar" aria-hidden="true" />
             </span>
             <span className="row">
               <span className="word d3"><span className="serif">Future</span></span>
@@ -771,7 +774,7 @@ export default function LandingPage() {
           </p>
 
           <div className="scenarios" role="group" aria-label="Future-You scenarios">
-            {(Object.entries(SCENARIOS) as [ScenarioKey, typeof SCENARIOS[ScenarioKey]][]).map(([key, scen]) => (
+            {(Object.entries(SCENARIOS) as [ScenarioKey, typeof SCENARIOS[ScenarioKey]][]).map(([key]) => (
               <div
                 key={key}
                 className={`scen-card${activeScenario === key ? ' active' : ''}`}
@@ -1189,6 +1192,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      </main>
 
       {/* ── FOOTER ── */}
       <footer className="footer">
