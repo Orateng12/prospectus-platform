@@ -4,6 +4,23 @@ All notable changes to the Prospectus platform.
 
 ---
 
+## [Unreleased] — deeper UX: APS persistence, compare panel, match wiring, dead button cleanup (2026-05-27)
+
+### Features
+- **APS persistence** — Landing page APS calculator now saves to `sessionStorage` on every change. `/programmes` and future pages read from `sessionStorage` on mount; URL param `?aps=N` takes priority (for deep-linking). All "Browse all programmes" and "Find my funding" CTAs on the landing page now append `?aps=<current>` to the URL so the receiving page picks it up immediately.
+- **Dynamic strategy hint** — Programmes page sidebar hint now shows APS-appropriate advice (changes based on user's APS value: 40+ / 34–39 / 28–33 / <28 thresholds).
+- **Compare panel** — "Compare side-by-side →" button in the compare tray now opens a full-screen overlay panel. Shows the selected programmes (up to 3) in a responsive grid table with rows: APS required, Annual fee, Duration, City, Pathway, Career. Closes on backdrop click, ✕ button, or "Close". "Save comparison →" links to signup.
+- **Bursaries match form wired to filters** — "Match now →" was a passive anchor that only scrolled; it's now a `<button>` that maps `matchField` → `fields` Set and `matchIncome` → `funderTypes` (income > R 1m hides gov/NGO needs-based sources), then scrolls to `#explorer`.
+- **Dead button cleanup** — `/bursaries`: "Save list" → Link to `/signup`; "Apply to all →" → Link to `/signup`; "Show more matches" → "Unlock 1,284 sources →" Link to `/signup`; BCard "Open application" and "Save for later" → Links to `/signup`.
+
+### Files changed
+- `app/page.tsx`
+- `app/programmes/page.tsx`
+- `app/programmes/programmes.css`
+- `app/bursaries/page.tsx`
+
+---
+
 ## [Unreleased] — deep review: critical bug fixes + consistency pass (2026-05-27)
 
 ### Bug fixes

@@ -696,6 +696,61 @@
   font-style: italic; font-size: 1rem; color: hsl(var(--accent));
 }
 
+/* ── Compare overlay ── */
+.prg-page .compare-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: hsl(var(--bg) / 0.88); backdrop-filter: blur(10px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem; animation: bur-pulse .15s ease;
+}
+.prg-page .compare-panel {
+  background: hsl(var(--card)); border: 1px solid hsl(var(--line-strong));
+  border-radius: 16px; width: 100%; max-width: 920px; max-height: 88vh;
+  overflow-y: auto; display: flex; flex-direction: column;
+}
+.prg-page .compare-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.25rem 1.75rem; border-bottom: 1px solid hsl(var(--line));
+  position: sticky; top: 0; background: hsl(var(--card)); z-index: 1;
+}
+.prg-page .compare-panel-head h2 {
+  font-size: 1.125rem; font-weight: 700; letter-spacing: -0.02em;
+}
+.prg-page .compare-panel-head h2 .ct {
+  color: hsl(var(--mute)); font-weight: 400; font-size: 0.9375rem;
+}
+.prg-page .compare-close {
+  width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center;
+  background: none; border: 1px solid hsl(var(--line)); border-radius: 6px;
+  cursor: pointer; font-size: 1rem; color: hsl(var(--mute));
+  transition: color .15s, border-color .15s;
+}
+.prg-page .compare-close:hover { color: hsl(var(--ink)); border-color: hsl(var(--line-strong)); }
+.prg-page .compare-table-wrap { padding: 0 1.75rem; flex: 1; }
+.prg-page .compare-row {
+  display: grid; gap: 0;
+  border-bottom: 1px solid hsl(var(--line)); padding: 0.75rem 0;
+}
+.prg-page .compare-row.compare-header { padding-bottom: 1rem; border-bottom: 2px solid hsl(var(--line-strong)); }
+.prg-page .compare-label {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 0.625rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.07em; color: hsl(var(--mute)); padding-top: 0.2rem;
+}
+.prg-page .compare-col { padding: 0 0.625rem; font-size: 0.9375rem; color: hsl(var(--ink)); }
+.prg-page .compare-prog-name {
+  font-weight: 700; font-size: 0.9375rem; letter-spacing: -0.02em; line-height: 1.2;
+}
+.prg-page .compare-prog-inst {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 0.625rem; color: hsl(var(--mute)); margin-top: 0.25rem; letter-spacing: 0.04em;
+}
+.prg-page .compare-actions {
+  display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+  padding: 1.25rem 1.75rem; border-top: 1px solid hsl(var(--line));
+  position: sticky; bottom: 0; background: hsl(var(--card));
+}
+
 /* ── Scroll reveal ── */
 .prg-page .reveal-up {
   opacity: 0; transform: translateY(28px);

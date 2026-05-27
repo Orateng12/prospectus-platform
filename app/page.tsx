@@ -229,6 +229,11 @@ export default function LandingPage() {
     }
   }, [aps]);
 
+  /* ── Persist APS to sessionStorage for inner pages ── */
+  useEffect(() => {
+    sessionStorage.setItem('prospectus_aps', String(aps));
+  }, [aps]);
+
   /* ── Mobile sticky CTA visibility ── */
   const [showStickyCta, setShowStickyCta] = useState(false);
   useEffect(() => {
@@ -833,7 +838,7 @@ export default function LandingPage() {
               <div className="coda-eyebrow">Coda</div>
               <h4>The taxonomy is the index. The index is the product.</h4>
               <p>These four badges appear next to every programme on the platform. Filter by them, compare across them, sort funding against them.</p>
-              <Link href="/programmes" className="btn" data-hover="">Browse all programmes <span className="arr">→</span></Link>
+              <Link href={'/programmes?aps=' + aps} className="btn" data-hover="">Browse all programmes <span className="arr">→</span></Link>
             </article>
           </div>
         </div>
@@ -856,7 +861,7 @@ export default function LandingPage() {
                 Every accredited programme in SA, tagged by pathway, ranked by fit to your profile. The directory is just the entry point.
               </p>
               <div className="prg-teaser-actions reveal-up">
-                <Link href="/programmes" className="btn btn-primary" data-hover="">
+                <Link href={'/programmes?aps=' + aps} className="btn btn-primary" data-hover="">
                   Browse all programmes <span className="arr">→</span>
                 </Link>
               </div>
@@ -879,7 +884,7 @@ export default function LandingPage() {
                 </div>
               ))}
               <div className="prg-mini-cta">
-                <Link href="/programmes" data-hover="">
+                <Link href={'/programmes?aps=' + aps} data-hover="">
                   <span>View all 9,412 programmes</span>
                   <span className="arr">→</span>
                 </Link>
@@ -907,7 +912,7 @@ export default function LandingPage() {
                 we&apos;ll show you every rand you qualify for.
               </p>
               <div className="reveal-up" style={{ marginTop: '1.75rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <Link href="/bursaries" className="btn btn-primary" data-hover="">
+                <Link href={'/bursaries?aps=' + aps} className="btn btn-primary" data-hover="">
                   Find my funding <span className="arr">→</span>
                 </Link>
                 <Link href="/bursaries#explorer" className="btn btn-outline" data-hover="">

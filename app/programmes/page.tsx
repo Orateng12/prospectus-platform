@@ -68,9 +68,15 @@ const FAC_LABELS: Record<string, string> = {
 };
 const FAC_COUNTS: Record<string, number> = { science: 7, commerce: 6, engineering: 7, health: 4, humanities: 4, law: 1, education: 1, arts: 1, vocational: 3 };
 const PW_COUNTS: Record<string, number> = { direct: 22, extended: 4, foundation: 3, tvet: 3 };
-const MY_APS = 42;
 
 function fmtFee(n: number) { return 'R ' + n.toLocaleString(); }
+
+function strategyHint(aps: number): string {
+  if (aps >= 40) return `At APS ${aps}, you're well-positioned for direct entry. Lock in 4 reach, 6 target, 2 safety.`;
+  if (aps >= 34) return `At APS ${aps}, direct entry is within reach. Mix target and safety schools for a strong list.`;
+  if (aps >= 28) return `At APS ${aps}, extended and foundation programmes are strong options. Explore widely.`;
+  return `At APS ${aps}, TVET and foundation routes are your best paths. Apply broadly.`;
+}
 
 /* ── ProgRow sub-component ── */
 function ProgRow({
@@ -143,13 +149,30 @@ export default function ProgrammesPage() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [navOpen, setNavOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [userAps, setUserAps] = useState(42);
+  const [compareOpen, setCompareOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const navRef = useRef<HTMLElement>(null);
   const lastScrollY = useRef(0);
 
+  /* ── Read APS from URL param or sessionStorage on mount ── */
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const urlAps = url.searchParams.get('aps');
+    if (urlAps) {
+      const n = parseInt(urlAps, 10);
+      if (!isNaN(n) && n >= 18 && n <= 49) { setUserAps(n); return; }
+    }
+    const stored = sessionStorage.getItem('prospectus_aps');
+    if (stored) {
+      const n = parseInt(stored, 10);
+      if (!isNaN(n) && n >= 18 && n <= 49) setUserAps(n);
+    }
+  }, []);
+
   /* ── Context counts ── */
-  const eligible = useMemo(() => PROG_DATA.filter(p => p.aps <= MY_APS).length, []);
-  const nearCount = useMemo(() => PROG_DATA.filter(p => p.aps > MY_APS && p.aps <= MY_APS + 2).length, []);
+  const eligible = useMemo(() => PROG_DATA.filter(p => p.aps <= userAps).length, [userAps]);
+  const nearCount = useMemo(() => PROG_DATA.filter(p => p.aps > userAps && p.aps <= userAps + 2).length, [userAps]);
 
   /* ── Filtered + sorted list ── */
   const filtered = useMemo(() => {
@@ -158,8 +181,8 @@ export default function ProgrammesPage() {
       pathways.has(p.pathway) &&
       provinces.has(p.prov) &&
       faculties.has(p.faculty) &&
-      (!eligibleOnly || p.aps <= MY_APS) &&
-      (!nearEligible || p.aps <= MY_APS + 2)
+      (!eligibleOnly || p.aps <= userAps) &&
+      (!nearEligible || p.aps <= userAps + 2)
     );
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -174,12 +197,12 @@ export default function ProgrammesPage() {
       if (sort === 'fee-desc') return b.fee - a.fee;
       if (sort === 'name')     return a.name.localeCompare(b.name);
       /* fit: eligible first, near second, then closest APS */
-      const aE = MY_APS >= a.aps ? 0 : (MY_APS >= a.aps - 2 ? 1 : 2);
-      const bE = MY_APS >= b.aps ? 0 : (MY_APS >= b.aps - 2 ? 1 : 2);
+      const aE = userAps >= a.aps ? 0 : (userAps >= a.aps - 2 ? 1 : 2);
+      const bE = userAps >= b.aps ? 0 : (userAps >= b.aps - 2 ? 1 : 2);
       if (aE !== bE) return aE - bE;
-      return Math.abs(MY_APS - a.aps) - Math.abs(MY_APS - b.aps);
+      return Math.abs(userAps - a.aps) - Math.abs(userAps - b.aps);
     });
-  }, [apsMin, apsMax, pathways, provinces, faculties, eligibleOnly, nearEligible, search, sort]);
+  }, [apsMin, apsMax, pathways, provinces, faculties, eligibleOnly, nearEligible, search, sort, userAps]);
 
   /* ── Toggle helpers ── */
   function togglePathway(pw: string) {
@@ -312,7 +335,7 @@ export default function ProgrammesPage() {
           <div className="l">
             <div className="my-aps">
               <span className="lbl">Your APS</span>
-              <span className="v tabular">{MY_APS}</span>
+              <span className="v tabular">{userAps}</span>
               <span className="out">/ 49</span>
             </div>
             <span className="summary">
@@ -439,7 +462,7 @@ export default function ProgrammesPage() {
           {/* Strategy hint */}
           <div className="strategy-hint">
             <div className="hint-label">Strategy hint</div>
-            <p>&ldquo;At APS 42, you&rsquo;re well-positioned for direct entry. Lock in 4 reach, 6 target, 2 safety.&rdquo;</p>
+            <p>&ldquo;{strategyHint(userAps)}&rdquo;</p>
             <p className="hint-attr">— Strategy AI · based on your profile</p>
           </div>
         </aside>
@@ -526,7 +549,7 @@ export default function ProgrammesPage() {
                 <ProgRow
                   key={p.id}
                   p={p}
-                  userAps={MY_APS}
+                  userAps={userAps}
                   compareSet={compareSet}
                   onToggleCompare={toggleCompare}
                 />
@@ -535,6 +558,66 @@ export default function ProgrammesPage() {
           </div>
         </section>
       </main>
+
+      {/* ── Compare overlay ── */}
+      {compareOpen && (() => {
+        const ids = [...compareSet];
+        const progs = ids.map(id => PROG_DATA.find(x => x.id === id)!);
+        const cols = `140px repeat(${ids.length}, 1fr)`;
+        const rows: [string, (p: ProgEntry) => string][] = [
+          ['APS required', p => String(p.aps)],
+          ['Annual fee',   p => fmtFee(p.fee)],
+          ['Duration',     p => p.dur + ' yr'],
+          ['City',         p => p.city],
+          ['Pathway',      p => p.pathway],
+          ['Career',       p => p.career],
+        ];
+        return (
+          <div
+            className="compare-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Compare programmes"
+            onClick={e => { if (e.target === e.currentTarget) setCompareOpen(false); }}
+          >
+            <div className="compare-panel">
+              <div className="compare-panel-head">
+                <h2>Compare programmes <span className="ct">· {ids.length} selected</span></h2>
+                <button className="compare-close" onClick={() => setCompareOpen(false)} aria-label="Close compare">✕</button>
+              </div>
+              <div className="compare-table-wrap">
+                <div className="compare-row compare-header" style={{ gridTemplateColumns: cols }}>
+                  <div className="compare-label" />
+                  {progs.map((p, i) => (
+                    <div key={i} className="compare-col">
+                      <div className="compare-prog-name">{p.name}</div>
+                      <div className="compare-prog-inst">{p.inst}</div>
+                    </div>
+                  ))}
+                </div>
+                {rows.map(([label, fn]) => (
+                  <div key={label} className="compare-row" style={{ gridTemplateColumns: cols }}>
+                    <div className="compare-label">{label}</div>
+                    {progs.map((p, i) => (
+                      <div key={i} className="compare-col">{fn(p)}</div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+              <div className="compare-actions">
+                <button className="btn btn-ghost" onClick={() => setCompareOpen(false)}>Close</button>
+                <button
+                  className="btn btn-outline"
+                  onClick={() => { setCompareSet(new Set()); setCompareOpen(false); }}
+                >Clear selection</button>
+                <Link href="/signup" className="btn btn-primary">
+                  Save comparison <span aria-hidden="true">→</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Mobile filter button ── */}
       <button
@@ -564,7 +647,7 @@ export default function ProgrammesPage() {
             ) : null;
           })}
         </div>
-        <button className="compare-btn">
+        <button className="compare-btn" onClick={() => setCompareOpen(true)}>
           Compare side-by-side <span aria-hidden="true">→</span>
         </button>
         <button

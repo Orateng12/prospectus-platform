@@ -238,9 +238,9 @@ function BCard({ b }: { b: BursaryEntry }) {
           {b.deadlineSoon && ` · ${b.deadlineDays} days`}
         </div>
         {b.canApply ? (
-          <button className="btn btn-primary btn-sm">Open application <span className="arr">→</span></button>
+          <Link href="/signup" className="btn btn-primary btn-sm">Open application <span className="arr">→</span></Link>
         ) : (
-          <button className="btn btn-outline btn-sm">Save for later</button>
+          <Link href="/signup" className="btn btn-outline btn-sm">Save for later</Link>
         )}
       </div>
     </article>
@@ -299,6 +299,24 @@ export default function BursariesPage() {
     setFields(new Set(['engineering', 'health', 'cs']));
     setCovers(new Set(['tuition', 'accommodation', 'living']));
     setObligations(new Set());
+  }
+  function handleMatch() {
+    const fieldMap: Record<string, string[]> = {
+      engineering: ['engineering'],
+      health: ['health'],
+      commerce: ['commerce'],
+      cs: ['cs', 'engineering'],
+      education: ['education'],
+      humanities: ['humanities'],
+      agriculture: ['agriculture'],
+    };
+    setFields(new Set(fieldMap[matchField] ?? [matchField]));
+    if (matchIncome === 'over-1m') {
+      setFunderTypes(new Set(['corp', 'uni']));
+    } else {
+      setFunderTypes(new Set(['gov', 'corp', 'uni', 'ngo']));
+    }
+    document.getElementById('explorer')?.scrollIntoView({ behavior: 'smooth' });
   }
 
   /* ── Effects ── */
@@ -526,9 +544,9 @@ export default function BursariesPage() {
                   <option value="agriculture">Agriculture</option>
                 </select>
               </div>
-              <a href="#explorer" className="btn btn-primary" style={{ height: '2.875rem' }}>
+              <button type="button" className="btn btn-primary" style={{ height: '2.875rem' }} onClick={handleMatch}>
                 Match now <span className="arr">→</span>
-              </a>
+              </button>
             </div>
           </div>
         </div>
@@ -683,8 +701,8 @@ export default function BursariesPage() {
                   <option value="deadline">Sort · closest deadline</option>
                   <option value="name">Sort · alphabetical</option>
                 </select>
-                <button className="btn btn-outline btn-sm">Save list</button>
-                <button className="btn btn-primary btn-sm">Apply to all <span className="arr">→</span></button>
+                <Link href="/signup" className="btn btn-outline btn-sm">Save list</Link>
+                <Link href="/signup" className="btn btn-primary btn-sm">Apply to all <span className="arr">→</span></Link>
               </div>
             </div>
 
@@ -701,7 +719,9 @@ export default function BursariesPage() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'center', padding: '2.5rem 0' }}>
-              <button className="btn btn-outline">Show more matches</button>
+              <Link href="/signup" className="btn btn-outline">
+                Unlock 1,284 sources <span className="arr">→</span>
+              </Link>
             </div>
           </div>
         </div>
