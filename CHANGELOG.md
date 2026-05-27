@@ -4,6 +4,24 @@ All notable changes to the Prospectus platform.
 
 ---
 
+## [Unreleased] — /pathways page (2026-05-27)
+
+### New pages
+- **`/pathways`** — Full implementation of the Prospectus Pathways design from the bundle prototype.
+  - Sticky top nav with mobile drawer (hamburger), live-strip, scroll-spy-active pathway jump nav (sticky at 109 px below the nav).
+  - Page-header hero with breadcrumb, eyebrow, serif display heading.
+  - Intro pull-quote section with two-column frame/promise copy.
+  - Four pathway sections (Direct, Extended, Foundation, TVET) — alternating light/dark — each with: coloured letter card, stats row (2→4 col responsive), myth-buster grid, programme sampler table, student story card.
+  - Side-by-side 8-row comparison table; responsive collapse at ≤720 px using `data-h` pseudo-content.
+  - Final CTA dark section + footer.
+  - Scroll-reveal (`IntersectionObserver`) on all `.reveal-up` elements; scroll-spy highlights active jump-nav item.
+
+### Files added
+- `app/pathways/page.tsx` — `'use client'` page component.
+- `app/pathways/pathways.css` — design-system tokens + component styles all scoped under `.pw-page`.
+
+---
+
 ## Phase 12 — Real document vault, AI insight caching, notification bell (2026-05-19)
 
 ### New features
