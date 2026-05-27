@@ -16,7 +16,7 @@ All notable changes to the Prospectus platform.
   - Mobile filter overlay (drawer replaces sidebar at <980 px).
 
 ### Modified pages
-- **`app/page.tsx`** — Added "Programmes · the index" teaser section (03/04), nav link + scroll-spy, coda card link updated to `/programmes`.
+- **`app/page.tsx`** — Added "Programmes · the index" teaser section (03/04), nav link + scroll-spy, coda card link updated to `/programmes`. Mobile nav drawer includes a direct "Browse all 9,412 programmes →" link to `/programmes`.
 - **`app/landing-v2.css`** — Added `.lp .prg-teaser-grid`, `.prg-mini-table`, `.prg-mini-row`, `.prg-mini-cta` CSS for the new teaser section.
 
 ### Modified components

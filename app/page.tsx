@@ -411,6 +411,9 @@ export default function LandingPage() {
           <a href="#cockpit" onClick={() => setNavOpen(false)}>The cockpit</a>
           <a href="#pricing" onClick={() => setNavOpen(false)}>Pricing</a>
           <div className="drawer-divider" aria-hidden="true" />
+          <Link href="/programmes" className="btn btn-outline" style={{ justifyContent: 'space-between' }} onClick={() => setNavOpen(false)}>
+            Browse all 9,412 programmes <span aria-hidden="true">→</span>
+          </Link>
           <div className="drawer-cta">
             <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
             <Link href="/signup" className="btn btn-primary" onClick={() => setNavOpen(false)}>Start free <span aria-hidden="true">→</span></Link>
