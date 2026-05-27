@@ -173,11 +173,26 @@ export default function LandingPage() {
 
   /* ── Mobile nav ── */
   const [navOpen, setNavOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
+  const lastScrollY = useRef(0);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setNavOpen(false); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
+  useEffect(() => {
+    const onScroll = () => {
+      if (navOpen) return;
+      const y = window.scrollY;
+      const nav = navRef.current;
+      if (!nav) return;
+      if (y > lastScrollY.current && y > 80) nav.classList.add('nav-hidden');
+      else nav.classList.remove('nav-hidden');
+      lastScrollY.current = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [navOpen]);
 
   /* ── Scroll-spy: track active section for nav highlight ── */
   const [activeSection, setActiveSection] = useState('');
@@ -376,7 +391,7 @@ export default function LandingPage() {
       <div className="lp-cursor-ring" ref={ringRef} aria-hidden="true" />
 
       {/* ── NAV ── */}
-      <header className="nav">
+      <header className="nav" ref={navRef}>
         <div className="container nav-row">
           <Link href="/" className="brand" data-hover="" aria-label="Prospectus home">
             <div className="brand-mark" aria-hidden="true">P</div>
@@ -413,20 +428,28 @@ export default function LandingPage() {
           aria-label="Mobile navigation"
           aria-hidden={!navOpen}
         >
-          <span className="drawer-section-label">Explore</span>
-          <Link href="/pathways" className="drawer-page-link" onClick={() => setNavOpen(false)}>Pathways</Link>
-          <Link href="/programmes" className="drawer-page-link" onClick={() => setNavOpen(false)}>Programmes</Link>
-          <Link href="/bursaries" className="drawer-page-link" onClick={() => setNavOpen(false)}>Bursaries</Link>
-          <div className="drawer-divider" aria-hidden="true" />
-          <span className="drawer-section-label">On this page</span>
-          <a href="#how" onClick={() => setNavOpen(false)}>The problem</a>
-          <a href="#pathways" onClick={() => setNavOpen(false)}>Pathways</a>
-          <a href="#programmes" onClick={() => setNavOpen(false)}>Programmes</a>
-          <a href="#bursaries" onClick={() => setNavOpen(false)}>Bursaries</a>
-          <a href="#cockpit" onClick={() => setNavOpen(false)}>The cockpit</a>
-          <a href="#pricing" onClick={() => setNavOpen(false)}>Pricing</a>
-          <div className="drawer-divider" aria-hidden="true" />
-          <div className="drawer-cta">
+          <div className="nav-drawer-head">
+            <Link href="/" className="brand" onClick={() => setNavOpen(false)}>
+              <div className="brand-mark" aria-hidden="true">P</div>
+              <span className="brand-name">Prospectus</span>
+            </Link>
+            <button className="btn btn-ghost btn-sm" onClick={() => setNavOpen(false)} aria-label="Close menu">✕</button>
+          </div>
+          <div className="nav-drawer-links">
+            <span className="drawer-section-label">Explore</span>
+            <Link href="/pathways" onClick={() => setNavOpen(false)}>Pathways</Link>
+            <Link href="/programmes" onClick={() => setNavOpen(false)}>Programmes</Link>
+            <Link href="/bursaries" onClick={() => setNavOpen(false)}>Bursaries</Link>
+            <div className="drawer-divider" aria-hidden="true" />
+            <span className="drawer-section-label">On this page</span>
+            <a href="#how" onClick={() => setNavOpen(false)}>The problem</a>
+            <a href="#pathways" onClick={() => setNavOpen(false)}>Pathways</a>
+            <a href="#programmes" onClick={() => setNavOpen(false)}>Programmes</a>
+            <a href="#bursaries" onClick={() => setNavOpen(false)}>Bursaries</a>
+            <a href="#cockpit" onClick={() => setNavOpen(false)}>The cockpit</a>
+            <a href="#pricing" onClick={() => setNavOpen(false)}>Pricing</a>
+          </div>
+          <div className="nav-drawer-cta">
             <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
             <Link href="/signup" className="btn btn-primary" onClick={() => setNavOpen(false)}>Start free <span aria-hidden="true">→</span></Link>
           </div>

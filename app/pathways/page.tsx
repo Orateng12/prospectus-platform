@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import './pathways.css';
 
 export default function PathwaysPage() {
   const [navOpen, setNavOpen] = useState(false);
   const [activePathway, setActivePathway] = useState('');
+  const navRef = useRef<HTMLElement>(null);
+  const lastScrollY = useRef(0);
 
   /* scroll reveal */
   useEffect(() => {
@@ -36,12 +38,25 @@ export default function PathwaysPage() {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
+  useEffect(() => {
+    const onScroll = () => {
+      if (navOpen) return;
+      const y = window.scrollY;
+      const nav = navRef.current;
+      if (!nav) return;
+      if (y > lastScrollY.current && y > 80) nav.classList.add('nav-hidden');
+      else nav.classList.remove('nav-hidden');
+      lastScrollY.current = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [navOpen]);
 
   return (
     <div className="pw-page">
 
       {/* ══ NAV ══ */}
-      <header className="nav">
+      <header className="nav" ref={navRef}>
         <div className="container nav-row">
           <Link href="/" className="brand" aria-label="Prospectus home">
             <div className="brand-mark" aria-hidden="true">P</div>

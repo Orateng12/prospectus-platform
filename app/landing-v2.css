@@ -178,7 +178,9 @@
   backdrop-filter: saturate(160%) blur(14px);
   -webkit-backdrop-filter: saturate(160%) blur(14px);
   border-bottom: 1px solid hsl(var(--line));
+  transition: transform .3s ease;
 }
+.lp .nav.nav-hidden { transform: translateY(-100%); }
 .lp .nav-row { display: flex; align-items: center; justify-content: space-between; height: 68px; }
 .lp .brand { display: flex; align-items: center; gap: 0.75rem; }
 .lp .brand-mark {
@@ -993,35 +995,28 @@
 
 /* ── Mobile nav drawer ── */
 .lp .nav-drawer {
-  display: none;
-  border-top: 1px solid hsl(var(--line));
-  padding: 0.75rem var(--gutter) 1.25rem;
-  background: hsl(var(--bg) / 0.98);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  flex-direction: column; gap: 0.125rem;
+  position: fixed; inset: 0; z-index: 200; background: hsl(var(--bg));
+  display: flex; flex-direction: column; padding: 1.5rem;
+  transform: translateX(100%);
+  transition: transform .35s cubic-bezier(.2,.8,.2,1); overflow-y: auto;
 }
-@media (max-width: 939px) { .lp .nav-drawer.open { display: flex; animation: lp-fadein 0.18s ease; } }
-.lp .nav-drawer a {
-  display: block; padding: 0.9rem 0.75rem;
-  font-size: 1.0625rem; font-weight: 600; color: hsl(var(--ink-2));
-  border-radius: 8px; transition: background .15s, color .15s;
+.lp .nav-drawer.open { transform: translateX(0); }
+.lp .nav-drawer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+.lp .nav-drawer-links { display: flex; flex-direction: column; gap: 0; }
+.lp .nav-drawer-links a {
+  padding: 1rem 0; border-bottom: 1px solid hsl(var(--line));
+  font-size: 1.375rem; font-weight: 700; letter-spacing: -0.025em; color: hsl(var(--ink));
+  display: block; transition: color .15s;
 }
-.lp .nav-drawer a:hover, .lp .nav-drawer a:focus-visible {
-  background: hsl(var(--bg-2)); color: hsl(var(--ink)); outline: none;
-}
-.lp .nav-drawer .drawer-divider { height: 1px; background: hsl(var(--line)); margin: 0.5rem 0.75rem; }
-.lp .nav-drawer .drawer-section-label {
-  display: block; padding: 0.625rem 0.75rem 0.25rem;
+.lp .nav-drawer-links a:hover { color: hsl(var(--accent-600)); }
+.lp .nav-drawer-links .drawer-section-label {
+  display: block; padding: 0.75rem 0 0.25rem;
   font-family: var(--font-ibm-plex-mono), monospace;
   font-size: 0.625rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
-  color: hsl(var(--mute));
+  color: hsl(var(--mute)); border-bottom: none;
 }
-.lp .nav-drawer .drawer-page-link {
-  color: hsl(var(--ink)); font-weight: 700;
-}
-.lp .nav-drawer .drawer-cta { display: flex; gap: 0.5rem; padding: 0.5rem 0.75rem 0; }
-.lp .nav-drawer .drawer-cta .btn { flex: 1; justify-content: center; height: 3rem; font-size: 1rem; }
+.lp .nav-drawer-links .drawer-divider { height: 1px; background: hsl(var(--line)); margin: 0.25rem 0; border-bottom: none; }
+.lp .nav-drawer-cta { margin-top: auto; padding-top: 2rem; display: flex; flex-direction: column; gap: 0.75rem; }
 /* Logo + hamburger only in mobile nav bar — buttons live in the drawer */
 @media (max-width: 939px) { .lp .nav-cta .btn { display: none; } }
 

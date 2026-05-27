@@ -144,6 +144,8 @@ export default function ProgrammesPage() {
   const [navOpen, setNavOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const lastScrollY = useRef(0);
 
   /* ── Context counts ── */
   const eligible = useMemo(() => PROG_DATA.filter(p => p.aps <= MY_APS).length, []);
@@ -223,11 +225,24 @@ export default function ProgrammesPage() {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
+  useEffect(() => {
+    const onScroll = () => {
+      if (navOpen) return;
+      const y = window.scrollY;
+      const nav = navRef.current;
+      if (!nav) return;
+      if (y > lastScrollY.current && y > 80) nav.classList.add('nav-hidden');
+      else nav.classList.remove('nav-hidden');
+      lastScrollY.current = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [navOpen]);
 
   return (
     <div className="prg-page">
       {/* ── NAV ── */}
-      <header className="nav">
+      <header className="nav" ref={navRef}>
         <div className="container nav-row">
           <Link href="/" className="brand" aria-label="Prospectus home">
             <div className="brand-mark" aria-hidden="true">P</div>

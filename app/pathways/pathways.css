@@ -162,7 +162,9 @@
   backdrop-filter: saturate(160%) blur(14px);
   -webkit-backdrop-filter: saturate(160%) blur(14px);
   border-bottom: 1px solid hsl(var(--line));
+  transition: transform .3s ease;
 }
+.pw-page .nav.nav-hidden { transform: translateY(-100%); }
 .pw-page .nav-row {
   display: flex;
   align-items: center;

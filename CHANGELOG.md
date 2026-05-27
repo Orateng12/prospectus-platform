@@ -4,6 +4,20 @@ All notable changes to the Prospectus platform.
 
 ---
 
+## [Unreleased] — mobile nav: fix drawer visibility + auto-hide on scroll (2026-05-27)
+
+### Bug fixes
+- **`app/page.tsx` + `app/landing-v2.css`** — Converted landing page mobile drawer from a `display: none` dropdown (living inside the sticky header) to `position: fixed; inset: 0; transform: translateX(100%) → translateX(0)` full-screen overlay, matching the pattern already used on /programmes, /bursaries, /pathways. Restructured drawer JSX to use `nav-drawer-head` (brand + ✕ close), `nav-drawer-links` (Explore page links + On this page anchors), `nav-drawer-cta` (Sign in + Start free).
+- **All four public pages** — Added auto-hide nav on scroll: nav slides up after 80px scroll-down, reappears on scroll-up. Implemented via `navRef` + `lastScrollY` ref + passive scroll listener. Nav stays visible while drawer is open.
+
+### Files changed
+- `app/page.tsx`, `app/landing-v2.css`
+- `app/programmes/page.tsx`, `app/programmes/programmes.css`
+- `app/bursaries/page.tsx`, `app/bursaries/bursaries.css`
+- `app/pathways/page.tsx`, `app/pathways/pathways.css`
+
+---
+
 ## [Unreleased] — mobile nav fix across all public pages (2026-05-27)
 
 ### Modified pages

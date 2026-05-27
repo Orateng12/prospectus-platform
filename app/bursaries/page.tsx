@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import './bursaries.css';
 
@@ -251,6 +251,8 @@ function BCard({ b }: { b: BursaryEntry }) {
 export default function BursariesPage() {
   const [navOpen, setNavOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
+  const lastScrollY = useRef(0);
   const [funderTypes, setFunderTypes] = useState<Set<FunderType>>(new Set(['gov', 'corp', 'uni', 'ngo']));
   const [maxAmount, setMaxAmount] = useState(500);
   const [fields, setFields] = useState<Set<string>>(new Set(['engineering', 'health', 'cs']));
@@ -316,12 +318,25 @@ export default function BursariesPage() {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, []);
+  useEffect(() => {
+    const onScroll = () => {
+      if (navOpen) return;
+      const y = window.scrollY;
+      const nav = navRef.current;
+      if (!nav) return;
+      if (y > lastScrollY.current && y > 80) nav.classList.add('nav-hidden');
+      else nav.classList.remove('nav-hidden');
+      lastScrollY.current = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [navOpen]);
 
   return (
     <div className="bur-page">
 
       {/* ══ NAV ══ */}
-      <header className="nav">
+      <header className="nav" ref={navRef}>
         <div className="container nav-row">
           <Link href="/" className="brand" aria-label="Prospectus home">
             <div className="brand-mark" aria-hidden="true">P</div>
