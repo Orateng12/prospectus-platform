@@ -45,6 +45,13 @@ function pickCareer(aps: number) {
   return best;
 }
 
+const BURSARIES = [
+  { name: 'NSFAS',                    src: 'gov · public',      t: 'gov',  logo: 'NSFAS', fit: 96, fitLevel: 'high', amtStr: '198k' },
+  { name: 'Standard Bank Eng & Tech', src: 'corp · banking',    t: 'corp', logo: 'SBSA',  fit: 92, fitLevel: 'high', amtStr: '218k' },
+  { name: "UCT Vice-Chancellor's",    src: 'uni · merit',       t: 'uni',  logo: 'UC',    fit: 88, fitLevel: 'high', amtStr: '76k'  },
+  { name: 'Sasol Foundation STEM',    src: 'corp · industrial', t: 'corp', logo: 'SAS',   fit: 85, fitLevel: 'high', amtStr: '224k' },
+];
+
 const PROGRAMMES = [
   { name: 'BSc Computer Science',     inst: 'UCT',             aps: 38, p: 'direct'     },
   { name: 'BSc Actuarial Science',    inst: 'Wits',            aps: 40, p: 'direct'     },
@@ -175,7 +182,7 @@ export default function LandingPage() {
   /* ── Scroll-spy: track active section for nav highlight ── */
   const [activeSection, setActiveSection] = useState('');
   useEffect(() => {
-    const ids = ['how', 'pathways', 'programmes', 'cockpit', 'pricing'];
+    const ids = ['how', 'pathways', 'programmes', 'bursaries', 'cockpit', 'pricing'];
     const els = ids.map(id => document.getElementById(id)).filter(Boolean) as HTMLElement[];
     const io = new IntersectionObserver(
       entries => { entries.forEach(e => { if (e.isIntersecting) setActiveSection(e.target.id); }); },
@@ -380,6 +387,7 @@ export default function LandingPage() {
             <a href="#how" data-hover="" className={activeSection === 'how' ? 'nav-active' : ''}>The problem</a>
             <a href="#pathways" data-hover="" className={activeSection === 'pathways' ? 'nav-active' : ''}>Pathways</a>
             <a href="#programmes" data-hover="" className={activeSection === 'programmes' ? 'nav-active' : ''}>Programmes</a>
+            <a href="#bursaries" data-hover="" className={activeSection === 'bursaries' ? 'nav-active' : ''}>Bursaries</a>
             <a href="#cockpit" data-hover="" className={activeSection === 'cockpit' ? 'nav-active' : ''}>The cockpit</a>
             <a href="#pricing" data-hover="" className={activeSection === 'pricing' ? 'nav-active' : ''}>Pricing</a>
           </nav>
@@ -408,11 +416,15 @@ export default function LandingPage() {
           <a href="#how" onClick={() => setNavOpen(false)}>The problem</a>
           <a href="#pathways" onClick={() => setNavOpen(false)}>Pathways</a>
           <a href="#programmes" onClick={() => setNavOpen(false)}>Programmes</a>
+          <a href="#bursaries" onClick={() => setNavOpen(false)}>Bursaries</a>
           <a href="#cockpit" onClick={() => setNavOpen(false)}>The cockpit</a>
           <a href="#pricing" onClick={() => setNavOpen(false)}>Pricing</a>
           <div className="drawer-divider" aria-hidden="true" />
           <Link href="/programmes" className="btn btn-outline" style={{ justifyContent: 'space-between' }} onClick={() => setNavOpen(false)}>
             Browse all 9,412 programmes <span aria-hidden="true">→</span>
+          </Link>
+          <Link href="/bursaries" className="btn btn-outline" style={{ justifyContent: 'space-between' }} onClick={() => setNavOpen(false)}>
+            Browse 1,284 funding sources <span aria-hidden="true">→</span>
           </Link>
           <div className="drawer-cta">
             <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
@@ -806,7 +818,7 @@ export default function LandingPage() {
       <section className="section" id="programmes">
         <div className="container">
           <div className="rule reveal-up">
-            <span className="num">03 / 05</span>
+            <span className="num">03 / 06</span>
             <span className="rule-line reveal-line" />
             <span className="lbl">Programmes · the index</span>
           </div>
@@ -847,6 +859,55 @@ export default function LandingPage() {
                   <span className="arr">→</span>
                 </Link>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── BURSARIES TEASER ── */}
+      <section className="section" id="bursaries">
+        <div className="container">
+          <div className="rule reveal-up">
+            <span className="num">04 / 06</span>
+            <span className="rule-line reveal-line" />
+            <span className="lbl">Bursaries · live index</span>
+          </div>
+          <div className="bur-teaser-grid">
+            <div className="reveal-up">
+              <h2 className="heading text-balance" style={{ marginTop: '1.5rem' }}>
+                <span className="serif">R 41.2bn</span> is<br />looking for a student.
+              </h2>
+              <p className="sub text-pretty" style={{ marginTop: '1.25rem', maxWidth: '38rem' }}>
+                1,284 funding sources — NSFAS, corporate, university, NGO. Tell us four things,
+                we&apos;ll show you every rand you qualify for.
+              </p>
+              <div className="reveal-up" style={{ marginTop: '1.75rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <Link href="/bursaries" className="btn btn-primary" data-hover="">
+                  Find my funding <span className="arr">→</span>
+                </Link>
+                <Link href="/bursaries#explorer" className="btn btn-outline" data-hover="">
+                  Browse all sources
+                </Link>
+              </div>
+            </div>
+            <div className="bur-mini-list reveal-up">
+              {BURSARIES.map((b, i) => (
+                <div key={i} className="bur-mini-card">
+                  <div className={`bur-mini-logo ${b.t}`}>{b.logo}</div>
+                  <div className="bur-mini-body">
+                    <div className="bur-mini-name">{b.name}</div>
+                    <div className="bur-mini-src">{b.src}</div>
+                  </div>
+                  <div className="bur-mini-right">
+                    <div className={`bur-mini-fit ${b.fitLevel}`}>{b.fit}</div>
+                    <div className="bur-mini-amount">R {b.amtStr}</div>
+                  </div>
+                </div>
+              ))}
+              <Link href="/bursaries" className="bur-mini-cta" data-hover="">
+                <span>See all 1,284 funding sources</span>
+                <span className="arr">→</span>
+              </Link>
             </div>
           </div>
         </div>
@@ -926,7 +987,7 @@ export default function LandingPage() {
       <section className="section" id="cockpit">
         <div className="container">
           <div className="rule reveal-up">
-            <span className="num">04 / 05</span>
+            <span className="num">05 / 06</span>
             <span className="rule-line reveal-line" />
             <span className="lbl">The student cockpit · 36 pages</span>
           </div>
@@ -1071,7 +1132,7 @@ export default function LandingPage() {
       <section className="persona-band">
         <div className="container section">
           <div className="rule reveal-up" style={{ marginBottom: '3rem' }}>
-            <span className="num">05 / 05</span>
+            <span className="num">06 / 06</span>
             <span className="rule-line reveal-line" />
             <span className="lbl">Designed for one student · Lerato</span>
           </div>

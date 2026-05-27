@@ -1162,3 +1162,61 @@
   .lp .prg-mini-head, .lp .prg-mini-row { grid-template-columns: 1fr auto auto; }
   .lp .prg-mini-head span:nth-child(2), .lp .prg-mini-row .inst { display: none; }
 }
+
+/* ── Bursaries teaser section ── */
+.lp .bur-teaser-grid {
+  display: grid; grid-template-columns: 1fr; gap: 3rem; margin-top: 3rem;
+}
+@media (min-width: 900px) {
+  .lp .bur-teaser-grid { grid-template-columns: 1fr 1.3fr; gap: 5rem; align-items: start; }
+}
+.lp .bur-mini-list {
+  border: 1px solid hsl(var(--line)); border-radius: 14px;
+  overflow: hidden; background: hsl(var(--card));
+}
+.lp .bur-mini-card {
+  display: grid; grid-template-columns: 44px 1fr auto;
+  gap: 1rem; align-items: center; padding: 1rem 1.25rem;
+  border-bottom: 1px solid hsl(var(--line)); transition: background .15s;
+}
+.lp .bur-mini-card:hover { background: hsl(var(--bg-2)); }
+.lp .bur-mini-logo {
+  width: 44px; height: 44px; border-radius: 10px;
+  border: 1px solid hsl(var(--line-strong));
+  display: grid; place-items: center;
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 0.6rem; font-weight: 700; letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+.lp .bur-mini-logo.gov  { background: hsl(212 72% 37%); color: white; border-color: hsl(212 72% 37%); }
+.lp .bur-mini-logo.corp { background: hsl(222 30% 8%); color: hsl(36 33% 97%); border-color: hsl(222 30% 8%); }
+.lp .bur-mini-logo.uni  { background: hsl(36 25% 94%); color: hsl(222 30% 8%); }
+.lp .bur-mini-logo.ngo  { background: hsl(22 88% 52% / 0.15); color: hsl(18 82% 44%); border-color: hsl(22 88% 52% / 0.3); }
+.lp .bur-mini-name {
+  font-weight: 700; font-size: 0.9375rem; letter-spacing: -0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lp .bur-mini-src {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 0.625rem; color: hsl(var(--mute)); margin-top: 0.125rem;
+}
+.lp .bur-mini-right { text-align: right; flex-shrink: 0; }
+.lp .bur-mini-fit {
+  font-weight: 800; font-size: 1.5rem; letter-spacing: -0.04em;
+  line-height: 1; font-variant-numeric: tabular-nums;
+}
+.lp .bur-mini-fit.high { color: hsl(152 55% 36%); }
+.lp .bur-mini-fit.med  { color: hsl(18 82% 44%); }
+.lp .bur-mini-amount {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 0.625rem; color: hsl(var(--mute)); margin-top: 0.125rem;
+}
+.lp .bur-mini-cta {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.875rem 1.25rem; font-size: 0.875rem; font-weight: 600;
+  background: hsl(var(--bg-2)); transition: background .15s;
+  color: hsl(var(--ink-2));
+}
+.lp .bur-mini-cta:hover { color: hsl(var(--accent-600)); }
+.lp .bur-mini-cta .arr { color: hsl(var(--accent)); transition: transform .25s; }
+.lp .bur-mini-cta:hover .arr { transform: translateX(3px); }

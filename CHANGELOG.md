@@ -4,6 +4,27 @@ All notable changes to the Prospectus platform.
 
 ---
 
+## [Unreleased] — /bursaries page + landing teaser integration (2026-05-27)
+
+### New pages
+- **`/bursaries`** — Full public bursary funding explorer with match panel and two-column filter/results layout.
+  - Fund-strip hero with 4 aggregate stats (R 41.2bn / 1,284 sources / 11 avg / R 86k avg).
+  - Match panel with 4 controlled selects (pathway, household income, province, field of study).
+  - Two-column explorer: sticky filter sidebar (funder-type pills, amount slider, field/covers/obligation checkboxes) + results list.
+  - 8-bursary hardcoded dataset (NSFAS, SBSA, UCT VC, Sasol, Allan Gray, Discovery, Wits Eng, Moshal) with live useMemo filtering and sort.
+  - How-it-works section (4 steps), source breakdown grid (6 cells), FAQ accordion (6 native `<details>` items).
+  - Mobile filter overlay via floating FAB button; Escape key closes panels.
+
+### Modified pages
+- **`app/page.tsx`** — Added "Bursaries · live index" teaser section (04/06) with bur-mini-list preview cards. Added `#bursaries` to scroll-spy IDs, desktop nav link, mobile drawer link + "Browse 1,284 funding sources" button. Renumbered cockpit to 05/06 and persona to 06/06.
+- **`app/landing-v2.css`** — Appended `.lp .bur-teaser-grid`, `.bur-mini-list`, `.bur-mini-card`, `.bur-mini-logo` variants, `.bur-mini-name/src/right/fit/amount/cta` CSS.
+
+### Files added
+- `app/bursaries/page.tsx` — `'use client'` page component.
+- `app/bursaries/bursaries.css` — design-system tokens + component styles all scoped under `.bur-page`.
+
+---
+
 ## [Unreleased] — /programmes page + landing teaser + dashboard upgrade (2026-05-27)
 
 ### New pages
