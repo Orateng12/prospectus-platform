@@ -1011,8 +1011,19 @@
   background: hsl(var(--bg-2)); color: hsl(var(--ink)); outline: none;
 }
 .lp .nav-drawer .drawer-divider { height: 1px; background: hsl(var(--line)); margin: 0.5rem 0.75rem; }
+.lp .nav-drawer .drawer-section-label {
+  display: block; padding: 0.625rem 0.75rem 0.25rem;
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 0.625rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  color: hsl(var(--mute));
+}
+.lp .nav-drawer .drawer-page-link {
+  color: hsl(var(--ink)); font-weight: 700;
+}
 .lp .nav-drawer .drawer-cta { display: flex; gap: 0.5rem; padding: 0.5rem 0.75rem 0; }
 .lp .nav-drawer .drawer-cta .btn { flex: 1; justify-content: center; height: 3rem; font-size: 1rem; }
+/* Logo + hamburger only in mobile nav bar — buttons live in the drawer */
+@media (max-width: 939px) { .lp .nav-cta .btn { display: none; } }
 
 /* ── Responsive: very small screens (≤479px) ── */
 @media (max-width: 479px) {

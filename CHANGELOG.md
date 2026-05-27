@@ -4,6 +4,14 @@ All notable changes to the Prospectus platform.
 
 ---
 
+## [Unreleased] — mobile nav restructure (2026-05-27)
+
+### Modified pages
+- **`app/page.tsx`** — Landing page mobile drawer restructured: logo + hamburger only in nav bar (Sign in/Start free hidden on mobile); drawer now has "Explore" group (page Links to /pathways, /programmes, /bursaries), "On this page" section anchors, and Sign in + Start free CTA at the bottom.
+- **`app/landing-v2.css`** — Added `.drawer-section-label` mono group heading styles; added `.drawer-page-link` bold variant; added `@media (max-width: 939px) { .lp .nav-cta .btn { display: none; } }` to hide buttons from mobile nav bar.
+
+---
+
 ## [Unreleased] — /bursaries page + landing teaser integration (2026-05-27)
 
 ### New pages
