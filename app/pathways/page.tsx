@@ -67,8 +67,6 @@ export default function PathwaysPage() {
             <Link href="/programmes">Programmes</Link>
             <Link href="/pathways" className="is-active">Pathways</Link>
             <Link href="/bursaries">Bursaries</Link>
-            <Link href="/careers">Careers</Link>
-            <Link href="/for-institutions">For institutions</Link>
           </nav>
           <div className="nav-cta">
             <Link href="/login" className="btn btn-ghost btn-sm">Sign in</Link>
@@ -87,33 +85,6 @@ export default function PathwaysPage() {
           </div>
         </div>
 
-        {/* mobile drawer */}
-        <nav
-          id="mobile-nav-pw"
-          className={`nav-drawer${navOpen ? ' open' : ''}`}
-          aria-label="Mobile navigation"
-          aria-hidden={!navOpen}
-        >
-          <div className="nav-drawer-head">
-            <Link href="/" className="brand" onClick={() => setNavOpen(false)}>
-              <div className="brand-mark" aria-hidden="true">P</div>
-              <span className="brand-name">Prospectus</span>
-            </Link>
-            <button className="btn btn-ghost btn-sm" onClick={() => setNavOpen(false)} aria-label="Close menu">✕</button>
-          </div>
-          <div className="nav-drawer-links">
-            <Link href="/programmes" onClick={() => setNavOpen(false)}>Programmes</Link>
-            <Link href="/pathways" className="is-active" onClick={() => setNavOpen(false)}>Pathways</Link>
-            <Link href="/bursaries" onClick={() => setNavOpen(false)}>Bursaries</Link>
-            <Link href="/careers" onClick={() => setNavOpen(false)}>Careers</Link>
-            <Link href="/for-institutions" onClick={() => setNavOpen(false)}>For institutions</Link>
-          </div>
-          <div className="nav-drawer-cta">
-            <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
-            <Link href="/signup" className="btn btn-accent" onClick={() => setNavOpen(false)}>Start free →</Link>
-          </div>
-        </nav>
-
         <div className="container live-strip" aria-hidden="true">
           <span><span className="pulse"></span> Live</span>
           <span>·</span>
@@ -124,6 +95,31 @@ export default function PathwaysPage() {
           <span>Last updated 24 May 2026 04:12 SAST</span>
         </div>
       </header>
+
+      <nav
+        id="mobile-nav-pw"
+        className={`nav-drawer${navOpen ? ' open' : ''}`}
+        aria-label="Mobile navigation"
+        aria-hidden={!navOpen}
+        inert={!navOpen ? ('' as unknown as boolean) : undefined}
+      >
+        <div className="nav-drawer-head">
+          <Link href="/" className="brand" onClick={() => setNavOpen(false)}>
+            <div className="brand-mark" aria-hidden="true">P</div>
+            <span className="brand-name">Prospectus</span>
+          </Link>
+          <button className="btn btn-ghost btn-sm" onClick={() => setNavOpen(false)} aria-label="Close menu">✕</button>
+        </div>
+        <div className="nav-drawer-links">
+          <Link href="/programmes" onClick={() => setNavOpen(false)}>Programmes</Link>
+          <Link href="/pathways" className="is-active" onClick={() => setNavOpen(false)}>Pathways</Link>
+          <Link href="/bursaries" onClick={() => setNavOpen(false)}>Bursaries</Link>
+        </div>
+        <div className="nav-drawer-cta">
+          <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
+          <Link href="/signup" className="btn btn-accent" onClick={() => setNavOpen(false)}>Start free <span aria-hidden="true">→</span></Link>
+        </div>
+      </nav>
 
       {/* ══ PAGE HEADER ══ */}
       <section className="page-header">
@@ -745,8 +741,8 @@ export default function PathwaysPage() {
               <nav className="next" aria-label="Related pages">
                 <Link href="/programmes"><span>Browse programmes · filter by pathway</span><span className="arr">→</span></Link>
                 <Link href="/bursaries"><span>NSFAS &amp; bursary funding · all pathways</span><span className="arr">→</span></Link>
-                <Link href="/careers"><span>Careers by pathway · salary &amp; growth</span><span className="arr">→</span></Link>
-                <Link href="/for-institutions"><span>Source: USAf / CHE methodology</span><span className="arr">→</span></Link>
+                <Link href="/signup"><span>Careers by pathway · salary &amp; growth</span><span className="arr">→</span></Link>
+                <a href="https://www.usaf.ac.za" target="_blank" rel="noopener noreferrer"><span>Source: USAf / CHE methodology</span><span className="arr">→</span></a>
               </nav>
             </div>
           </div>
@@ -765,11 +761,10 @@ export default function PathwaysPage() {
             <div className="footer-links">
               <Link href="/programmes">Programmes</Link>
               <Link href="/bursaries">Bursaries</Link>
-              <Link href="/careers">Career explorer</Link>
+              <Link href="/signup">Career explorer</Link>
               <Link href="/pathways">Pathways</Link>
-              <Link href="/for-institutions">For institutions</Link>
-              <Link href="/about">About</Link>
-              <Link href="/contact">Contact</Link>
+              <Link href="/signup">For institutions</Link>
+              <Link href="/">About</Link>
             </div>
           </div>
           <div className="footer-meta">

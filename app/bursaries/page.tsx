@@ -347,8 +347,6 @@ export default function BursariesPage() {
             <Link href="/programmes">Programmes</Link>
             <Link href="/pathways">Pathways</Link>
             <Link href="/bursaries" className="is-active">Bursaries</Link>
-            <Link href="/careers">Careers</Link>
-            <Link href="/for-institutions">For institutions</Link>
           </nav>
           <div className="nav-cta">
             <Link href="/login" className="btn btn-ghost btn-sm">Sign in</Link>
@@ -367,32 +365,6 @@ export default function BursariesPage() {
           </div>
         </div>
 
-        <nav
-          id="bur-mobile-nav"
-          className={`nav-drawer${navOpen ? ' open' : ''}`}
-          aria-label="Mobile navigation"
-          aria-hidden={!navOpen}
-        >
-          <div className="nav-drawer-head">
-            <Link href="/" className="brand" onClick={() => setNavOpen(false)}>
-              <div className="brand-mark" aria-hidden="true">P</div>
-              <span className="brand-name">Prospectus</span>
-            </Link>
-            <button className="btn btn-ghost btn-sm" onClick={() => setNavOpen(false)} aria-label="Close menu">✕</button>
-          </div>
-          <div className="nav-drawer-links">
-            <Link href="/programmes" onClick={() => setNavOpen(false)}>Programmes</Link>
-            <Link href="/pathways" onClick={() => setNavOpen(false)}>Pathways</Link>
-            <Link href="/bursaries" className="is-active" onClick={() => setNavOpen(false)}>Bursaries</Link>
-            <Link href="/careers" onClick={() => setNavOpen(false)}>Careers</Link>
-            <Link href="/for-institutions" onClick={() => setNavOpen(false)}>For institutions</Link>
-          </div>
-          <div className="nav-drawer-cta">
-            <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
-            <Link href="/signup" className="btn btn-primary" onClick={() => setNavOpen(false)}>Start free <span aria-hidden="true">→</span></Link>
-          </div>
-        </nav>
-
         <div className="container live-strip" aria-hidden="true">
           <span><span className="pulse" /> Live</span>
           <span>·</span>
@@ -403,6 +375,31 @@ export default function BursariesPage() {
           <span>Updated 26 May 2026 04:12 SAST</span>
         </div>
       </header>
+
+      <nav
+        id="bur-mobile-nav"
+        className={`nav-drawer${navOpen ? ' open' : ''}`}
+        aria-label="Mobile navigation"
+        aria-hidden={!navOpen}
+        inert={!navOpen ? ('' as unknown as boolean) : undefined}
+      >
+        <div className="nav-drawer-head">
+          <Link href="/" className="brand" onClick={() => setNavOpen(false)}>
+            <div className="brand-mark" aria-hidden="true">P</div>
+            <span className="brand-name">Prospectus</span>
+          </Link>
+          <button className="btn btn-ghost btn-sm" onClick={() => setNavOpen(false)} aria-label="Close menu">✕</button>
+        </div>
+        <div className="nav-drawer-links">
+          <Link href="/programmes" onClick={() => setNavOpen(false)}>Programmes</Link>
+          <Link href="/pathways" onClick={() => setNavOpen(false)}>Pathways</Link>
+          <Link href="/bursaries" className="is-active" onClick={() => setNavOpen(false)}>Bursaries</Link>
+        </div>
+        <div className="nav-drawer-cta">
+          <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
+          <Link href="/signup" className="btn btn-primary" onClick={() => setNavOpen(false)}>Start free <span aria-hidden="true">→</span></Link>
+        </div>
+      </nav>
 
       {/* ══ PAGE HEADER ══ */}
       <section className="page-header">
@@ -940,8 +937,8 @@ export default function BursariesPage() {
               <nav className="next" aria-label="Related pages">
                 <Link href="/programmes"><span>Browse all programmes</span><span className="arr">→</span></Link>
                 <Link href="/pathways"><span>Read the four pathways</span><span className="arr">→</span></Link>
-                <Link href="/careers"><span>See careers &amp; outcomes</span><span className="arr">→</span></Link>
-                <Link href="/for-institutions"><span>For funders &amp; institutions</span><span className="arr">→</span></Link>
+                <Link href="/signup"><span>See careers &amp; outcomes</span><span className="arr">→</span></Link>
+                <Link href="/signup"><span>For funders &amp; institutions</span><span className="arr">→</span></Link>
               </nav>
             </div>
           </div>
@@ -960,11 +957,10 @@ export default function BursariesPage() {
             <div className="footer-links">
               <Link href="/programmes">Programmes</Link>
               <Link href="/bursaries">Bursaries</Link>
-              <Link href="/careers">Careers</Link>
+              <Link href="/signup">Careers</Link>
               <Link href="/pathways">Pathways</Link>
-              <Link href="/for-institutions">For institutions</Link>
-              <a href="#">About</a>
-              <a href="#">Contact</a>
+              <Link href="/signup">For institutions</Link>
+              <Link href="/">About</Link>
             </div>
           </div>
           <div className="footer-meta">

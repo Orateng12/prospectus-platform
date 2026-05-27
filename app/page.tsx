@@ -422,38 +422,6 @@ export default function LandingPage() {
             </button>
           </div>
         </div>
-        <nav
-          id="mobile-nav"
-          className={`nav-drawer${navOpen ? ' open' : ''}`}
-          aria-label="Mobile navigation"
-          aria-hidden={!navOpen}
-        >
-          <div className="nav-drawer-head">
-            <Link href="/" className="brand" onClick={() => setNavOpen(false)}>
-              <div className="brand-mark" aria-hidden="true">P</div>
-              <span className="brand-name">Prospectus</span>
-            </Link>
-            <button className="btn btn-ghost btn-sm" onClick={() => setNavOpen(false)} aria-label="Close menu">✕</button>
-          </div>
-          <div className="nav-drawer-links">
-            <span className="drawer-section-label">Explore</span>
-            <Link href="/pathways" onClick={() => setNavOpen(false)}>Pathways</Link>
-            <Link href="/programmes" onClick={() => setNavOpen(false)}>Programmes</Link>
-            <Link href="/bursaries" onClick={() => setNavOpen(false)}>Bursaries</Link>
-            <div className="drawer-divider" aria-hidden="true" />
-            <span className="drawer-section-label">On this page</span>
-            <a href="#how" onClick={() => setNavOpen(false)}>The problem</a>
-            <a href="#pathways" onClick={() => setNavOpen(false)}>Pathways</a>
-            <a href="#programmes" onClick={() => setNavOpen(false)}>Programmes</a>
-            <a href="#bursaries" onClick={() => setNavOpen(false)}>Bursaries</a>
-            <a href="#cockpit" onClick={() => setNavOpen(false)}>The cockpit</a>
-            <a href="#pricing" onClick={() => setNavOpen(false)}>Pricing</a>
-          </div>
-          <div className="nav-drawer-cta">
-            <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
-            <Link href="/signup" className="btn btn-primary" onClick={() => setNavOpen(false)}>Start free <span aria-hidden="true">→</span></Link>
-          </div>
-        </nav>
         <div className="container live-strip" aria-hidden="true">
           <span><span className="pulse" /> Live</span>
           <span>·</span>
@@ -466,6 +434,40 @@ export default function LandingPage() {
           <span>9 provinces · 26 universities · 50 TVET</span>
         </div>
       </header>
+
+      <nav
+        id="mobile-nav"
+        className={`nav-drawer${navOpen ? ' open' : ''}`}
+        aria-label="Mobile navigation"
+        aria-hidden={!navOpen}
+        inert={!navOpen ? ('' as unknown as boolean) : undefined}
+      >
+        <div className="nav-drawer-head">
+          <Link href="/" className="brand" onClick={() => setNavOpen(false)}>
+            <div className="brand-mark" aria-hidden="true">P</div>
+            <span className="brand-name">Prospectus</span>
+          </Link>
+          <button className="btn btn-ghost btn-sm" onClick={() => setNavOpen(false)} aria-label="Close menu">✕</button>
+        </div>
+        <div className="nav-drawer-links">
+          <span className="drawer-section-label">Explore</span>
+          <Link href="/pathways" onClick={() => setNavOpen(false)}>Pathways</Link>
+          <Link href="/programmes" onClick={() => setNavOpen(false)}>Programmes</Link>
+          <Link href="/bursaries" onClick={() => setNavOpen(false)}>Bursaries</Link>
+          <div className="drawer-divider" aria-hidden="true" />
+          <span className="drawer-section-label">On this page</span>
+          <a href="#how" onClick={() => setNavOpen(false)}>The problem</a>
+          <a href="#pathways" onClick={() => setNavOpen(false)}>Pathways</a>
+          <a href="#programmes" onClick={() => setNavOpen(false)}>Programmes</a>
+          <a href="#bursaries" onClick={() => setNavOpen(false)}>Bursaries</a>
+          <a href="#cockpit" onClick={() => setNavOpen(false)}>The cockpit</a>
+          <a href="#pricing" onClick={() => setNavOpen(false)}>Pricing</a>
+        </div>
+        <div className="nav-drawer-cta">
+          <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
+          <Link href="/signup" className="btn btn-primary" onClick={() => setNavOpen(false)}>Start free <span aria-hidden="true">→</span></Link>
+        </div>
+      </nav>
 
       <main id="main-content">
 
@@ -695,7 +697,7 @@ export default function LandingPage() {
           <div className="indexed">
             {[
               { sup: 'Indexed', ix: '01', count: '9412',  fmt: 'comma',  label: 'Programmes across every accredited SA university & TVET — updated weekly.' },
-              { sup: 'Indexed', ix: '02', count: '3.2',   fmt: 'zar-bn', label: 'In bursary, scholarship & NSFAS funding — scored to each student profile.' },
+              { sup: 'Indexed', ix: '02', count: '41.2',  fmt: 'zar-bn', label: 'In bursary, scholarship & NSFAS funding — 1,284 sources scored to each student profile.' },
               { sup: 'Tracked', ix: '03', count: '324',   fmt: 'plain',  label: 'Careers with live demand, salary and 10-year growth projections.' },
               { sup: 'Latency', ix: '04', count: null,    fmt: null,     label: 'From first mark in, to a personalised strategy out. No sign-up needed.', val: '<60s' },
             ].map(item => (
@@ -716,7 +718,7 @@ export default function LandingPage() {
       <section className="section" id="how">
         <div className="container">
           <div className="rule reveal-up">
-            <span className="num">01 / 04</span>
+            <span className="num">01 / 06</span>
             <span className="rule-line reveal-line" />
             <span className="lbl">The information gap</span>
           </div>
@@ -767,7 +769,7 @@ export default function LandingPage() {
         <div className="pw-intro">
           <div className="container">
             <div className="rule reveal-up">
-              <span className="num">02 / 04</span>
+              <span className="num">02 / 06</span>
               <span className="rule-line reveal-line" />
               <span className="lbl">Pathway taxonomy · signature</span>
             </div>
@@ -1076,7 +1078,7 @@ export default function LandingPage() {
               <main className="ck-main">
                 <div className="ck-greet">
                   <div>
-                    <div style={{ fontFamily: 'var(--font-ibm-plex-mono), monospace', fontSize: '0.6875rem', color: 'hsl(var(--mute))', letterSpacing: '0.04em' }}>Tuesday · 27 May 2026</div>
+                    <div style={{ fontFamily: 'var(--font-ibm-plex-mono), monospace', fontSize: '0.6875rem', color: 'hsl(var(--mute))', letterSpacing: '0.04em' }}>{new Date().toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
                     <div className="h">Welcome back, Lerato.</div>
                   </div>
                   <div className="meta"><strong>3 new</strong> scholarships matched overnight</div>
@@ -1315,7 +1317,6 @@ export default function LandingPage() {
           <div className="rule reveal-up" style={{ marginBottom: '3rem' }}>
             <span className="lbl">Pricing · free for matric students, always</span>
             <span className="rule-line reveal-line" />
-            <span className="num">07</span>
           </div>
           <h2 className="heading text-balance reveal-up" style={{ maxWidth: '32ch', marginBottom: '3rem' }}>
             Free for the people who need it most.<br /><span className="serif" style={{ color: 'hsl(var(--accent-600))' }}>Pro</span> for those who can pay it forward.
@@ -1409,8 +1410,17 @@ export default function LandingPage() {
               <span className="brand-tag" style={{ color: 'hsl(var(--bg) / 0.6)', borderColor: 'hsl(var(--bg) / 0.2)' }}>marks → future</span>
             </Link>
             <div className="footer-links">
-              {['Programmes','Bursaries','Career explorer','NSFAS guide','For institutions','About','Contact'].map(l => (
-                <Link key={l} href="/signup" data-hover="">{l}</Link>
+              {([
+                ['Programmes',       '/programmes'],
+                ['Bursaries',        '/bursaries'],
+                ['Pathways',         '/pathways'],
+                ['Career explorer',  '/signup'],
+                ['NSFAS guide',      '/signup'],
+                ['For institutions', '/for-institutions'],
+                ['About',            '/#about'],
+                ['Contact',          '/signup'],
+              ] as [string, string][]).map(([label, href]) => (
+                <Link key={label} href={href} data-hover="">{label}</Link>
               ))}
             </div>
           </div>

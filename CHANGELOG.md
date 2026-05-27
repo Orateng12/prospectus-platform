@@ -4,6 +4,26 @@ All notable changes to the Prospectus platform.
 
 ---
 
+## [Unreleased] — deep review: critical bug fixes + consistency pass (2026-05-27)
+
+### Bug fixes
+- **P0 — `position: fixed` drawer inside `backdrop-filter` header** — `backdrop-filter` on `.nav` creates a new CSS containing block, meaning child `position: fixed; inset: 0` was contained to the ~90px header, not the viewport. Fix: moved all four mobile drawers (`#mobile-nav`, `#prg-mobile-nav`, `#bur-mobile-nav`, `#mobile-nav-pw`) outside `<header>` as siblings. They remain scoped under `.lp`/`.prg-page`/etc. so CSS still applies.
+- **Section numbering** — "The problem" showed `01 / 04` and "Pathways" showed `02 / 04`; both updated to `01 / 06` and `02 / 06` to match the 6-section system added when bursaries was inserted. Pricing rule orphaned `07` removed.
+- **Funding number contradiction** — Index strip claimed "R 3.2bn" while the bursaries teaser section on the same page said "R 41.2bn". Index strip updated to R 41.2bn.
+- **Dead routes** — `/careers` and `/for-institutions` linked from all inner page navs returned 404. Added Next.js redirects to `/signup` for both; also replaced `<a href="#">` placeholders in programmes nav.
+- **Footer links** — All landing page footer links pointed to `/signup`. Fixed to route to their actual destinations (Programmes, Bursaries, Pathways pages; About section anchor; others retained as `/signup` until pages exist).
+- **Cockpit date** — "Tuesday · 27 May 2026" was hardcoded. Now computed dynamically from `new Date()`.
+- **Programmes desktop nav** — "Bursaries" linked to `#` (placeholder). Fixed to `<Link href="/bursaries">`.
+
+### Files changed
+- `next.config.ts`
+- `app/page.tsx`
+- `app/pathways/page.tsx`
+- `app/programmes/page.tsx`
+- `app/bursaries/page.tsx`
+
+---
+
 ## [Unreleased] — mobile nav: fix drawer visibility + auto-hide on scroll (2026-05-27)
 
 ### Bug fixes

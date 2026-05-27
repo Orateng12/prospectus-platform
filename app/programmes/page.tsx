@@ -252,9 +252,7 @@ export default function ProgrammesPage() {
           <nav className="nav-links" aria-label="Site navigation">
             <Link href="/programmes" className="is-active">Programmes</Link>
             <Link href="/pathways">Pathways</Link>
-            <a href="#">Bursaries</a>
-            <a href="#">Careers</a>
-            <a href="#">For institutions</a>
+            <Link href="/bursaries">Bursaries</Link>
           </nav>
           <div className="nav-cta">
             <Link href="/login" className="btn btn-ghost btn-sm">Sign in</Link>
@@ -272,31 +270,6 @@ export default function ProgrammesPage() {
             </button>
           </div>
         </div>
-        <nav
-          id="prg-mobile-nav"
-          className={`nav-drawer${navOpen ? ' open' : ''}`}
-          aria-label="Mobile navigation"
-          aria-hidden={!navOpen}
-        >
-          <div className="nav-drawer-head">
-            <Link href="/" className="brand" onClick={() => setNavOpen(false)}>
-              <div className="brand-mark" aria-hidden="true">P</div>
-              <span className="brand-name">Prospectus</span>
-            </Link>
-            <button className="btn btn-ghost btn-sm" onClick={() => setNavOpen(false)} aria-label="Close menu">✕</button>
-          </div>
-          <div className="nav-drawer-links">
-            <Link href="/programmes" className="is-active" onClick={() => setNavOpen(false)}>Programmes</Link>
-            <Link href="/pathways" onClick={() => setNavOpen(false)}>Pathways</Link>
-            <a href="#" onClick={() => setNavOpen(false)}>Bursaries</a>
-            <a href="#" onClick={() => setNavOpen(false)}>Careers</a>
-            <a href="#" onClick={() => setNavOpen(false)}>For institutions</a>
-          </div>
-          <div className="nav-drawer-cta">
-            <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
-            <Link href="/signup" className="btn btn-primary" onClick={() => setNavOpen(false)}>Start free <span aria-hidden="true">→</span></Link>
-          </div>
-        </nav>
         <div className="container live-strip" aria-hidden="true">
           <span><span className="pulse" /> Live</span>
           <span>·</span>
@@ -307,6 +280,31 @@ export default function ProgrammesPage() {
           <span>26 universities · 50 TVET</span>
         </div>
       </header>
+
+      <nav
+        id="prg-mobile-nav"
+        className={`nav-drawer${navOpen ? ' open' : ''}`}
+        aria-label="Mobile navigation"
+        aria-hidden={!navOpen}
+        inert={!navOpen ? ('' as unknown as boolean) : undefined}
+      >
+        <div className="nav-drawer-head">
+          <Link href="/" className="brand" onClick={() => setNavOpen(false)}>
+            <div className="brand-mark" aria-hidden="true">P</div>
+            <span className="brand-name">Prospectus</span>
+          </Link>
+          <button className="btn btn-ghost btn-sm" onClick={() => setNavOpen(false)} aria-label="Close menu">✕</button>
+        </div>
+        <div className="nav-drawer-links">
+          <Link href="/programmes" className="is-active" onClick={() => setNavOpen(false)}>Programmes</Link>
+          <Link href="/pathways" onClick={() => setNavOpen(false)}>Pathways</Link>
+          <Link href="/bursaries" onClick={() => setNavOpen(false)}>Bursaries</Link>
+        </div>
+        <div className="nav-drawer-cta">
+          <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
+          <Link href="/signup" className="btn btn-primary" onClick={() => setNavOpen(false)}>Start free <span aria-hidden="true">→</span></Link>
+        </div>
+      </nav>
 
       {/* ── APS Context strip ── */}
       <section className="aps-context" aria-label="Your APS context">
@@ -609,9 +607,9 @@ export default function ProgrammesPage() {
               <h4>Related</h4>
               <nav className="next">
                 <Link href="/pathways"><span>The four pathways · in depth</span><span className="arr" aria-hidden="true">→</span></Link>
-                <a href="#"><span>Bursaries &amp; funding strategy</span><span className="arr" aria-hidden="true">→</span></a>
-                <a href="#"><span>Career explorer · salary &amp; growth data</span><span className="arr" aria-hidden="true">→</span></a>
-                <a href="#"><span>For institutions — get listed</span><span className="arr" aria-hidden="true">→</span></a>
+                <Link href="/bursaries"><span>Bursaries &amp; funding strategy</span><span className="arr" aria-hidden="true">→</span></Link>
+                <Link href="/signup"><span>Career explorer · salary &amp; growth data</span><span className="arr" aria-hidden="true">→</span></Link>
+                <Link href="/signup"><span>For institutions — get listed</span><span className="arr" aria-hidden="true">→</span></Link>
               </nav>
             </div>
           </div>
@@ -629,12 +627,11 @@ export default function ProgrammesPage() {
             </Link>
             <div className="footer-links">
               <Link href="/programmes">Programmes</Link>
-              <a href="#">Bursaries</a>
-              <a href="#">Career explorer</a>
+              <Link href="/bursaries">Bursaries</Link>
+              <Link href="/signup">Career explorer</Link>
               <Link href="/pathways">Pathways</Link>
-              <a href="#">For institutions</a>
-              <a href="#">About</a>
-              <a href="#">Contact</a>
+              <Link href="/signup">For institutions</Link>
+              <Link href="/">About</Link>
             </div>
           </div>
           <div className="footer-meta">
