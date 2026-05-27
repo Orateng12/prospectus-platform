@@ -4,6 +4,14 @@ All notable changes to the Prospectus platform.
 
 ---
 
+## [Unreleased] — mobile nav fix across all public pages (2026-05-27)
+
+### Modified pages
+- **`app/programmes/programmes.css`**, **`app/bursaries/bursaries.css`**, **`app/pathways/pathways.css`** — Added `@media (max-width: 939px) { .nav-cta .btn { display: none; } }` so Sign in/Start free are hidden on mobile; only logo + hamburger show in the nav bar.
+- **`app/bursaries/page.tsx`**, **`app/pathways/page.tsx`** — Replaced `nav-mob-btn` + SVG close button inside the drawer with a consistent `btn btn-ghost btn-sm ✕` button matching the programmes page. Pathways hamburger now uses `.bar` spans instead of dynamic SVG for CSS animation support.
+
+---
+
 ## [Unreleased] — mobile nav restructure (2026-05-27)
 
 ### Modified pages

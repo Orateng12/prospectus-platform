@@ -247,6 +247,7 @@
 }
 .pw-page .nav-mob-btn:hover { background: hsl(var(--bg-2)); }
 @media (min-width: 940px) { .pw-page .nav-mob-btn { display: none; } }
+@media (max-width: 939px) { .pw-page .nav-cta .btn { display: none; } }
 
 .pw-page .nav-drawer {
   position: fixed;

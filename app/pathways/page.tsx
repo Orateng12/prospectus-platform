@@ -65,12 +65,9 @@ export default function PathwaysPage() {
               aria-controls="mobile-nav-pw"
               aria-label={navOpen ? 'Close navigation' : 'Open navigation'}
             >
-              <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-                {navOpen
-                  ? <><line x1="3" y1="3" x2="15" y2="15" /><line x1="15" y1="3" x2="3" y2="15" /></>
-                  : <><line x1="2" y1="5" x2="16" y2="5" /><line x1="2" y1="9" x2="16" y2="9" /><line x1="2" y1="13" x2="16" y2="13" /></>
-                }
-              </svg>
+              <span className="bar" aria-hidden="true" />
+              <span className="bar" aria-hidden="true" />
+              <span className="bar" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -87,15 +84,7 @@ export default function PathwaysPage() {
               <div className="brand-mark" aria-hidden="true">P</div>
               <span className="brand-name">Prospectus</span>
             </Link>
-            <button
-              className="nav-mob-btn"
-              onClick={() => setNavOpen(false)}
-              aria-label="Close navigation"
-            >
-              <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-                <line x1="3" y1="3" x2="15" y2="15" /><line x1="15" y1="3" x2="3" y2="15" />
-              </svg>
-            </button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setNavOpen(false)} aria-label="Close menu">✕</button>
           </div>
           <div className="nav-drawer-links">
             <Link href="/programmes" onClick={() => setNavOpen(false)}>Programmes</Link>

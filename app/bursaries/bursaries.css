@@ -201,6 +201,7 @@
 }
 .bur-page .nav-mob-btn:hover { background: hsl(var(--bg-2)); }
 @media (min-width: 940px) { .bur-page .nav-mob-btn { display: none; } }
+@media (max-width: 939px) { .bur-page .nav-cta .btn { display: none; } }
 .bur-page .nav-drawer {
   position: fixed; inset: 0; z-index: 200; background: hsl(var(--bg));
   display: flex; flex-direction: column; padding: 1.5rem;

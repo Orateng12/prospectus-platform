@@ -188,6 +188,7 @@
 }
 .prg-page .nav-mob-btn:hover { background: hsl(var(--bg-2)); }
 @media (min-width: 940px) { .prg-page .nav-mob-btn { display: none; } }
+@media (max-width: 939px) { .prg-page .nav-cta .btn { display: none; } }
 .prg-page .nav-drawer {
   position: fixed; inset: 0; z-index: 200; background: hsl(var(--bg));
   display: flex; flex-direction: column; padding: 1.5rem;
