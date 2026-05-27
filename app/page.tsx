@@ -175,7 +175,7 @@ export default function LandingPage() {
   /* ── Scroll-spy: track active section for nav highlight ── */
   const [activeSection, setActiveSection] = useState('');
   useEffect(() => {
-    const ids = ['how', 'pathways', 'cockpit', 'pricing'];
+    const ids = ['how', 'pathways', 'programmes', 'cockpit', 'pricing'];
     const els = ids.map(id => document.getElementById(id)).filter(Boolean) as HTMLElement[];
     const io = new IntersectionObserver(
       entries => { entries.forEach(e => { if (e.isIntersecting) setActiveSection(e.target.id); }); },
@@ -379,6 +379,7 @@ export default function LandingPage() {
           <nav className="nav-links" aria-label="Site navigation">
             <a href="#how" data-hover="" className={activeSection === 'how' ? 'nav-active' : ''}>The problem</a>
             <a href="#pathways" data-hover="" className={activeSection === 'pathways' ? 'nav-active' : ''}>Pathways</a>
+            <a href="#programmes" data-hover="" className={activeSection === 'programmes' ? 'nav-active' : ''}>Programmes</a>
             <a href="#cockpit" data-hover="" className={activeSection === 'cockpit' ? 'nav-active' : ''}>The cockpit</a>
             <a href="#pricing" data-hover="" className={activeSection === 'pricing' ? 'nav-active' : ''}>Pricing</a>
           </nav>
@@ -406,6 +407,7 @@ export default function LandingPage() {
         >
           <a href="#how" onClick={() => setNavOpen(false)}>The problem</a>
           <a href="#pathways" onClick={() => setNavOpen(false)}>Pathways</a>
+          <a href="#programmes" onClick={() => setNavOpen(false)}>Programmes</a>
           <a href="#cockpit" onClick={() => setNavOpen(false)}>The cockpit</a>
           <a href="#pricing" onClick={() => setNavOpen(false)}>Pricing</a>
           <div className="drawer-divider" aria-hidden="true" />
@@ -791,8 +793,58 @@ export default function LandingPage() {
               <div className="coda-eyebrow">Coda</div>
               <h4>The taxonomy is the index. The index is the product.</h4>
               <p>These four badges appear next to every programme on the platform. Filter by them, compare across them, sort funding against them.</p>
-              <a href="#cockpit" className="btn" data-hover="">See badges live <span className="arr">→</span></a>
+              <Link href="/programmes" className="btn" data-hover="">Browse all programmes <span className="arr">→</span></Link>
             </article>
+          </div>
+        </div>
+      </section>
+
+      {/* ── PROGRAMMES TEASER ── */}
+      <section className="section" id="programmes">
+        <div className="container">
+          <div className="rule reveal-up">
+            <span className="num">03 / 05</span>
+            <span className="rule-line reveal-line" />
+            <span className="lbl">Programmes · the index</span>
+          </div>
+          <div className="prg-teaser-grid">
+            <div className="reveal-up">
+              <h2 className="heading text-balance" style={{ marginTop: '1.5rem' }}>
+                9,412 programmes.<br />One <span className="serif">index</span>.
+              </h2>
+              <p className="sub text-pretty" style={{ marginTop: '1.25rem', maxWidth: '38rem' }}>
+                Every accredited programme in SA, tagged by pathway, ranked by fit to your profile. The directory is just the entry point.
+              </p>
+              <div className="prg-teaser-actions reveal-up">
+                <Link href="/programmes" className="btn btn-primary" data-hover="">
+                  Browse all programmes <span className="arr">→</span>
+                </Link>
+              </div>
+            </div>
+            <div className="prg-mini-table reveal-up">
+              <div className="prg-mini-head">
+                <span>Programme</span>
+                <span>Institution</span>
+                <span>APS</span>
+                <span>Type</span>
+              </div>
+              {PROGRAMMES.sort((a, b) => b.aps - a.aps).slice(0, 6).map((p, i) => (
+                <div key={i} className="prg-mini-row">
+                  <div className="nm">{p.name}</div>
+                  <div className="inst">{p.inst}</div>
+                  <div className="aps tabular">{p.aps}</div>
+                  <span className={`badge badge-pw-${p.p}`} style={{ fontSize: '0.625rem', padding: '2px 6px' }}>
+                    {p.p.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              ))}
+              <div className="prg-mini-cta">
+                <Link href="/programmes" data-hover="">
+                  <span>View all 9,412 programmes</span>
+                  <span className="arr">→</span>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -871,7 +923,7 @@ export default function LandingPage() {
       <section className="section" id="cockpit">
         <div className="container">
           <div className="rule reveal-up">
-            <span className="num">03 / 04</span>
+            <span className="num">04 / 05</span>
             <span className="rule-line reveal-line" />
             <span className="lbl">The student cockpit · 36 pages</span>
           </div>
@@ -1016,7 +1068,7 @@ export default function LandingPage() {
       <section className="persona-band">
         <div className="container section">
           <div className="rule reveal-up" style={{ marginBottom: '3rem' }}>
-            <span className="num">04 / 04</span>
+            <span className="num">05 / 05</span>
             <span className="rule-line reveal-line" />
             <span className="lbl">Designed for one student · Lerato</span>
           </div>

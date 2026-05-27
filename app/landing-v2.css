@@ -1110,3 +1110,55 @@
 .lp .mob-cta.visible { transform: translateY(0); }
 .lp .mob-cta .btn { flex: 1; justify-content: center; height: 3rem; font-size: 0.9375rem; }
 @media (min-width: 940px) { .lp .mob-cta { display: none; } }
+
+/* ── Programmes Teaser section ── */
+.lp .prg-teaser-grid {
+  display: grid; grid-template-columns: 1fr; gap: 3rem; margin-top: 3rem;
+}
+@media (min-width: 900px) {
+  .lp .prg-teaser-grid { grid-template-columns: 1fr 1.4fr; gap: 5rem; align-items: start; }
+}
+.lp .prg-teaser-actions { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 0.75rem; }
+
+/* Mini programme table */
+.lp .prg-mini-table {
+  border: 1px solid hsl(var(--line)); border-radius: 14px; overflow: hidden;
+  background: hsl(var(--card));
+}
+.lp .prg-mini-head {
+  display: grid; grid-template-columns: 1fr auto auto auto; gap: 1rem;
+  align-items: center; padding: 0.75rem 1.25rem;
+  background: hsl(var(--bg-2)); border-bottom: 1px solid hsl(var(--line));
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 0.625rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: hsl(var(--mute));
+}
+.lp .prg-mini-row {
+  display: grid; grid-template-columns: 1fr auto auto auto; gap: 1rem;
+  align-items: center; padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid hsl(var(--line));
+  font-size: 0.875rem; transition: background .15s; cursor: default;
+}
+.lp .prg-mini-row:hover { background: hsl(var(--bg-2)); }
+.lp .prg-mini-row .nm { font-weight: 700; font-size: 0.9375rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lp .prg-mini-row .inst {
+  font-family: var(--font-ibm-plex-mono), monospace; font-size: 0.6875rem;
+  color: hsl(var(--mute)); white-space: nowrap;
+}
+.lp .prg-mini-row .aps { font-weight: 800; font-variant-numeric: tabular-nums; }
+.lp .prg-mini-cta {
+  padding: 0.875rem 1.25rem;
+  background: hsl(var(--bg-2));
+}
+.lp .prg-mini-cta a {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 0.875rem; font-weight: 600;
+  color: hsl(var(--ink-2)); transition: color .15s;
+}
+.lp .prg-mini-cta a:hover { color: hsl(var(--accent-600)); }
+.lp .prg-mini-cta a .arr { color: hsl(var(--accent)); transition: transform .25s; }
+.lp .prg-mini-cta a:hover .arr { transform: translateX(3px); }
+@media (max-width: 599px) {
+  .lp .prg-mini-head, .lp .prg-mini-row { grid-template-columns: 1fr auto auto; }
+  .lp .prg-mini-head span:nth-child(2), .lp .prg-mini-row .inst { display: none; }
+}

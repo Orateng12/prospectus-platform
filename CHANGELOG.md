@@ -4,6 +4,30 @@ All notable changes to the Prospectus platform.
 
 ---
 
+## [Unreleased] — /programmes page + landing teaser + dashboard upgrade (2026-05-27)
+
+### New pages
+- **`/programmes`** — Full public programme explorer with two-column filter/results layout.
+  - Sticky sidebar with APS range sliders, pathway pill toggles, province/faculty checkboxes, profile-match checkboxes, and strategy hint.
+  - APS context strip showing eligible/near-eligible counts.
+  - Results toolbar: search (⌘K shortcut), sort select, list/grid view toggle.
+  - 30-programme hardcoded database with eligibility left-border indicators.
+  - Compare tray (fixed, shows when ≥1 programme selected, caps at 3).
+  - Mobile filter overlay (drawer replaces sidebar at <980 px).
+
+### Modified pages
+- **`app/page.tsx`** — Added "Programmes · the index" teaser section (03/04), nav link + scroll-spy, coda card link updated to `/programmes`.
+- **`app/landing-v2.css`** — Added `.lp .prg-teaser-grid`, `.prg-mini-table`, `.prg-mini-row`, `.prg-mini-cta` CSS for the new teaser section.
+
+### Modified components
+- **`components/pages/ProgrammePage.tsx`** — Added pathway pill filter, APS min/max range sliders, province filter panel, and left-border eligibility indicator on programme cards.
+
+### Files added
+- `app/programmes/page.tsx` — `'use client'` page component.
+- `app/programmes/programmes.css` — design-system tokens + component styles all scoped under `.prg-page`.
+
+---
+
 ## [Unreleased] — /pathways page (2026-05-27)
 
 ### New pages
