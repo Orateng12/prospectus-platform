@@ -521,6 +521,13 @@ export default function ProgrammePage({
   const [search, setSearch] = useState('');
   const [visibleCount, setVisibleCount] = useState(8);
 
+  // New filter state
+  const [apsMin, setApsMin] = useState(18);
+  const [apsMax, setApsMax] = useState(49);
+  const [pathwayFilter, setPathwayFilter] = useState<Set<string>>(new Set());
+  const [provinceOpen, setProvinceOpen] = useState(false);
+  const [provinceFilter, setProvinceFilter] = useState<Set<string>>(new Set());
+
   // Local saved state (optimistic — starts from server-fetched ids)
   const [savedIds, setSavedIds] = useState<Set<string>>(() => new Set(savedProgrammeIds));
   const [saveTransition, startSaveTransition] = useTransition();
@@ -554,10 +561,39 @@ export default function ProgrammePage({
     setApplyTarget(prog);
   }
 
+  function togglePathwayFilter(pw: string) {
+    setPathwayFilter(prev => { const n = new Set(prev); if (n.has(pw)) n.delete(pw); else n.add(pw); return n; });
+    setVisibleCount(8);
+  }
+  function toggleProvinceFilter(prov: string) {
+    setProvinceFilter(prev => { const n = new Set(prev); if (n.has(prov)) n.delete(prov); else n.add(prov); return n; });
+    setVisibleCount(8);
+  }
+
+  const allProvinces = useMemo(
+    () => [...new Set(allProgs.map(p => (p as Programme & { province?: string }).province).filter(Boolean) as string[])].sort(),
+    [allProgs]
+  );
+
   const sorted = useMemo(() => {
     let list = allProgs;
     if (activeTab === 'saved') list = list.filter(p => savedIds.has(p.id));
     if (eligibleOnly) list = list.filter(p => p.aps <= aps);
+    // APS range filter
+    if (apsMin > 18 || apsMax < 49) {
+      list = list.filter(p => p.aps >= apsMin && p.aps <= apsMax);
+    }
+    // Pathway pill filter (empty = all)
+    if (pathwayFilter.size > 0) {
+      list = list.filter(p => pathwayFilter.has(p.pathway));
+    }
+    // Province filter (empty = all)
+    if (provinceFilter.size > 0) {
+      list = list.filter(p => {
+        const prov = (p as Programme & { province?: string }).province;
+        return prov ? provinceFilter.has(prov) : true;
+      });
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(p => p.name.toLowerCase().includes(q) || p.uni.toLowerCase().includes(q));
@@ -567,7 +603,7 @@ export default function ProgrammePage({
       if (activeTab === 'fees') return a.fees - b.fees;
       return b.fit - a.fit;
     });
-  }, [allProgs, activeTab, eligibleOnly, search, aps, savedIds]);
+  }, [allProgs, activeTab, eligibleOnly, apsMin, apsMax, pathwayFilter, provinceFilter, search, aps, savedIds]);
 
   if (selected) {
     return (
@@ -688,7 +724,7 @@ export default function ProgrammePage({
         );
       })()}
 
-      <div className="tabs" style={{ marginBottom: '1.25rem' }}>
+      <div className="tabs" style={{ marginBottom: '0.75rem' }}>
         <button className={`tab ${activeTab === 'fit'  ? 'active' : ''}`} onClick={() => { setActiveTab('fit'); setVisibleCount(8); }}>
           Best fit ({eligibleCount})
         </button>
@@ -702,6 +738,96 @@ export default function ProgrammePage({
           Saved ({savedIds.size})
         </button>
       </div>
+
+      {/* Pathway pills */}
+      <div className="row" style={{ gap: '0.375rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+        {(['direct', 'extended', 'foundation', 'tvet'] as const).map(pw => {
+          const colors: Record<string, string> = {
+            direct: 'hsl(152 55% 36%)', extended: 'hsl(215 25% 38%)',
+            foundation: 'hsl(32 85% 48%)', tvet: 'hsl(262 60% 46%)',
+          };
+          const isOn = pathwayFilter.has(pw);
+          return (
+            <button
+              key={pw}
+              className="btn btn-sm"
+              style={isOn
+                ? { background: colors[pw], color: 'white', border: `1px solid ${colors[pw]}` }
+                : { background: 'transparent', border: '1px solid hsl(var(--border))', color: 'hsl(var(--muted-fg))' }
+              }
+              onClick={() => togglePathwayFilter(pw)}
+              aria-pressed={isOn}
+            >
+              {pw.charAt(0).toUpperCase() + pw.slice(1)}
+            </button>
+          );
+        })}
+        {pathwayFilter.size > 0 && (
+          <button className="btn btn-sm btn-ghost" onClick={() => { setPathwayFilter(new Set()); setVisibleCount(8); }}>
+            Clear
+          </button>
+        )}
+      </div>
+
+      {/* APS range sliders */}
+      <div className="card" style={{ marginBottom: '0.75rem', padding: '0.875rem 1.25rem' }}>
+        <div className="row-between" style={{ marginBottom: '0.375rem' }}>
+          <div className="eyebrow" style={{ fontSize: '0.625rem' }}>APS range</div>
+          <span className="caption" style={{ fontVariantNumeric: 'tabular-nums', fontSize: '0.75rem', fontWeight: 700 }}>
+            {apsMin}–{apsMax}
+          </span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <input
+            type="range" min={18} max={49} step={1} value={apsMin}
+            onChange={e => { setApsMin(Math.min(Number(e.target.value), apsMax)); setVisibleCount(8); }}
+            aria-label="Minimum APS"
+            style={{ width: '100%', accentColor: 'hsl(22 88% 52%)' }}
+          />
+          <input
+            type="range" min={18} max={49} step={1} value={apsMax}
+            onChange={e => { setApsMax(Math.max(Number(e.target.value), apsMin)); setVisibleCount(8); }}
+            aria-label="Maximum APS"
+            style={{ width: '100%', accentColor: 'hsl(22 88% 52%)', marginTop: '-4px' }}
+          />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.625rem', color: 'hsl(var(--muted-fg))', marginTop: '0.25rem' }}>
+          <span>18 · TVET</span><span>49 · max</span>
+        </div>
+      </div>
+
+      {/* Province filter */}
+      {allProvinces.length > 0 && (
+        <div className="card" style={{ marginBottom: '0.75rem' }}>
+          <button
+            className="row-between"
+            style={{ background: 'none', border: 'none', width: '100%', cursor: 'pointer', padding: '0' }}
+            onClick={() => setProvinceOpen(v => !v)}
+          >
+            <div className="eyebrow"><span className="dot" />Province filter</div>
+            <span className="caption" style={{ fontSize: '0.75rem' }}>
+              {provinceFilter.size > 0 ? `${provinceFilter.size} selected` : 'All'} {provinceOpen ? '▲' : '▼'}
+            </span>
+          </button>
+          {provinceOpen && (
+            <div className="row" style={{ flexWrap: 'wrap', gap: '0.375rem', marginTop: '0.625rem' }}>
+              {allProvinces.map(prov => (
+                <button
+                  key={prov}
+                  className={`btn btn-sm ${provinceFilter.has(prov) ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => toggleProvinceFilter(prov)}
+                  aria-pressed={provinceFilter.has(prov)}
+                >
+                  {prov}
+                </button>
+              ))}
+              {provinceFilter.size > 0 && (
+                <button className="btn btn-sm btn-ghost" onClick={() => { setProvinceFilter(new Set()); setVisibleCount(8); }}>Clear</button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {sorted.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
@@ -723,10 +849,18 @@ export default function ProgrammePage({
         <>
         <div className="grid-3">
           {sorted.slice(0, visibleCount).map((p, i) => {
-            const eligible = p.aps <= aps;
+            const eligible = p.aps <= (userAps ?? aps);
+            const nearElig = !eligible && p.aps <= (userAps ?? aps) + 2;
             const isSaved = savedIds.has(p.id);
             return (
-              <div className="career-card" key={p.id} onClick={() => setSelected(p)}>
+              <div
+                className="career-card"
+                key={p.id}
+                onClick={() => setSelected(p)}
+                style={{
+                  borderLeft: `3px solid ${eligible ? 'hsl(152 55% 36%)' : nearElig ? 'hsl(22 88% 52%)' : 'transparent'}`,
+                }}
+              >
                 <div className={`img-tile ${uniToneClass(p.uni)}`} aria-hidden="true">
                   <img
                     src={uniLogoPath(p.uni)}
@@ -769,7 +903,7 @@ export default function ProgrammePage({
                     <div className="caption" style={{ fontSize: '0.625rem' }}>APS required</div>
                     <div style={{
                       fontWeight: 800, fontVariantNumeric: 'tabular-nums',
-                      color: eligible ? 'hsl(var(--success))' : 'hsl(var(--destructive))',
+                      color: eligible ? 'hsl(152 55% 36%)' : nearElig ? 'hsl(22 88% 52%)' : 'hsl(var(--destructive))',
                     }}>
                       {p.aps || '—'}
                     </div>
