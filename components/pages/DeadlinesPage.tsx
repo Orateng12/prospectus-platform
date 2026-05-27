@@ -129,6 +129,7 @@ export default function DeadlinesPage({
   const [addDate, setAddDate] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [addedSuggestions, setAddedSuggestions] = useState<Set<string>>(new Set());
 
   const opps = fundingOpportunities ?? FUNDING_OPPORTUNITIES;
 
@@ -480,12 +481,62 @@ export default function DeadlinesPage({
           </div>
         )}
 
-        {ALL_DEADLINES.length === 0 && (
-          <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
-            <div className="subheading" style={{ marginBottom: '0.5rem' }}>No deadlines yet</div>
-            <p className="caption">Add application deadlines or they&apos;ll appear automatically once you track applications.</p>
-          </div>
-        )}
+        {ALL_DEADLINES.length === 0 && (() => {
+          const now = new Date();
+          const nextOccurrence = (month: number, day: number) => {
+            const y = (now.getMonth() + 1 > month || (now.getMonth() + 1 === month && now.getDate() > day))
+              ? now.getFullYear() + 1
+              : now.getFullYear();
+            return `${y}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          };
+          const suggestions = [
+            { key: 'nsfas', title: 'NSFAS application opens', date: nextOccurrence(9, 1), display: '1 Sep' },
+            { key: 'uni-close', title: 'Most public universities close applications', date: nextOccurrence(9, 30), display: '30 Sep' },
+            { key: 'nsc-supp', title: 'NSC supplementary exam registration', date: nextOccurrence(6, 15), display: '15 Jun' },
+          ];
+          return (
+            <div className="card">
+              <div className="eyebrow" style={{ marginBottom: '0.75rem' }}><span className="dot" />No deadlines yet — here are key SA dates to track</div>
+              <div className="stack">
+                {suggestions.map(s => (
+                  <div key={s.key} className="row-between" style={{ padding: '0.625rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                    <div className="row" style={{ gap: '0.875rem', alignItems: 'flex-start' }}>
+                      <div style={{ textAlign: 'center', minWidth: 40 }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.75rem' }}>{s.display}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{s.title}</div>
+                        <span className="badge accent" style={{ fontSize: '0.5625rem', marginTop: '0.25rem' }}>Suggested</span>
+                      </div>
+                    </div>
+                    {addedSuggestions.has(s.key) ? (
+                      <span className="badge success" style={{ flexShrink: 0 }}>✓ Added</span>
+                    ) : (
+                      <button
+                        className="btn btn-outline btn-sm"
+                        style={{ flexShrink: 0 }}
+                        disabled={isPending}
+                        onClick={() => {
+                          startTransition(async () => {
+                            const result = await addDeadline(s.title, s.date);
+                            if (!('error' in result)) {
+                              setAddedSuggestions(prev => new Set([...prev, s.key]));
+                            }
+                          });
+                        }}
+                      >
+                        + Add to tracker
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="caption" style={{ marginTop: '0.875rem' }}>
+                Or add your own deadline above. Application deadlines also appear here automatically once you start tracking.
+              </p>
+            </div>
+          );
+        })()}
       </div>
 
       <div className="card" style={{ marginTop: '1.25rem' }}>

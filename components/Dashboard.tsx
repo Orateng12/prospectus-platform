@@ -121,7 +121,8 @@ export default function Dashboard({
     ['draft', 'pending', 'submitted'].includes(a.status.toLowerCase())
   ).length;
   const appliedSet = new Set(appliedScholarshipNames);
-  const unappliedScholarshipCount = FUNDING_OPPORTUNITIES.filter(f => !appliedSet.has(f.name)).length;
+  const allFunding = fundingOpportunities ?? FUNDING_OPPORTUNITIES;
+  const unappliedScholarshipCount = allFunding.filter(f => !appliedSet.has(f.name)).length;
 
   const emptySubjects = (initialSubjects ?? SUBJECTS).map(s => ({ ...s, mark: 50 }));
   const displaySubjects = emptyMode ? emptySubjects : subjects;
@@ -206,6 +207,10 @@ export default function Dashboard({
             programmes={initialProgrammes}
             onNavigateProgramme={(progId) => navigate('programmes', progId)}
             onOpenDetail={(s) => navigateToDetail('subject-detail', s)}
+            psychProfile={displayPsych}
+            capabilityData={displayCap}
+            householdIncome={householdIncome}
+            careers={careers}
           />
         );
       case 'programmes':
@@ -251,6 +256,7 @@ export default function Dashboard({
             capabilityData={displayCap}
             onOpenDetail={(c) => navigateToDetail('career-detail', c)}
             navigate={navigate}
+            programmes={emptyMode ? undefined : initialProgrammes}
           />
         );
       case 'discover':
@@ -262,6 +268,8 @@ export default function Dashboard({
             userAps={displayAps}
             householdIncome={householdIncome}
             userFirstName={userFirstName}
+            userLastName={userLastName}
+            applicationCount={emptyMode ? 0 : applications.length}
           />
         );
       case 'notifications':
@@ -298,9 +306,9 @@ export default function Dashboard({
           />
         );
       case 'map':
-        return <MapPage navigate={navigate} userProvince={userProvince} />;
+        return <MapPage navigate={navigate} userProvince={userProvince} programmes={emptyMode ? undefined : initialProgrammes} />;
       case 'unis':
-        return <UniversitiesPage subjects={displaySubjects} navigate={navigate} compareItems={compareItems} onToggleCompare={toggleCompare} userProvince={userProvince} />;
+        return <UniversitiesPage subjects={displaySubjects} navigate={navigate} compareItems={compareItems} onToggleCompare={toggleCompare} userProvince={userProvince} programmes={emptyMode ? undefined : initialProgrammes} />;
       case 'compare':
         return (
           <CareerComparePage
@@ -311,6 +319,8 @@ export default function Dashboard({
             capabilityData={displayCap}
             userAps={displayAps}
             liveCareerMatches={liveCareerMatches}
+            programmes={initialProgrammes}
+            allCareersData={careers}
           />
         );
       case 'scholarships':
@@ -322,7 +332,7 @@ export default function Dashboard({
             onToggleCompare={toggleCompare}
             onOpenDetail={(s) => navigateToDetail('scholarship-detail', s)}
             appliedScholarshipNames={emptyMode ? [] : appliedScholarshipNames}
-            fundingOpportunities={emptyMode ? undefined : (fundingOpportunities ?? FUNDING_OPPORTUNITIES)}
+            fundingOpportunities={emptyMode ? undefined : allFunding}
           />
         );
       case 'applications':
@@ -367,6 +377,7 @@ export default function Dashboard({
             career={selectedCareer}
             programmes={initialProgrammes}
             capabilityData={displayCap}
+            psychProfile={displayPsych}
             navigate={navigate}
             savedProgrammeIds={displaySavedIds}
             userAps={displayAps}
@@ -400,6 +411,8 @@ export default function Dashboard({
           <SearchResultsPage
             query={searchQuery}
             navigate={navigate}
+            programmes={initialProgrammes}
+            careers={careers}
             onOpenCareer={(name) => {
               const c = (careers ?? STATIC_CAREERS).find(x => x.name === name);
               if (c) navigateToDetail('career-detail', c);

@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { PROGRAMMES, CAREERS } from '@/lib/data';
-import type { Route } from '@/lib/types';
+import type { Route, Programme, Career } from '@/lib/types';
 
 interface SearchResult {
   id: string;
@@ -19,6 +19,8 @@ interface SearchResultsPageProps {
   query: string;
   navigate: (r: Route, prog?: string) => void;
   onOpenCareer?: (name: string) => void;
+  programmes?: Programme[];
+  careers?: Career[];
 }
 
 const STATIC_RESULTS: SearchResult[] = [
@@ -45,44 +47,55 @@ const STATIC_RESULTS: SearchResult[] = [
   { id: 'f-nsfas',     section: 'Funding', icon: 'N',  title: 'NSFAS Bursary',               sub: 'Means-tested · covers full fees + living', route: 'nsfas' },
   { id: 'f-sasol',     section: 'Funding', icon: '⚡', title: 'Sasol Bursary (Engineering)',  sub: 'R198 000 · engineering · service contract', route: 'scholarships' },
   // Actions
-  { id: 'a-simulator', section: 'Actions', icon: '⟳', title: 'Run scenario: drop History, add Geography', sub: 'Open simulator →', route: 'simulator' },
-  { id: 'a-rerank',    section: 'Actions', icon: '✦', title: 'Re-rank programmes by fit',                 sub: 'Refresh AI ranking', route: 'programmes' },
-  { id: 'a-compare',   section: 'Actions', icon: '⇄', title: 'Compare UCT vs Wits CS',                   sub: 'Open compare →', route: 'compare' },
+  { id: 'a-simulator', section: 'Actions', icon: '⟳', title: 'Simulate mark changes in APS calculator', sub: 'Adjust any subject → see programmes unlocked', route: 'simulator' },
+  { id: 'a-careers',   section: 'Actions', icon: '📊', title: 'Explore career matches for your profile',  sub: 'Ranked by RIASEC + capability fit',            route: 'careers'   },
+  { id: 'a-compare',   section: 'Actions', icon: '⇄', title: 'Compare two career paths side by side',    sub: 'Salary · demand · required subjects',          route: 'compare'   },
 ];
 
-export default function SearchResultsPage({ query, navigate, onOpenCareer }: SearchResultsPageProps) {
+export default function SearchResultsPage({ query, navigate, onOpenCareer, programmes, careers }: SearchResultsPageProps) {
+  const allProgs = programmes && programmes.length > 0 ? programmes : PROGRAMMES;
+  const allCareers = careers && careers.length > 0 ? careers : CAREERS;
+
   const results = useMemo(() => {
-    const progResults: SearchResult[] = PROGRAMMES.map(p => ({
-      id: `prog-${p.id}`,
-      section: 'Programmes',
-      icon: '🎓',
-      title: p.name,
-      sub: `${p.uni} · APS ${p.aps} · ${p.fit}% fit · ${p.dur} yr${p.dur !== 1 ? 's' : ''}`,
-      route: 'programmes' as Route,
-      progId: p.id,
-    }));
+    const q = query.trim().toLowerCase();
 
-    const careerResults: SearchResult[] = CAREERS.map(c => ({
-      id: `car-${c.name}`,
-      section: 'Careers',
-      icon: '📊',
-      title: c.name,
-      sub: `${c.match}% match · ${c.growth} growth · ${c.demand} demand`,
-      route: 'careers' as Route,
-      careerName: c.name,
-    }));
+    if (!q) {
+      return STATIC_RESULTS;
+    }
 
-    const all = [...STATIC_RESULTS, ...progResults, ...careerResults];
+    const progResults: SearchResult[] = allProgs
+      .filter(p => p.name.toLowerCase().includes(q) || p.uni.toLowerCase().includes(q))
+      .slice(0, 30)
+      .map(p => ({
+        id: `prog-${p.id}`,
+        section: 'Programmes',
+        icon: '🎓',
+        title: p.name,
+        sub: `${p.uni} · APS ${p.aps} · ${p.fit}% fit · ${p.dur} yr${p.dur !== 1 ? 's' : ''}`,
+        route: 'programmes' as Route,
+        progId: p.id,
+      }));
 
-    if (!query.trim()) return all;
+    const careerResults: SearchResult[] = allCareers
+      .filter(c => c.name.toLowerCase().includes(q))
+      .map(c => ({
+        id: `car-${c.name}`,
+        section: 'Careers',
+        icon: '📊',
+        title: c.name,
+        sub: `${c.match}% match · ${c.growth} growth · ${c.demand} demand`,
+        route: 'careers' as Route,
+        careerName: c.name,
+      }));
 
-    const q = query.toLowerCase();
-    return all.filter(r =>
+    const staticFiltered = STATIC_RESULTS.filter(r =>
       r.title.toLowerCase().includes(q) ||
       r.sub.toLowerCase().includes(q) ||
       r.section.toLowerCase().includes(q)
     );
-  }, [query]);
+
+    return [...staticFiltered, ...progResults, ...careerResults];
+  }, [query, allProgs, allCareers]);
 
   const sections = [...new Set(results.map(r => r.section))];
 

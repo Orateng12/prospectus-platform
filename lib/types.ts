@@ -30,6 +30,9 @@ export interface Programme {
   salary: number;
   demand: 'High' | 'Med' | 'Low';
   requiredSubjects?: string[];
+  nsfas_fundable?: boolean | null;
+  career_outcomes?: string[] | null;
+  application_deadline?: string | null;
 }
 
 export interface Application {

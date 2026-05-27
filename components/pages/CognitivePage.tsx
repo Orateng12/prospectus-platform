@@ -8,6 +8,7 @@ import type { CareerBigFiveRanges } from '@/lib/scoring';
 import type { BigFiveTrait, RiasecItem, PsychProfileData, CapabilityData, Capability, Career, Route } from '@/lib/types';
 import AiInsightCard from '@/components/AiInsightCard';
 import { DB_TO_CAP, CAP_DB_LABEL, CAP_DESCRIPTIONS, BIG5_LABEL, BIG5_DESC } from '@/lib/capability';
+import { DEVELOPMENT_ACTIONS } from '@/lib/development-actions';
 
 const RIASEC_CAREERS: Record<string, string> = {
   Realistic:     'Engineering · Architecture · Agriculture',
@@ -336,11 +337,33 @@ export default function CognitivePage({
                         <i style={{ width: `${yours}%`, background: isMet ? undefined : 'hsl(var(--warning))' }} />
                         <span style={{ position: 'absolute', top: 0, bottom: 0, left: `${Math.min(required, 100)}%`, width: 2, background: 'hsl(var(--fg) / 0.4)' }} />
                       </div>
-                      {!isMet && (
-                        <div className="caption" style={{ marginTop: '0.25rem', fontSize: '0.6875rem' }}>
-                          {gap} point gap · {gap <= 8 ? 'Close — targeted practice for 3–4 weeks.' : gap <= 18 ? 'Achievable — focused effort over 1–2 months.' : 'Significant gap · consider electives or self-directed study.'}
-                        </div>
-                      )}
+                      {!isMet && (() => {
+                        const devActions = DEVELOPMENT_ACTIONS[label];
+                        const firstAction = devActions?.[0];
+                        return (
+                          <div style={{ marginTop: '0.375rem' }}>
+                            <div className="caption" style={{ fontSize: '0.6875rem', marginBottom: '0.25rem' }}>
+                              {gap} point gap · {gap <= 8 ? 'Close — a few weeks of focused practice.' : gap <= 18 ? 'Achievable — 6–8 weeks of consistent effort.' : 'Significant — commit to a structured development plan.'}
+                            </div>
+                            {firstAction && (
+                              <div style={{
+                                display: 'flex', alignItems: 'flex-start', gap: '0.5rem',
+                                padding: '0.5rem 0.625rem',
+                                background: 'hsl(var(--muted) / 0.5)',
+                                borderRadius: 'var(--r-md)',
+                                marginTop: '0.25rem',
+                              }}>
+                                <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'hsl(var(--primary))', whiteSpace: 'nowrap', marginTop: '0.0625rem' }}>
+                                  {firstAction.timeframe}
+                                </span>
+                                <span className="caption" style={{ fontSize: '0.6875rem', lineHeight: 1.4 }}>
+                                  {firstAction.action} · <em style={{ color: 'hsl(var(--muted-fg))' }}>{firstAction.resource}</em>
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}

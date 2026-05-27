@@ -13,6 +13,8 @@ interface ComparePageProps {
   capabilityData?: CapabilityData | null;
   userAps?: number;
   liveCareerMatches?: Record<string, number>;
+  programmes?: Programme[];
+  allCareersData?: Career[];
 }
 
 // ── Reusable section layout ──────────────────────────────────────────────────
@@ -91,12 +93,14 @@ function AddButtons({ navigate }: { navigate: (r: Route) => void }) {
 }
 
 // ── Main page ────────────────────────────────────────────────────────────────
-export default function CareerComparePage({ compareItems, onClear, navigate, psychProfile, capabilityData, userAps = 0, liveCareerMatches }: ComparePageProps) {
+export default function CareerComparePage({ compareItems, onClear, navigate, psychProfile, capabilityData, userAps = 0, liveCareerMatches, programmes, allCareersData }: ComparePageProps) {
+  const allProgs = programmes && programmes.length > 0 ? programmes : PROGRAMMES;
+  const allCareers = allCareersData && allCareersData.length > 0 ? allCareersData : CAREERS;
   // Group and look up full objects for each type
   const careers = compareItems
     .filter(c => c.kind === 'career')
     .map(c => {
-      const base = CAREERS.find(x => x.name === c.id);
+      const base = allCareers.find(x => x.name === c.id);
       if (!base) return undefined;
       // Use live score if available, otherwise fall back to static match
       const liveMatch = liveCareerMatches?.[c.name]
@@ -107,7 +111,7 @@ export default function CareerComparePage({ compareItems, onClear, navigate, psy
 
   const progs = compareItems
     .filter(c => c.kind === 'prog')
-    .map(c => PROGRAMMES.find(x => x.id === c.id || x.name === c.name))
+    .map(c => allProgs.find(x => x.id === c.id || x.name === c.name))
     .filter((p): p is Programme => p !== undefined);
 
   const unis = compareItems

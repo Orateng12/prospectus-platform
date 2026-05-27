@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { Route, Subject, Programme, DbApplication, StrategicScoreData, PsychProfileData, CapabilityData, Deadline, Career, DbCustomDeadline, DbDocument } from '@/lib/types';
-import { PROGRAMMES, DEADLINES } from '@/lib/data';
+import { PROGRAMMES } from '@/lib/data';
 import { calcAPS, fmtR, apsPoints } from '@/lib/utils';
 import AiInsightCard from '@/components/AiInsightCard';
 
@@ -30,9 +30,29 @@ function buildFocusItems(
   householdIncome?: number,
   capabilityData?: CapabilityData | null,
   documents?: DbDocument[],
+  psychProfile?: PsychProfileData | null,
 ): Array<{ icon: string; text: string; detail?: string; urgency: 'high' | 'med' | 'low'; route: Route }> {
   const items: Array<{ icon: string; text: string; detail?: string; urgency: 'high' | 'med' | 'low'; route: Route }> = [];
   const today = new Date();
+
+  // 0. Profile completion — highest priority if assessment not yet taken
+  if (!psychProfile && !capabilityData) {
+    items.push({
+      icon: '🧠',
+      text: 'Complete your cognitive assessment',
+      detail: 'Takes 8 minutes. Unlocks personalised career matching, capability gap analysis, and your Intelligence score.',
+      urgency: 'high',
+      route: 'cognitive',
+    });
+  } else if (!capabilityData) {
+    items.push({
+      icon: '⬡',
+      text: 'Complete the capability assessment',
+      detail: 'Your RIASEC profile is set — add 8-dimension capability data to unlock Skills Map and gap analysis.',
+      urgency: 'med',
+      route: 'skills',
+    });
+  }
 
   // 1. Urgent application deadlines
   const urgentApp = applications
@@ -50,26 +70,36 @@ function buildFocusItems(
     });
   }
 
-  // 2. APS leverage: name the exact subject + mark target + programmes unlocked
-  const nearMissProgs = programmes.filter(p => p.aps > userAps && p.aps <= userAps + 2);
+  // 2. APS leverage: concrete subject → mark → programme + funding outcome
+  const nearMissProgs = programmes.filter(p => p.aps > userAps && p.aps <= userAps + 2)
+    .sort((a, b) => b.fit - a.fit);
   const lowestSubject = [...subjects].filter(s => s.id !== 'lo').sort((a, b) => apsPoints(a.mark) - apsPoints(b.mark))[0];
+
+  const FUNDING_THRESHOLDS = [26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 45];
+  const nextFundingThreshold = FUNDING_THRESHOLDS.find(t => t > userAps);
+  const apsToNextFunding = nextFundingThreshold ? nextFundingThreshold - userAps : null;
+
   if (lowestSubject && nearMissProgs.length > 0) {
     const nextMark = lowestSubject.mark < 50 ? 50 : lowestSubject.mark < 60 ? 60 : 70;
-    const unlockCount = nearMissProgs.length;
+    const topProg = nearMissProgs[0];
+    const fundingNote = apsToNextFunding === 1 ? ' and a new bursary tier' : apsToNextFunding === 2 ? ' · 2 pts unlocks next bursary tier' : '';
     items.push({
       icon: '📈',
-      text: `Raise ${lowestSubject.name} from ${lowestSubject.mark}% → ${nextMark}%`,
-      detail: `Adds 1 APS point and unlocks ${unlockCount} programme${unlockCount !== 1 ? 's' : ''} you can't access yet.`,
+      text: `Raise ${lowestSubject.name} to ${nextMark}% → qualify for ${topProg.name}`,
+      detail: `${topProg.uni} · APS ${topProg.aps} · ${nearMissProgs.length > 1 ? `+${nearMissProgs.length - 1} more programme${nearMissProgs.length > 2 ? 's' : ''}` : 'now within reach'}${fundingNote}. Open Simulator to model it.`,
       urgency: 'med',
       route: 'simulator',
     });
   } else if (lowestSubject) {
-    const nextProg = programmes.filter(p => p.aps > userAps && p.aps <= userAps + 6).sort((a, b) => a.aps - b.aps)[0];
+    const nextProg = programmes.filter(p => p.aps > userAps && p.aps <= userAps + 6)
+      .sort((a, b) => (a.aps - userAps) - (b.aps - userAps))[0];
     if (nextProg) {
+      const apsGap = nextProg.aps - userAps;
+      const fundingNote = apsToNextFunding && apsToNextFunding <= apsGap ? ` — also unlocks a new bursary tier at APS ${nextFundingThreshold}` : '';
       items.push({
         icon: '📈',
-        text: `Raise ${lowestSubject.name} to reach ${nextProg.name}`,
-        detail: `${nextProg.uni} requires APS ${nextProg.aps} — you need ${nextProg.aps - userAps} more point${nextProg.aps - userAps !== 1 ? 's' : ''}.`,
+        text: `${apsGap === 1 ? 'One APS point' : `${apsGap} APS points`} away from ${nextProg.name}`,
+        detail: `${nextProg.uni} · needs APS ${nextProg.aps}${fundingNote}. Raise ${lowestSubject.name} from ${lowestSubject.mark}% to unlock it.`,
         urgency: 'med',
         route: 'simulator',
       });
@@ -215,13 +245,7 @@ function buildDeadlines(applications: DbApplication[], customDeadlines: DbCustom
     };
   });
 
-  // Fill remaining slots with static deadlines (future ones only)
-  const year = new Date().getFullYear();
-  const staticFuture: (Deadline & { ts: number })[] = DEADLINES
-    .map(d => ({ ...d, ts: new Date(`${d.d} ${d.m} ${year}`).getTime() }))
-    .filter(d => d.ts >= now);
-
-  const merged = [...appDeadlines, ...customItems, ...staticFuture].sort((a, b) => a.ts - b.ts);
+  const merged = [...appDeadlines, ...customItems].sort((a, b) => a.ts - b.ts);
   return merged.slice(0, 10);
 }
 
@@ -274,7 +298,7 @@ export default function HomePage({ subjects, navigate, programmes, applications 
         .slice(0, 3)
     : [];
 
-  const rawFocuses = buildFocusItems(applications, subjects, allProgs, aps, savedProgrammeIds, householdIncome, capabilityData, documents);
+  const rawFocuses = buildFocusItems(applications, subjects, allProgs, aps, savedProgrammeIds, householdIncome, capabilityData, documents, psychProfile);
   // Pad to 3 items with a fallback if needed
   const focusFallbacks: typeof rawFocuses = [
     { icon: '📚', text: 'Re-rank programmes after subject update', urgency: 'low', route: 'simulator' },
@@ -301,7 +325,7 @@ export default function HomePage({ subjects, navigate, programmes, applications 
           <div className="hint">
             Above threshold for{' '}
             <strong style={{ color: 'hsl(var(--fg))' }}>
-              {Math.round((eligible.length / PROGRAMMES.length) * 100)}%
+              {Math.round((eligible.length / (allProgs.length || 1)) * 100)}%
             </strong>{' '}
             of shortlisted programmes.
           </div>
@@ -336,14 +360,27 @@ export default function HomePage({ subjects, navigate, programmes, applications 
           )}
         </div>
 
-        <div className="card kpi">
+        <div className="card kpi" style={{ cursor: strategicScore ? undefined : 'pointer' }} onClick={strategicScore ? undefined : () => navigate('cognitive')}>
           <div className="lbl">Strategic Score</div>
-          <div className="row" style={{ alignItems: 'baseline', gap: '0.375rem' }}>
-            <span className="val">{strategicScore?.overall ?? 74}</span>
-            <span className="caption">/ 100</span>
-            {(() => { const d = strategicScore?.previous_score != null ? (strategicScore.overall - strategicScore.previous_score) : 6; return <span className={`badge ${d >= 0 ? 'success' : 'destructive'}`} style={{ marginLeft: 'auto' }}>{d >= 0 ? '+' : ''}{d}</span>; })()}
-          </div>
-          <div className="hint">{strategicScore?.trend ? `Trending ${strategicScore.trend}.` : 'Best month yet.'}</div>
+          {strategicScore ? (
+            <>
+              <div className="row" style={{ alignItems: 'baseline', gap: '0.375rem' }}>
+                <span className="val">{strategicScore.overall}</span>
+                <span className="caption">/ 100</span>
+                {strategicScore.previous_score != null && (
+                  <span className={`badge ${strategicScore.overall - strategicScore.previous_score >= 0 ? 'success' : 'destructive'}`} style={{ marginLeft: 'auto' }}>
+                    {strategicScore.overall - strategicScore.previous_score >= 0 ? '+' : ''}{strategicScore.overall - strategicScore.previous_score}
+                  </span>
+                )}
+              </div>
+              <div className="hint">Trending {strategicScore.trend}.</div>
+            </>
+          ) : (
+            <>
+              <div className="val" style={{ color: 'hsl(var(--muted-fg))' }}>—</div>
+              <div className="hint">Take the assessment to unlock your score →</div>
+            </>
+          )}
         </div>
       </div>
 
@@ -570,47 +607,51 @@ export default function HomePage({ subjects, navigate, programmes, applications 
         {/* Right column */}
         <div className="stack-3">
           {/* Strategic score */}
-          {(() => {
-            const scoreVal = strategicScore?.overall ?? 74;
-            const prev     = strategicScore?.previous_score;
-            const delta    = prev != null ? scoreVal - prev : 6;
-            const subRows  = [
-              ['Academic',           strategicScore?.academic_readiness    ?? 86],
-              ['Career alignment',   strategicScore?.career_demand_alignment ?? 68],
-              ['Financial',         strategicScore?.financial_feasibility  ?? 71],
-              ['Personality fit',    strategicScore?.personality_career_fit ?? 79],
-            ] as const;
-            return (
-              <div className="card">
-                <div className="eyebrow"><span className="dot" />Strategic Score</div>
+          <div className="card">
+            <div className="eyebrow"><span className="dot" />Strategic Score</div>
+            {strategicScore ? (
+              <>
                 <div className="row" style={{ alignItems: 'baseline', gap: '0.375rem', marginTop: '0.5rem' }}>
-                  <span className="stat-num" style={{ fontSize: '3rem', lineHeight: 0.95 }}>{scoreVal}</span>
+                  <span className="stat-num" style={{ fontSize: '3rem', lineHeight: 0.95 }}>{strategicScore.overall}</span>
                   <span className="caption">/ 100</span>
-                  <span className={`badge ${delta >= 0 ? 'success' : 'destructive'}`} style={{ marginLeft: 'auto' }}>
-                    {delta >= 0 ? '+' : ''}{delta}
-                  </span>
+                  {strategicScore.previous_score != null && (
+                    <span className={`badge ${strategicScore.overall - strategicScore.previous_score >= 0 ? 'success' : 'destructive'}`} style={{ marginLeft: 'auto' }}>
+                      {strategicScore.overall - strategicScore.previous_score >= 0 ? '+' : ''}{strategicScore.overall - strategicScore.previous_score}
+                    </span>
+                  )}
                 </div>
-                <div className="meter lg" style={{ marginTop: '0.5rem' }}><i style={{ width: `${scoreVal}%` }} /></div>
+                <div className="meter lg" style={{ marginTop: '0.5rem' }}><i style={{ width: `${strategicScore.overall}%` }} /></div>
                 <div className="caption" style={{ marginTop: '0.625rem' }}>
                   Composite of academic readiness, funding coverage, application momentum and capability fit.
                 </div>
                 <hr className="divider" />
-                {subRows.map(([l, v]) => (
+                {([
+                  ['Academic',        strategicScore.academic_readiness],
+                  ['Career align.',   strategicScore.career_demand_alignment],
+                  ['Financial',       strategicScore.financial_feasibility],
+                  ['Personality fit', strategicScore.personality_career_fit],
+                ] as [string, number][]).map(([l, v]) => (
                   <div key={l} className="row-between" style={{ fontSize: '0.8125rem', marginTop: '0.5rem' }}>
                     <span className="caption">{l}</span>
                     <span style={{ fontWeight: 700 }}>{v}</span>
                   </div>
                 ))}
-                <button
-                  className="btn btn-outline btn-sm"
-                  onClick={() => navigate('intelligence')}
-                  style={{ marginTop: '0.875rem', width: '100%' }}
-                >
-                  Open Intelligence →
-                </button>
+              </>
+            ) : (
+              <div style={{ padding: '1.25rem 0', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.5rem', marginBottom: '0.375rem', opacity: 0.3 }}>◎</div>
+                <div className="body-text" style={{ marginBottom: '0.625rem' }}>Score unlocks after your assessment</div>
+                <button className="btn btn-primary btn-sm" onClick={() => navigate('cognitive')}>Start assessment →</button>
               </div>
-            );
-          })()}
+            )}
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={() => navigate('intelligence')}
+              style={{ marginTop: '0.875rem', width: '100%' }}
+            >
+              Open Intelligence →
+            </button>
+          </div>
 
           {/* Deadlines */}
           <div className="card">
@@ -644,6 +685,36 @@ export default function HomePage({ subjects, navigate, programmes, applications 
               >
                 {showAllDeadlines ? 'Show less' : `Show ${deadlineItems.length - 3} more deadlines`}
               </button>
+            )}
+            {deadlineItems.length < 3 && (
+              <div style={{ borderTop: deadlineItems.length > 0 ? '1px solid hsl(var(--border))' : undefined, marginTop: deadlineItems.length > 0 ? '0.75rem' : 0, paddingTop: deadlineItems.length > 0 ? '0.75rem' : 0 }}>
+                <div className="caption" style={{ marginBottom: '0.5rem', fontWeight: 600, color: 'hsl(var(--muted-fg))' }}>
+                  Common SA dates to be aware of
+                </div>
+                {[
+                  { t: 'NSFAS application opens', m: 'Sep', tagL: 'Suggested' },
+                  { t: 'Most public universities close', m: 'Sep', tagL: 'Suggested' },
+                  { t: 'NSC supplementary exam registration', m: 'Jun', tagL: 'Suggested' },
+                ].slice(0, 3 - deadlineItems.length).map(s => (
+                  <div className="deadline" key={s.t} style={{ opacity: 0.7 }}>
+                    <div className="dl-date">
+                      <span className="d">—</span>
+                      <span className="m">{s.m}</span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{s.t}</div>
+                    </div>
+                    <span className="badge accent">{s.tagL}</span>
+                  </div>
+                ))}
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ width: '100%', marginTop: '0.5rem' }}
+                  onClick={() => navigate('deadlines')}
+                >
+                  Add your real deadlines →
+                </button>
+              </div>
             )}
           </div>
 

@@ -13,6 +13,8 @@ interface DiscoverPageProps {
   userAps?: number;
   householdIncome?: number;
   userFirstName?: string;
+  userLastName?: string;
+  applicationCount?: number;
 }
 
 interface Citation {
@@ -24,24 +26,39 @@ interface ChatMessage {
   role: 'user' | 'ai';
   text?: string;
   citations?: Citation[];
+  letters?: Array<{ title: string; content: string }>;
   typing?: boolean;
 }
 
-const SEED_MESSAGES: ChatMessage[] = [
-  { role: 'user', text: 'Which Wits programmes have the highest funding match for me?' },
-  {
-    role: 'ai',
-    text: 'Three Wits programmes line up well for you, in this order:\n\n**BSc Actuarial Science** (88% match) — your strongest funding signal because Investec, Old Mutual and Sanlam all run named bursaries here and you clear the 75% Maths threshold on every one. Expected stack: NSFAS + Investec + merit = full cover.\n\n**BSc Computer Science** (84% match) — Standard Bank and FNB bursaries open here, but their thresholds are softer than Actuarial.\n\n**BEng Industrial** (71% match) — Sasol service-contract bursary fits but locks 2–3 years post-graduation.',
-    citations: [
-      { label: 'Funding Strategy', route: 'funding' },
-      { label: 'Scholarships', route: 'scholarships' },
-      { label: 'Programmes', route: 'programmes' },
-    ],
-  },
-];
+function printLetter(title: string, content: string) {
+  const win = window.open('', '_blank', 'width=820,height=1000');
+  if (!win) return;
+  // Convert plain text to HTML (preserve line breaks, bold markers)
+  const htmlContent = content
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+  win.document.write(`<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>${title.replace(/</g,'&lt;')}</title>
+<style>
+  body { font-family: 'Georgia', serif; font-size: 12pt; line-height: 1.7; margin: 0; padding: 2.5cm 3cm; color: #000; }
+  strong { font-weight: bold; }
+  @media print { @page { margin: 2.5cm 3cm; size: A4; } }
+</style>
+</head><body>${htmlContent}</body></html>`);
+  win.document.close();
+  win.onload = () => win.print();
+}
 
-function buildSuggestedPrompts(userAps?: number, householdIncome?: number, psychProfile?: { realistic?: number; investigative?: number; social?: number; enterprising?: number; artistic?: number } | null): string[] {
+const SEED_MESSAGES: ChatMessage[] = [];
+
+function buildSuggestedPrompts(userAps?: number, householdIncome?: number, psychProfile?: { realistic?: number; investigative?: number; social?: number; enterprising?: number; artistic?: number } | null, applicationCount?: number): string[] {
   const prompts: string[] = [];
+
+  if (applicationCount !== undefined && applicationCount > 0) {
+    prompts.push('Write motivation letters for all my applications');
+  }
 
   if (userAps) {
     prompts.push(`My APS is ${userAps} — which programmes have the best career outcomes?`);
@@ -62,7 +79,9 @@ function buildSuggestedPrompts(userAps?: number, householdIncome?: number, psych
     prompts.push('I want to work outdoors — what should I study?');
   }
 
-  if (householdIncome !== undefined && householdIncome <= 600_000) {
+  if (householdIncome !== undefined && householdIncome <= 350_000) {
+    prompts.push('Is my NSFAS payment guaranteed once I apply?');
+  } else if (householdIncome !== undefined && householdIncome <= 600_000) {
     prompts.push('How do I stack NSFAS with a bursary to fully cover my costs?');
   } else {
     prompts.push('What merit bursaries can I apply for without an income test?');
@@ -88,14 +107,14 @@ function renderText(text: string): React.ReactNode[] {
   });
 }
 
-export default function DiscoverPage({ navigate, psychProfile, capabilityData, userAps, householdIncome, userFirstName }: DiscoverPageProps) {
+export default function DiscoverPage({ navigate, psychProfile, capabilityData, userAps, householdIncome, userFirstName, userLastName: _userLastName, applicationCount }: DiscoverPageProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(SEED_MESSAGES);
   const [conversationHistory, setConversationHistory] = useState<ChatTurn[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
-  const suggestedPrompts = buildSuggestedPrompts(userAps, householdIncome, psychProfile);
+  const suggestedPrompts = buildSuggestedPrompts(userAps, householdIncome, psychProfile, applicationCount);
 
   useEffect(() => {
     if (transcriptRef.current) {
@@ -136,7 +155,7 @@ export default function DiscoverPage({ navigate, psychProfile, capabilityData, u
 
       setMessages(prev => [
         ...prev.slice(0, -1),
-        { role: 'ai', text: result.text, citations },
+        { role: 'ai', text: result.text, citations, letters: result.letters },
       ]);
       setConversationHistory(prev => [
         ...prev,
@@ -178,10 +197,17 @@ export default function DiscoverPage({ navigate, psychProfile, capabilityData, u
           <div className="chat-shell">
             <div className="chat-transcript" ref={transcriptRef}>
               {messages.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '2rem', color: 'hsl(var(--muted-fg))' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✦</div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>Ask your personal advisor anything</div>
-                  <div className="caption" style={{ marginTop: '0.25rem' }}>Try one of the prompts on the right to get started.</div>
+                <div style={{ textAlign: 'center', padding: '2rem 1.5rem' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>✦</div>
+                  <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.375rem' }}>
+                    Your personal admissions advisor
+                  </div>
+                  <p className="caption" style={{ maxWidth: '22rem', margin: '0 auto 1rem', color: 'hsl(var(--fg))' }}>
+                    Ask anything about programmes, funding, or your next step. The advisor knows your APS, profile and applications — and gives you real SA-specific answers, not generic advice.
+                  </p>
+                  <p className="caption" style={{ maxWidth: '22rem', margin: '0 auto', fontSize: '0.75rem' }}>
+                    Were you rejected with no explanation? Told no alternatives exist? Use the panel on the right to get real routes forward.
+                  </p>
                 </div>
               )}
               {messages.map((msg, i) => (
@@ -205,6 +231,40 @@ export default function DiscoverPage({ navigate, psychProfile, capabilityData, u
                               >
                                 {c.label} →
                               </button>
+                            ))}
+                          </div>
+                        )}
+                        {msg.letters && msg.letters.length > 0 && (
+                          <div style={{ marginTop: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                            {msg.letters.map((letter, li) => (
+                              <div key={li} style={{
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: 'var(--r-lg)',
+                                overflow: 'hidden',
+                              }}>
+                                <div style={{
+                                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                  padding: '0.625rem 0.875rem',
+                                  background: 'hsl(var(--muted) / 0.5)',
+                                  borderBottom: '1px solid hsl(var(--border))',
+                                }}>
+                                  <div style={{ fontWeight: 700, fontSize: '0.8125rem' }}>📄 {letter.title}</div>
+                                  <button
+                                    className="btn btn-primary btn-sm"
+                                    onClick={() => printLetter(letter.title, letter.content)}
+                                  >
+                                    Save as PDF
+                                  </button>
+                                </div>
+                                <div style={{
+                                  padding: '0.875rem', fontFamily: 'Georgia, serif',
+                                  fontSize: '0.8125rem', lineHeight: 1.7,
+                                  whiteSpace: 'pre-wrap', maxHeight: 280, overflowY: 'auto',
+                                  background: 'hsl(var(--card))',
+                                }}>
+                                  {letter.content}
+                                </div>
+                              </div>
                             ))}
                           </div>
                         )}
@@ -247,6 +307,21 @@ export default function DiscoverPage({ navigate, psychProfile, capabilityData, u
         </div>
 
         <div className="stack-3">
+          <div className="card" style={{ borderLeft: '4px solid hsl(var(--primary))' }}>
+            <div className="eyebrow" style={{ marginBottom: '0.5rem' }}><span className="dot" />Were you told &quot;no&quot;?</div>
+            <p className="caption" style={{ marginBottom: '0.75rem', color: 'hsl(var(--fg))', fontSize: '0.8125rem' }}>
+              Being rejected with no explanation and no alternatives is not right. Tell the advisor what happened — get real routes forward.
+            </p>
+            <button
+              className="btn btn-primary"
+              style={{ width: '100%', justifyContent: 'center' }}
+              disabled={isLoading}
+              onClick={() => sendMessage("I applied to a programme and was told I don't qualify. I wasn't given any alternatives or explanation. What are my real options right now — including TVET, foundation programmes, and similar programmes I might already qualify for?")}
+            >
+              I was told no — what now?
+            </button>
+          </div>
+
           <div className="card">
             <div className="eyebrow"><span className="dot" />Try one of these</div>
             <div className="stack" style={{ marginTop: '0.625rem' }}>
@@ -294,6 +369,13 @@ export default function DiscoverPage({ navigate, psychProfile, capabilityData, u
                   detail: householdIncome
                     ? `R${Math.round(householdIncome/1000)}k/yr · ${householdIncome <= 350_000 ? 'NSFAS-eligible · bursary matching on' : 'Corporate + merit bursary matching on'}`
                     : 'Add on Profile to improve funding advice',
+                },
+                {
+                  label: 'Applications',
+                  loaded: (applicationCount ?? 0) > 0,
+                  detail: (applicationCount ?? 0) > 0
+                    ? `${applicationCount} application${applicationCount !== 1 ? 's' : ''} — letter drafting available`
+                    : 'No applications yet — add one on the Applications page',
                 },
               ] as Array<{ label: string; loaded: boolean; detail: string }>).map(src => (
                 <div key={src.label} className="row" style={{ gap: '0.5rem', alignItems: 'flex-start', padding: '0.375rem 0', borderBottom: '1px solid hsl(var(--border))' }}>

@@ -296,6 +296,106 @@ function scoreBigFive(profile: PsychProfileData, ranges?: BigFiveRanges): number
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
+export interface CareerMatchBreakdown {
+  overall: number;
+  riasec: number;
+  caps: number;
+  bigFive: number;
+  aps: number;
+  archMinAps?: number;
+  apsGap: number;
+  weakestCap?: { label: string; yours: number; required: number; key: string };
+  weakestRiasec?: { trait: string; yours: number; required: number };
+}
+
+/**
+ * Same as scoreCareerMatch but returns the 4 component scores so the UI
+ * can explain why the overall number is what it is.
+ */
+export function scoreCareerMatchBreakdown(
+  careerName: string,
+  psychProfile: PsychProfileData,
+  capabilityData: CapabilityData,
+  userAps: number,
+): CareerMatchBreakdown {
+  const archetype = getArchetype(careerName);
+
+  const riasecScore  = scoreRiasec(psychProfile, archetype.riasec);
+  const capScore     = scoreCaps(capabilityData, archetype.caps);
+  const bigFiveScore = scoreBigFive(psychProfile, archetype.bigFive);
+
+  const apsScore = archetype.minAps
+    ? userAps >= archetype.minAps
+      ? 100
+      : Math.max(20, Math.round((userAps / archetype.minAps) * 60))
+    : 80;
+
+  const raw = Math.round(
+    riasecScore  * 0.38 +
+    capScore     * 0.30 +
+    bigFiveScore * 0.15 +
+    apsScore     * 0.17,
+  );
+  const overall = Math.min(97, Math.max(35, raw));
+
+  // Find weakest capability gap for this career
+  const CAP_LABEL_MAP: Array<[keyof CapRequirements, keyof CapabilityData, string]> = [
+    ['analytical',     'analytical_thinking',   'Analytical'],
+    ['technical',      'technical_aptitude',    'Technical'],
+    ['communication',  'communication_skills',  'Communication'],
+    ['creative',       'creative_thinking',     'Creative'],
+    ['leadership',     'leadership_potential',  'Leadership'],
+    ['academic',       'academic_readiness',    'Academic readiness'],
+    ['risk',           'risk_tolerance_score',  'Risk tolerance'],
+    ['entrepreneurial','entrepreneurial_drive', 'Entrepreneurial'],
+  ];
+  let weakestCap: CareerMatchBreakdown['weakestCap'];
+  let worstCapGap = 0;
+  for (const [reqKey, capKey, label] of CAP_LABEL_MAP) {
+    const required = archetype.caps[reqKey] ?? 0;
+    if (required === 0) continue;
+    const yours = (capabilityData[capKey] as number | undefined) ?? 60;
+    const gap = required - yours;
+    if (gap > worstCapGap) {
+      worstCapGap = gap;
+      weakestCap = { label, yours, required, key: capKey };
+    }
+  }
+
+  // Find weakest RIASEC dimension
+  const riasecPairsAll: Array<[string, number]> = [
+    ['Investigative', archetype.riasec.investigative ?? 0],
+    ['Realistic',     archetype.riasec.realistic     ?? 0],
+    ['Artistic',      archetype.riasec.artistic      ?? 0],
+    ['Social',        archetype.riasec.social        ?? 0],
+    ['Enterprising',  archetype.riasec.enterprising  ?? 0],
+    ['Conventional',  archetype.riasec.conventional  ?? 0],
+  ];
+  const riasecPairs = riasecPairsAll.filter(([, ideal]) => ideal > 0);
+  let weakestRiasec: CareerMatchBreakdown['weakestRiasec'];
+  let worstRiasecGap = 0;
+  for (const [trait, ideal] of riasecPairs) {
+    const yours = (psychProfile[trait.toLowerCase() as keyof PsychProfileData] as number | undefined) ?? 50;
+    const gap = ideal - yours;
+    if (gap > worstRiasecGap) {
+      worstRiasecGap = gap;
+      weakestRiasec = { trait, yours, required: ideal };
+    }
+  }
+
+  return {
+    overall,
+    riasec: riasecScore,
+    caps: capScore,
+    bigFive: bigFiveScore,
+    aps: apsScore,
+    archMinAps: archetype.minAps,
+    apsGap: archetype.minAps ? Math.max(0, archetype.minAps - userAps) : 0,
+    weakestCap,
+    weakestRiasec,
+  };
+}
+
 /**
  * Compute a personalised career match score (0–100).
  * The score reflects how well this specific student's RIASEC type,

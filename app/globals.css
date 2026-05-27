@@ -220,6 +220,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
   border-radius: var(--r-xl); padding: 0.875rem 1.125rem;
   margin-bottom: 1.5rem;
   position: sticky; top: 1.5rem; z-index: 45;
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
 }
 .topbar-left .greet {
@@ -1959,12 +1960,15 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.025em; }
 }
 @media (min-width: 900px) { .show-mobile { display: none !important; } }
 
-/* AI insight skeleton loading */
+/* Skeleton loading */
 .skeleton {
   background: linear-gradient(90deg, hsl(var(--border)) 25%, hsl(var(--muted)/0.6) 50%, hsl(var(--border)) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
+  border-radius: 6px;
 }
+.skeleton-line  { height: 0.875rem; border-radius: 4px; }
+.skeleton-block { border-radius: var(--r-lg); }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { Route, StrategicScoreData, CapabilityData, Capability, Programme, Career, PsychProfileData, Subject } from '@/lib/types';
 import { CAPS, CAREERS } from '@/lib/data';
-import { scoreCareerMatch } from '@/lib/scoring';
+import { scoreCareerMatch, scoreCareerMatchBreakdown } from '@/lib/scoring';
 import { fmtR, apsPoints } from '@/lib/utils';
+import { DB_TO_CAP } from '@/lib/capability';
 import DonutChart from '@/components/DonutChart';
 import AiInsightCard from '@/components/AiInsightCard';
 
@@ -19,17 +20,6 @@ interface IntelligencePageProps {
   userAps?: number;
   onOpenCareer?: (careerName: string) => void;
 }
-
-const DB_TO_CAP: Array<[keyof CapabilityData, string]> = [
-  ['analytical_thinking',  'Analytical'],
-  ['technical_aptitude',   'Technical'],
-  ['communication_skills', 'Social'],
-  ['creative_thinking',    'Creative'],
-  ['leadership_potential', 'Verbal'],
-  ['academic_readiness',   'Numerical'],
-  ['risk_tolerance_score', 'Spatial'],
-  ['entrepreneurial_drive','Practical'],
-];
 
 interface SubScoreNarrative { why: string; action: string; fixable: boolean }
 
@@ -244,20 +234,20 @@ const FALLBACK_PROBS = [
 export default function IntelligencePage({ navigate, strategicScore, capabilityData, programmes = [], careers = [], psychProfile, subjects = [], userAps = 0, householdIncome, onOpenCareer }: IntelligencePageProps & { householdIncome?: number }) {
   const futureYear = new Date().getFullYear() + 5;
   const [expandedScore, setExpandedScore] = useState<string | null>(null);
-  const score = strategicScore?.overall ?? 74;
-  const prev  = strategicScore?.previous_score;
-  const delta = prev != null ? score - prev : 6;
-  const trend = strategicScore?.trend ?? 'improving';
+  const score = strategicScore?.overall ?? 0;
+  const prev  = strategicScore?.previous_score ?? null;
+  const delta = prev != null ? score - prev : null;
+  const trend = strategicScore?.trend ?? 'stable';
 
   const narratives = buildSubScoreNarratives(userAps, subjects, psychProfile ?? null, capabilityData ?? null, strategicScore ?? null, programmes, householdIncome);
 
   const subScores = [
-    { key: 'academic',    l: 'Academic readiness',    v: strategicScore?.academic_readiness        ?? 86, sub: 'APS, subject mix, prerequisite gaps',           c: 'success' },
-    { key: 'career',      l: 'Career alignment',      v: strategicScore?.career_demand_alignment    ?? 68, sub: 'Labour market signal vs. your top careers',     c: 'primary' },
-    { key: 'financial',   l: 'Financial feasibility', v: strategicScore?.financial_feasibility      ?? 71, sub: 'NSFAS + bursary fit · scholarship pipeline',    c: 'accent'  },
-    { key: 'personality', l: 'Personality fit',       v: strategicScore?.personality_career_fit     ?? 79, sub: 'Big Five · RIASEC vs. target career profiles',  c: 'warning' },
-    { key: 'global',      l: 'Global mobility',       v: strategicScore?.global_mobility_potential  ?? 68, sub: 'International demand × academic strength',      c: 'primary' },
-    { key: 'skills',      l: 'Skill readiness',       v: strategicScore?.skill_readiness            ?? 72, sub: 'Mean of 8 core capability dimensions',          c: 'success' },
+    { key: 'academic',    l: 'Academic readiness',    v: strategicScore?.academic_readiness        ?? 0, sub: 'APS, subject mix, prerequisite gaps',           c: 'success' },
+    { key: 'career',      l: 'Career alignment',      v: strategicScore?.career_demand_alignment    ?? 0, sub: 'Labour market signal vs. your top careers',     c: 'primary' },
+    { key: 'financial',   l: 'Financial feasibility', v: strategicScore?.financial_feasibility      ?? 0, sub: 'NSFAS + bursary fit · scholarship pipeline',    c: 'accent'  },
+    { key: 'personality', l: 'Personality fit',       v: strategicScore?.personality_career_fit     ?? 0, sub: 'Big Five · RIASEC vs. target career profiles',  c: 'warning' },
+    { key: 'global',      l: 'Global mobility',       v: strategicScore?.global_mobility_potential  ?? 0, sub: 'International demand × academic strength',      c: 'primary' },
+    { key: 'skills',      l: 'Skill readiness',       v: strategicScore?.skill_readiness            ?? 0, sub: 'Mean of 8 core capability dimensions',          c: 'success' },
   ];
 
   const caps: Capability[] = capabilityData
@@ -308,6 +298,10 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
   const hasData = !!strategicScore;
 
   const leverROI = buildLeverROI(subScores, psychProfile ?? null, userAps);
+  const [expandedCareer, setExpandedCareer] = useState<string | null>(null);
+  const toggleCareerExpand = useCallback((name: string) => {
+    setExpandedCareer(prev => prev === name ? null : name);
+  }, []);
 
   return (
     <div className="page-anim">
@@ -333,6 +327,21 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
         </div>
       </div>
 
+      {!hasData && (
+        <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+          <div>
+            <div className="subheading" style={{ fontSize: '0.9375rem' }}>Your strategic score is locked</div>
+            <p className="body-text" style={{ marginTop: '0.25rem', maxWidth: '36rem' }}>
+              Complete the cognitive and capability assessments to unlock your real six-dimension score.
+              All values below show zero until the assessments are done.
+            </p>
+          </div>
+          <button className="btn btn-primary btn-sm" style={{ flexShrink: 0 }} onClick={() => navigate('cognitive')}>
+            Start assessment →
+          </button>
+        </div>
+      )}
+
       {/* Hero */}
       <div className="intel-hero">
         <div>
@@ -346,9 +355,10 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
             </div>
           </div>
           <div className="row" style={{ justifyContent: 'center', marginTop: '1rem', gap: '0.375rem' }}>
-            <span className={`badge ${delta >= 0 ? 'success' : 'destructive'}`}>
-              {delta >= 0 ? '+' : ''}{delta} {trend}
-            </span>
+            {delta != null
+              ? <span className={`badge ${delta >= 0 ? 'success' : 'destructive'}`}>{delta >= 0 ? '+' : ''}{delta} {trend}</span>
+              : <span className="badge">No prior score</span>
+            }
             <span className="badge">Composite</span>
           </div>
         </div>
@@ -398,12 +408,51 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
         </div>
       </div>
 
+      {/* Weekly action plan — top 2 highest-ROI levers, framed as a focused plan */}
+      {leverROI.length >= 2 && (
+        <div className="card" style={{ marginTop: '1.25rem', borderColor: 'hsl(var(--primary) / 0.3)', background: 'hsl(var(--primary) / 0.03)' }}>
+          <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+            <div>
+              <div className="eyebrow"><span className="dot" />Your plan this week</div>
+              <h3 className="subheading" style={{ marginTop: '0.25rem' }}>2 actions · highest return on your time</h3>
+            </div>
+            <span className="badge primary" style={{ height: '1.5rem', fontSize: '0.6875rem' }}>Do first</span>
+          </div>
+          <div className="stack" style={{ gap: '0.75rem' }}>
+            {leverROI.slice(0, 2).map((lever, idx) => (
+              <div key={lever.key} style={{
+                display: 'flex', gap: '0.875rem', alignItems: 'flex-start',
+              }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                  background: 'hsl(var(--primary))', color: 'white',
+                  display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: '0.75rem',
+                }}>{idx + 1}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.875rem' }}>{lever.label}</span>
+                    <span className="badge" style={{ height: '1.125rem', fontSize: '0.5625rem' }}>+{lever.estGain} pts</span>
+                    <span className="caption" style={{ fontSize: '0.6875rem', color: 'hsl(var(--muted-fg))' }}>{lever.effort}</span>
+                  </div>
+                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', lineHeight: 1.5, color: 'hsl(var(--muted-fg))' }}>
+                    {lever.action}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="caption" style={{ marginTop: '0.75rem', paddingTop: '0.625rem', borderTop: '1px solid hsl(var(--border))', fontSize: '0.6875rem' }}>
+            Full breakdown of all 6 levers below — these 2 have the highest score gain per hour of effort.
+          </div>
+        </div>
+      )}
+
       {/* Lever ROI */}
       <div className="card" style={{ marginTop: '1.25rem' }}>
         <div className="row-between" style={{ marginBottom: '0.875rem' }}>
           <div>
             <div className="eyebrow"><span className="dot" />Score optimiser</div>
-            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>What to move first — ranked by effort-to-impact</h3>
+            <h3 className="subheading" style={{ marginTop: '0.25rem' }}>All levers — ranked by effort-to-impact</h3>
           </div>
           <span className="badge success">ROI ranked</span>
         </div>
@@ -549,22 +598,84 @@ export default function IntelligencePage({ navigate, strategicScore, capabilityD
             <button className="btn btn-ghost btn-sm" onClick={() => navigate('cognitive')}>Why?</button>
           </div>
           <div className="stack-2">
-            {careerProbs.map(({ name, score }) => (
-              <button
-                key={name}
-                className="progress-row"
-                style={{ background: 'none', border: 'none', padding: 0, cursor: onOpenCareer ? 'pointer' : 'default', textAlign: 'left', width: '100%' }}
-                onClick={() => onOpenCareer?.(name)}
-                title={onOpenCareer ? `Open ${name} detail` : undefined}
-              >
-                <span className="label" style={{ flex: 1 }}>{name}</span>
-                <div className={`meter ${score >= 80 ? 'success' : score >= 65 ? 'primary' : 'accent'}`} style={{ flex: 3 }}>
-                  <i style={{ width: `${score}%` }} />
+            {careerProbs.map(({ name, score }) => {
+              const isExpanded = expandedCareer === name;
+              const bd = psychProfile && capabilityData
+                ? scoreCareerMatchBreakdown(name, psychProfile, capabilityData, userAps)
+                : null;
+              return (
+                <div key={name} style={{ borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
+                    <button
+                      className="progress-row"
+                      style={{ background: 'none', border: 'none', padding: 0, cursor: onOpenCareer ? 'pointer' : 'default', textAlign: 'left', flex: 1 }}
+                      onClick={() => onOpenCareer?.(name)}
+                      title={onOpenCareer ? `Open ${name} detail` : undefined}
+                    >
+                      <span className="label" style={{ flex: 1 }}>{name}</span>
+                      <div className={`meter ${score >= 80 ? 'success' : score >= 65 ? 'primary' : 'accent'}`} style={{ flex: 3 }}>
+                        <i style={{ width: `${score}%` }} />
+                      </div>
+                      <span className="val">{score}</span>
+                      {(!psychProfile || !capabilityData) && (
+                        <span className="badge accent" style={{ fontSize: '0.5rem', marginLeft: '0.25rem' }}>Est.</span>
+                      )}
+                    </button>
+                    {bd && (
+                      <button
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.125rem 0.375rem', borderRadius: 4, fontSize: '0.6875rem', color: 'hsl(var(--muted-fg))', flexShrink: 0 }}
+                        onClick={() => toggleCareerExpand(name)}
+                        title="Why this score?"
+                        aria-label={isExpanded ? 'Collapse' : 'Explain score'}
+                      >
+                        {isExpanded ? '▲' : '▼'} Why?
+                      </button>
+                    )}
+                    {onOpenCareer && !bd && (
+                      <span className="caption" style={{ marginLeft: '0.375rem', color: 'hsl(var(--muted-fg))', flexShrink: 0 }}>→</span>
+                    )}
+                  </div>
+                  {bd && isExpanded && (
+                    <div style={{
+                      marginTop: '0.5rem',
+                      padding: '0.75rem',
+                      background: 'hsl(var(--muted) / 0.5)',
+                      borderRadius: 'var(--r-md)',
+                    }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        {[
+                          { l: 'RIASEC personality', v: bd.riasec, w: '38%' },
+                          { l: 'Capabilities',       v: bd.caps,   w: '30%' },
+                          { l: 'Big Five fit',       v: bd.bigFive, w: '15%' },
+                          { l: 'APS gate',           v: bd.aps,    w: '17%' },
+                        ].map(({ l, v, w }) => (
+                          <div key={l} style={{ background: 'hsl(var(--bg))', borderRadius: 6, padding: '0.375rem 0.5rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '0.625rem', color: 'hsl(var(--muted-fg))' }}>{l}</span>
+                              <span style={{ fontSize: '0.5625rem', color: 'hsl(var(--muted-fg))' }}>{w}</span>
+                            </div>
+                            <div style={{
+                              fontWeight: 800, fontVariantNumeric: 'tabular-nums',
+                              color: v >= 80 ? 'hsl(var(--success))' : v >= 65 ? 'hsl(var(--fg))' : 'hsl(var(--warning))',
+                            }}>{v}</div>
+                          </div>
+                        ))}
+                      </div>
+                      {bd.apsGap > 0 && (
+                        <div className="caption" style={{ fontSize: '0.6875rem', color: 'hsl(var(--warning))' }}>
+                          APS gate: {bd.apsGap} point{bd.apsGap !== 1 ? 's' : ''} below the {bd.archMinAps} threshold — open Simulator to close it.
+                        </div>
+                      )}
+                      {bd.weakestCap && bd.caps < 80 && (
+                        <div className="caption" style={{ fontSize: '0.6875rem', marginTop: '0.25rem' }}>
+                          Lowest capability: {bd.weakestCap.label} ({bd.weakestCap.yours}/100, need {bd.weakestCap.required}) — open Skills Map for a 6-week plan.
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <span className="val">{score}</span>
-                {onOpenCareer && <span className="caption" style={{ marginLeft: '0.375rem', color: 'hsl(var(--muted-fg))' }}>→</span>}
-              </button>
-            ))}
+              );
+            })}
             {!psychProfile && (
               <div className="caption" style={{ marginTop: '0.375rem', color: 'hsl(var(--warning))' }}>
                 Estimated · complete profile assessment to personalise

@@ -5,6 +5,7 @@ import type { Route, Subject, Programme, CompareItem, PsychProfileData, Capabili
 import { PROGRAMMES } from '@/lib/data';
 import { calcAPS, fmtR, uniToneClass, uniLogoPath } from '@/lib/utils';
 import { scoreCareerMatch } from '@/lib/scoring';
+import { getProgrammeExplainer } from '@/lib/programme-descriptions';
 import { toggleSavedProgramme } from '@/app/actions/toggleSavedProgramme';
 import AddApplicationModal from '@/components/AddApplicationModal';
 
@@ -137,7 +138,7 @@ const PATHWAY_LABELS: Record<string, string> = {
 /* ─── Detail view ─────────────────────────────────────────────── */
 function ProgDetail({
   p, aps, subjects, navigate, onBack, isSaved, onToggleSave, onApply, applyState, psychProfile, capabilityData,
-  householdIncome, onOpenCareer,
+  householdIncome, onOpenCareer, programmes, onSelectProgramme,
 }: {
   p: Programme;
   aps: number;
@@ -152,6 +153,8 @@ function ProgDetail({
   capabilityData?: CapabilityData | null;
   householdIncome?: number;
   onOpenCareer?: (name: string) => void;
+  programmes: Programme[];
+  onSelectProgramme: (prog: Programme) => void;
 }) {
   const durYears = p.dur ?? 3;
   const YEAR_LABELS = ['Year 1', 'Year 2', 'Year 3', 'Year 4'];
@@ -203,6 +206,9 @@ function ProgDetail({
     };
   });
 
+  const explainer = getProgrammeExplainer(p.name);
+  const surplus = aps - p.aps;
+
   return (
     <div className="page-anim">
       <div className="page-head">
@@ -246,6 +252,249 @@ function ProgDetail({
           </div>
         </div>
       </div>
+
+      {/* ─── What this programme actually means ─────────────────── */}
+      {explainer && (
+        <div className="card" style={{ marginBottom: '1.5rem', borderLeft: '4px solid hsl(var(--primary))' }}>
+          <div className="eyebrow" style={{ marginBottom: '0.5rem' }}>
+            <span className="dot" />What this programme actually means
+          </div>
+          <h3 className="subheading" style={{ marginTop: 0, marginBottom: '0.25rem' }}>{explainer.plainName}</h3>
+          <p className="body-text" style={{ marginBottom: '1rem', fontStyle: 'italic', color: 'hsl(var(--muted-fg))' }}>{explainer.tagline}</p>
+
+          <div className="grid-2" style={{ gap: '1.25rem' }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.8125rem', marginBottom: '0.25rem' }}>Who is it for?</div>
+              <p className="caption" style={{ fontSize: '0.8125rem', color: 'hsl(var(--fg))' }}>{explainer.whoIsItFor}</p>
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.8125rem', marginBottom: '0.25rem' }}>What will you actually do day to day?</div>
+              <p className="caption" style={{ fontSize: '0.8125rem', color: 'hsl(var(--fg))' }}>{explainer.whatYouLearn}</p>
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.8125rem', marginBottom: '0.25rem' }}>Where does it lead?</div>
+              <div className="row" style={{ flexWrap: 'wrap', gap: '0.375rem' }}>
+                {explainer.whereItLeads.map(j => (
+                  <span key={j} className="badge info" style={{ fontSize: '0.6875rem' }}>{j}</span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.8125rem', marginBottom: '0.25rem' }}>Time to first job</div>
+              <p className="caption" style={{ fontSize: '0.8125rem', color: 'hsl(var(--fg))' }}>{explainer.timeToFirstJob}</p>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'hsl(var(--warning) / 0.08)', borderRadius: '0.5rem', borderLeft: '3px solid hsl(var(--warning))' }}>
+            <div style={{ fontWeight: 700, fontSize: '0.8125rem', marginBottom: '0.25rem' }}>
+              Common misconception — most people get this wrong
+            </div>
+            <p className="caption" style={{ fontSize: '0.8125rem', color: 'hsl(var(--fg))' }}>{explainer.commonMisconception}</p>
+          </div>
+
+          <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'hsl(var(--success) / 0.08)', borderRadius: '0.5rem' }}>
+            <div style={{ fontWeight: 700, fontSize: '0.8125rem', marginBottom: '0.25rem' }}>
+              Why this matters right now in South Africa
+            </div>
+            <p className="caption" style={{ fontSize: '0.8125rem', color: 'hsl(var(--fg))' }}>{explainer.saContext}</p>
+          </div>
+
+          {(explainer.pathwayIn || explainer.pathwayUp) && (
+            <div className="row" style={{ marginTop: '1rem', gap: '1rem', flexWrap: 'wrap' }}>
+              {explainer.pathwayIn && (
+                <div style={{ flex: 1, minWidth: '12rem' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.75rem', marginBottom: '0.25rem', color: 'hsl(var(--muted-fg))' }}>
+                    HOW TO GET IN
+                  </div>
+                  <p className="caption" style={{ fontSize: '0.8125rem', color: 'hsl(var(--fg))' }}>{explainer.pathwayIn}</p>
+                </div>
+              )}
+              {explainer.pathwayUp && (
+                <div style={{ flex: 1, minWidth: '12rem' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.75rem', marginBottom: '0.25rem', color: 'hsl(var(--muted-fg))' }}>
+                    WHERE IT LEADS NEXT
+                  </div>
+                  <p className="caption" style={{ fontSize: '0.8125rem', color: 'hsl(var(--fg))' }}>{explainer.pathwayUp}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Alternative finder — shown when APS is short ────────── */}
+      {surplus < 0 && (() => {
+        const shortfall = Math.abs(surplus);
+        const isEngOrSci = /engineering|beng|bsc|science/i.test(p.name);
+        const isBusiness = /bcom|commerce|accounting|finance|economics/i.test(p.name);
+        const isHealth   = /medicine|mbchb|nursing|pharmacy|physiother/i.test(p.name);
+        const isTech     = /computer|software|information technology|ict|informatics/i.test(p.name);
+
+        // Foundation/extended programme at same institution
+        const foundationProg = programmes.find(q =>
+          (q.name.toLowerCase().includes('foundation') || q.name.toLowerCase().includes('extended')) &&
+          q.uni === p.uni &&
+          q.aps <= aps + 2
+        );
+
+        // Similar programmes the student already qualifies for
+        const qualifyingAlternatives = programmes
+          .filter(q =>
+            q.id !== p.id &&
+            q.aps <= aps &&
+            (
+              (isEngOrSci && /engineering|bsc|beng|science|technology/i.test(q.name)) ||
+              (isBusiness && /bcom|commerce|accounting|finance|economics|management/i.test(q.name)) ||
+              (isHealth   && /nursing|pharmacy|physiother|health/i.test(q.name)) ||
+              (isTech     && /computer|software|ict|information technology|informatics|ndip/i.test(q.name)) ||
+              (!isEngOrSci && !isBusiness && !isHealth && !isTech && q.demand === p.demand)
+            )
+          )
+          .sort((a, b) => b.fit - a.fit)
+          .slice(0, 3);
+
+        // TVET/NATED pathway where applicable
+        const showNatedPath = isEngOrSci || isTech || isBusiness;
+        const natedProg = programmes.find(q =>
+          (q.name.toLowerCase().includes('nated') || /\bn[456]\b/i.test(q.name)) &&
+          q.aps <= aps
+        );
+
+        return (
+          <div className="card" style={{ marginBottom: '1.5rem', borderLeft: '4px solid hsl(var(--destructive))' }}>
+            <div className="eyebrow" style={{ marginBottom: '0.5rem' }}>
+              <span className="dot" style={{ background: 'hsl(var(--destructive))' }} />
+              You don&apos;t qualify yet — here&apos;s what&apos;s still open
+            </div>
+            <p className="body-text" style={{ marginBottom: '1rem' }}>
+              Your APS of <strong>{aps}</strong> is <strong>{shortfall} point{shortfall !== 1 ? 's' : ''} short</strong> of the {p.aps} required for {p.name}.
+              Being told &quot;no&quot; with no alternatives is not the end. Below are the real routes forward.
+            </p>
+
+            <div className="stack" style={{ gap: '0.875rem' }}>
+              {/* Route 1 — raise marks */}
+              {shortfall <= 6 && (
+                <div style={{ padding: '0.875rem', background: 'hsl(var(--primary) / 0.06)', borderRadius: '0.5rem', borderLeft: '3px solid hsl(var(--primary))' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+                    Route 1 — Raise your marks (you&apos;re {shortfall} point{shortfall !== 1 ? 's' : ''} away)
+                  </div>
+                  <p className="caption" style={{ color: 'hsl(var(--fg))' }}>
+                    You need just {shortfall} more APS point{shortfall !== 1 ? 's' : ''}. That&apos;s roughly one subject going up by 5-10%.
+                    Consider supplementary exams, rewriting in June, or a bridging course at a TVET college.
+                    Many universities also have late applications or clearing rounds — ask the admissions office directly.
+                  </p>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => navigate('simulator')}
+                    style={{ marginTop: '0.5rem' }}
+                  >
+                    Open mark simulator →
+                  </button>
+                </div>
+              )}
+
+              {/* Route 2 — Foundation / Extended programme */}
+              {(foundationProg || (shortfall <= 8)) && (
+                <div style={{ padding: '0.875rem', background: 'hsl(var(--success) / 0.06)', borderRadius: '0.5rem', borderLeft: '3px solid hsl(var(--success))' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+                    Route 2 — Foundation / Extended programme {foundationProg ? `at ${foundationProg.uni}` : ''}
+                  </div>
+                  <p className="caption" style={{ color: 'hsl(var(--fg))' }}>
+                    {foundationProg
+                      ? `${foundationProg.name} accepts students with APS ${foundationProg.aps}+ — you qualify. It's one extra year that bridges you into the same degree. You end up with the exact same qualification as direct-entry students.`
+                      : `Most universities have foundation or extended curriculum programmes for students who narrowly miss the APS cutoff. These are typically covered by NSFAS. Ask the admissions office specifically for "${p.name.replace(/\(.*\)/, '').trim()} Foundation" or "${p.name.replace(/\(.*\)/, '').trim()} Extended Curriculum Programme".`
+                    }
+                  </p>
+                  {foundationProg && (
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={() => onSelectProgramme(foundationProg)}
+                      style={{ marginTop: '0.5rem' }}
+                    >
+                      View {foundationProg.name} →
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Route 3 — Similar qualifying programmes */}
+              {qualifyingAlternatives.length > 0 && (
+                <div style={{ padding: '0.875rem', background: 'hsl(var(--accent) / 0.06)', borderRadius: '0.5rem', borderLeft: '3px solid hsl(var(--accent))' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                    Route 3 — Similar programmes you already qualify for
+                  </div>
+                  <div className="stack" style={{ gap: '0.5rem' }}>
+                    {qualifyingAlternatives.map(q => (
+                      <button
+                        key={q.id}
+                        className="row-between btn-ghost-row"
+                        onClick={() => onSelectProgramme(q)}
+                        style={{ width: '100%', padding: '0.5rem 0.625rem', borderRadius: '0.375rem', background: 'hsl(var(--bg))', border: '1px solid hsl(var(--border))' }}
+                      >
+                        <div style={{ textAlign: 'left' }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.8125rem' }}>{q.name}</div>
+                          <div className="caption" style={{ marginTop: '0.125rem' }}>{q.uni} · APS {q.aps} · {q.dur} years</div>
+                        </div>
+                        <div className="row" style={{ gap: '0.375rem' }}>
+                          <span className="badge success" style={{ fontSize: '0.625rem' }}>You qualify</span>
+                          <span className="caption" style={{ fontSize: '0.6875rem' }}>{fmtR(q.salary)}/mo</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Route 4 — NATED / TVET pathway */}
+              {showNatedPath && (
+                <div style={{ padding: '0.875rem', background: 'hsl(var(--warning) / 0.06)', borderRadius: '0.5rem', borderLeft: '3px solid hsl(var(--warning))' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+                    Route 4 — TVET College → NATED pathway (no APS barrier)
+                  </div>
+                  <p className="caption" style={{ color: 'hsl(var(--fg))' }}>
+                    NATED (N4→N5→N6 + 18 months work experience) gets you a National N Diploma that is accepted for entry into BTech/Advanced Diploma at universities of technology — TUT, DUT, CPUT, VUT, CUT, MUT.
+                    The APS requirement at TVET colleges is very low. This is a real alternative path that many students don&apos;t know exists.
+                  </p>
+                  {natedProg && (
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={() => onSelectProgramme(natedProg)}
+                      style={{ marginTop: '0.5rem' }}
+                    >
+                      View {natedProg.name} →
+                    </button>
+                  )}
+                  {!natedProg && (
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={() => navigate('programmes')}
+                      style={{ marginTop: '0.5rem' }}
+                    >
+                      Find TVET programmes →
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div style={{ padding: '0.875rem', background: 'hsl(var(--muted) / 0.5)', borderRadius: '0.5rem' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.8125rem', marginBottom: '0.25rem' }}>
+                  Still not sure? Ask the AI advisor
+                </div>
+                <p className="caption" style={{ color: 'hsl(var(--fg))' }}>
+                  Describe your situation and marks. The advisor will give you personalised alternatives including bursaries, foundation routes, and TVET pathways that are open right now.
+                </p>
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={() => navigate('discover')}
+                  style={{ marginTop: '0.5rem' }}
+                >
+                  Open AI advisor →
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="prog-hero">
         <div>
@@ -363,10 +612,12 @@ function ProgDetail({
           </div>
 
           {(() => {
-            const nsfasEligible = householdIncome === undefined || householdIncome <= 350_000;
-            const fundingLabel = nsfasEligible ? 'High' : householdIncome! <= 600_000 ? 'Medium' : 'Low';
-            const fundingPct   = nsfasEligible ? 88 : householdIncome! <= 600_000 ? 52 : 22;
-            const fundingCls   = nsfasEligible ? 'success' : householdIncome! <= 600_000 ? 'warning' : 'destructive';
+            const progNsfasFundable = p.nsfas_fundable !== false; // true or null = fundable
+            const incomeEligible = householdIncome === undefined || householdIncome <= 350_000;
+            const nsfasEligible = progNsfasFundable && incomeEligible;
+            const fundingLabel = nsfasEligible ? 'High' : !progNsfasFundable ? 'Low' : householdIncome! <= 600_000 ? 'Medium' : 'Low';
+            const fundingPct   = nsfasEligible ? 88 : !progNsfasFundable ? 18 : householdIncome! <= 600_000 ? 52 : 22;
+            const fundingCls   = nsfasEligible ? 'success' : !progNsfasFundable ? 'destructive' : householdIncome! <= 600_000 ? 'warning' : 'destructive';
             return (
               <div className="card compact" style={{ marginTop: '1rem' }}>
                 <div className="eyebrow"><span className="dot" />Funding likelihood</div>
@@ -375,7 +626,11 @@ function ProgDetail({
                   <span className={`badge ${fundingCls}`}>{fundingPct}%</span>
                 </div>
                 <div className="caption" style={{ marginTop: '0.375rem' }}>
-                  {nsfasEligible ? 'NSFAS-eligible · ' : ''}{fundingPct >= 80 ? '4 bursaries match' : '2 bursaries may match'}
+                  {!progNsfasFundable
+                    ? 'Private institution — NSFAS does not cover this programme'
+                    : nsfasEligible
+                      ? 'NSFAS-eligible · 4 bursaries may match'
+                      : '2 merit bursaries may match · above NSFAS threshold'}
                 </div>
                 <button
                   className="btn btn-outline btn-sm"
@@ -489,6 +744,18 @@ function ProgDetail({
                     ))}
                   </div>
                 </div>
+                {p.career_outcomes && p.career_outcomes.length > 0 && (
+                  <div>
+                    <div className="row-between" style={{ fontSize: '0.8125rem' }}>
+                      <span>Career outcomes</span><span className="caption">From programme catalogue</span>
+                    </div>
+                    <div className="row" style={{ marginTop: '0.375rem', flexWrap: 'wrap' }}>
+                      {p.career_outcomes.slice(0, 6).map(c => (
+                        <span key={c} className="badge info" style={{ fontSize: '0.6875rem' }}>{c}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -634,6 +901,8 @@ export default function ProgrammePage({
           capabilityData={capabilityData}
           householdIncome={householdIncome}
           onOpenCareer={onOpenCareer}
+          programmes={allProgs}
+          onSelectProgramme={setSelected}
         />
       </>
     );

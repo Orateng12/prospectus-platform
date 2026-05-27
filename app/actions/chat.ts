@@ -7,7 +7,7 @@ import { ROUTE_LABELS, type ChatTurn } from '@/lib/chat';
 export async function chat(
   history: ChatTurn[],
   userMessage: string,
-): Promise<{ text: string; routes: string[] } | { error: string }> {
+): Promise<{ text: string; routes: string[]; letters?: Array<{ title: string; content: string }> } | { error: string }> {
   const auth = await requireAuth();
   if (!auth.ok) return { error: auth.error };
   const { user, supabase } = auth;
@@ -15,9 +15,9 @@ export async function chat(
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return { error: 'AI not configured' };
 
-  const [profileResult, psychResult, capResult] = await Promise.all([
+  const [profileResult, psychResult, capResult, appsResult] = await Promise.all([
     supabase.from('user_profiles')
-      .select('aps_score, first_name, province, household_income')
+      .select('aps_score, first_name, last_name, province, household_income')
       .eq('id', user.id).single(),
     supabase.from('psychological_profiles')
       .select('openness, conscientiousness, extraversion, agreeableness, neuroticism, realistic, investigative, artistic, social, enterprising, conventional, primary_motivation, work_style_preference')
@@ -25,6 +25,11 @@ export async function chat(
     supabase.from('capability_graphs')
       .select('analytical_thinking, creative_thinking, leadership_potential, communication_skills, technical_aptitude, entrepreneurial_drive, perseverance')
       .eq('user_id', user.id).maybeSingle(),
+    supabase
+      .from('student_applications')
+      .select('id, status, programmes(name, institutions(name, city))')
+      .eq('user_id', user.id)
+      .limit(20),
   ]);
 
   const profile = profileResult.data;
@@ -42,16 +47,60 @@ export async function chat(
     cap ? `Capabilities (0–100): analytical ${cap.analytical_thinking}, creative ${cap.creative_thinking}, leadership ${cap.leadership_potential}, communication ${cap.communication_skills}, technical ${cap.technical_aptitude}` : '',
   ].filter(Boolean).join('\n');
 
+  const apps = (appsResult?.data ?? []).map((a: Record<string, unknown>) => {
+    const prog = a.programmes as { name: string; institutions: { name: string; city?: string } | null } | null;
+    return `${prog?.name ?? 'Unknown Programme'} at ${prog?.institutions?.name ?? 'Unknown Institution'} (${a.status})`;
+  });
+  const lastName = (profileResult.data as Record<string, unknown> | null)?.last_name as string ?? '';
+  const fullName = [profile?.first_name, lastName].filter(Boolean).join(' ') || 'Student';
+
+  const isLetterRequest = /\b(letter|motivation|cover letter|recommenda|application letter)\b/i.test(userMessage);
+  const maxTokens = isLetterRequest ? 2500 : 600;
+
   const systemPrompt = `You are a personalised South African university admissions advisor embedded in the Prospectus platform.
-You have deep knowledge of SA higher education (APS, NSFAS, bursaries, TVET pathways), the SA labour market, and the Big Five / RIASEC personality framework.
-Give concise, specific, actionable advice in 2–4 sentences per answer. Reference the student's actual numbers when relevant.
-When recommending programmes or careers, prefer specifics (e.g. "BSc Actuarial Science at Wits") over generics ("STEM degrees").
+The platform has 1,606 real SA programmes across 61 institutions and 43 verified funding opportunities.
+
+Answer depth: For simple navigation questions, 2–4 sentences suffice. For complex "how does X work" questions, financial decisions, or step-by-step guidance, write as much as needed (numbered lists, bullets, paragraphs). For letters, write complete professional documents.
+
+CRITICAL SA FACTS — never contradict these:
+- APS scale: 80–100%=7, 70–79%=6, 60–69%=5, 50–59%=4, 40–49%=3, 30–39%=2, <30=1. Best 6 subjects. Life Orientation EXCLUDED.
+- NSFAS income threshold: ≤ R350,000/year combined. Does NOT cover private institutions (IIE, AFDA, STADIO).
+- NSFAS Loan-Bursary: R122,001–R350,000/year. Converts to bursary if ≥50% pass rate each year.
+- NSFAS payment guarantee: Payments are disbursed per semester if registration is confirmed and you remain enrolled. Delays happen — apply by 31 January; keep all proof of enrolment.
+- Taking a student loan while waiting for NSFAS: Risky — if NSFAS later approves, repayment still required. Rather apply for NSFAS first; apply for emergency bridging only if registration is at risk.
+- Medicine (MBChB): APS 48–50 minimum, PLUS NBT score and interview. ~200 seats per university per year.
+- Law (LLB): standalone 4-year degree at most universities since 2017.
+- Engineering: Physical Sciences AND Maths both required at 60%+ minimum.
+- UCT uses Faculty Points Score (FPS), not raw APS. Wits uses a weighted APS.
+- NSFAS application opens September each year; closes 31 January.
+
+PATHWAYS KNOWLEDGE — use this when a student doesn't qualify or is rejected:
+- NATED (N4/N5/N6): Offered at TVET colleges. Engineering, Business, Education streams. No APS barrier — just Grade 11/12 passes. N4+N5+N6 (18 months) + 18 months workplace experience = National N Diploma. That diploma qualifies you for BTech/Advanced Diploma at universities of technology (TUT, DUT, CPUT, VUT, CUT, MUT). NATED is NOT a dead end.
+- NC(V): National Certificate Vocational. Can start after Grade 9 (no matric needed). Levels 2, 3, 4 over 3 years. NC(V) Level 4 is equivalent to matric for TVET/UoT entry. Leads into NATED N4.
+- Foundation / Extended Curriculum Programmes: For students 2–8 APS points below the cut-off. Same institution, same final degree, one extra year. NSFAS covers them. Examples: UCT EDP (Engineering Development Programme), Wits Sci-EASE, UJ Foundation Studies. Ask the admissions office specifically for the foundation option.
+- When a student says they were rejected or told "no": ALWAYS give at least 3 alternatives — foundation route, NATED/TVET pathway, and similar qualifying programmes. Never leave them with just "no".
+- Supplementary / re-sit exams: NSC students can rewrite in June (for winter supplementary). Results valid for applications the following year.
+- Gap year options: Some students use the year to upgrade marks via Impak, Benchmark College, or similar providers. This is a valid strategy, not failure.
+
+PLAIN LANGUAGE RULE: Explain what programmes actually mean in plain terms. Many students don't know what "NATED", "NCVis", "NQF level", "BTech", "NDip", or "experiential learning" mean. Define terms when you use them. A student who travelled far to apply and was told "no" with no explanation deserves real answers, not jargon.
+
+LETTER DRAFTING — when asked to write motivation/cover/application letters:
+- Use student full name: ${fullName}
+- Use exact institution and programme from the applications list below
+- Use today's date: ${new Date().toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}
+- Format: Date → Institution address block → "Dear Admissions Committee," → "Re: Application for [Programme]" → 4 paragraphs (intro, academic background, motivation, closing) → "Yours sincerely," → ${fullName}
+- Wrap EACH letter in: ===LETTER: [Programme Name] — [Institution Name]===\n[full letter content]\n===END LETTER===
+- Write all requested letters in one response
+
 End each reply with relevant navigation hints using this exact format on the last line: [→route1] [→route2]
-Valid routes: programmes, careers, scholarships, simulator, funding, nsfas, deadlines.
+Valid routes: home, programmes, careers, scholarships, simulator, funding, nsfas, deadlines, intelligence, cognitive, skills, map, unis, compare, discover, applications, documents.
 Only include routes that are genuinely relevant — omit the navigation line entirely if nothing applies.
 
 --- STUDENT PROFILE ---
-${profileLines}`;
+${profileLines}
+
+--- APPLICATIONS (${apps.length}) ---
+${apps.length > 0 ? apps.join('\n') : 'No applications recorded yet.'}`;
 
   const client = new Anthropic({ apiKey });
 
@@ -60,7 +109,7 @@ ${profileLines}`;
 
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 600,
+    max_tokens: maxTokens,
     system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
     messages: [
       ...cappedHistory.map(t => ({ role: t.role, content: t.content })),
@@ -72,13 +121,26 @@ ${profileLines}`;
   const raw = block?.type === 'text' ? block.text.trim() : '';
   if (!raw) return { error: 'Empty response from AI' };
 
-  // Extract [→route] tags from the last line
+  // Extract letters first
+  const LETTER_RE = /===LETTER: ([^\n=]+)===\n([\s\S]+?)===END LETTER===/g;
+  const letters: Array<{ title: string; content: string }> = [];
+  let lm: RegExpExecArray | null;
+  while ((lm = LETTER_RE.exec(raw)) !== null) {
+    letters.push({ title: lm[1].trim(), content: lm[2].trim() });
+  }
+  const cleanRaw = raw.replace(/===LETTER: [^\n=]+===\n[\s\S]+?===END LETTER===/g, '').trim();
+
+  // Extract [→route] tags from cleanRaw
   const routePattern = /\[→(\w+)\]/g;
   const found = new Set<string>();
-  const text = raw.replace(routePattern, (_, r: string) => {
+  const text = cleanRaw.replace(routePattern, (_, r: string) => {
     if (r in ROUTE_LABELS) found.add(r);
     return '';
   }).trim();
 
-  return { text, routes: [...found] };
+  const displayText = letters.length > 0 && !text
+    ? `I've drafted ${letters.length} letter${letters.length !== 1 ? 's' : ''} for you — click "Save as PDF" to export each one.`
+    : text;
+
+  return { text: displayText, routes: [...found], letters: letters.length > 0 ? letters : undefined };
 }

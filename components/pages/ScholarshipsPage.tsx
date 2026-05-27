@@ -211,30 +211,66 @@ export default function ScholarshipsPage({
           .sort((a, b) => b.match - a.match)
           .slice(0, 3);
         if (topEligible.length === 0) return null;
+
+        function matchReason(s: FundingOpportunity, aps?: number, income?: number): string {
+          const reasons: string[] = [];
+          if (aps !== undefined && s.min_aps) {
+            if (aps >= s.min_aps) reasons.push(`APS ${aps} meets the ${s.min_aps} requirement`);
+          }
+          if (income !== undefined) {
+            if (s.income_threshold && income <= s.income_threshold) {
+              reasons.push(`income qualifies (under R${(s.income_threshold / 1000).toFixed(0)}k threshold)`);
+            } else if (!s.income_threshold && income <= 350_000) {
+              reasons.push('household income qualifies');
+            } else if (!s.income_threshold) {
+              reasons.push('no income test — open to all');
+            }
+          }
+          if (s.type === 'seta') reasons.push('SETA bursary — sector-specific, less competitive');
+          if (s.disability_specific) reasons.push('disability-specific — targeted for your profile');
+          return reasons.length > 0 ? reasons.join(' · ') : `${s.match}% profile match`;
+        }
+
         return (
           <div className="card" style={{ marginBottom: '1.25rem' }}>
             <div className="row-between" style={{ marginBottom: '0.75rem' }}>
-              <div className="eyebrow"><span className="dot" />Likely eligible for you</div>
-              <span className="badge success">{topEligible.length} strong match{topEligible.length > 1 ? 'es' : ''}</span>
+              <div>
+                <div className="eyebrow"><span className="dot" />Recommended for you</div>
+                <div style={{ fontWeight: 600, fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                  {topEligible.length} strong match{topEligible.length > 1 ? 'es' : ''} based on your APS and income
+                </div>
+              </div>
+              <span className="badge success">{topEligible.length} eligible</span>
             </div>
-            <div className="grid-3" style={{ gap: '0.75rem' }}>
+            <div className="stack" style={{ gap: '0.75rem' }}>
               {topEligible.map(s => (
                 <button
                   key={s.name}
-                  className="card compact"
-                  style={{ textAlign: 'left', cursor: 'pointer', padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}
+                  style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', width: '100%', cursor: onOpenDetail ? 'pointer' : 'default' }}
                   onClick={() => onOpenDetail?.(s)}
                 >
-                  <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.8125rem', lineHeight: 1.3 }}>{s.name}</div>
-                    {s.service_contract && <span className="badge warning" style={{ fontSize: '0.6rem', padding: '0 4px' }}>Service</span>}
-                    {s.disability_specific && <span className="badge info" style={{ fontSize: '0.6rem', padding: '0 4px' }}>Disability</span>}
+                  <div className="card compact" style={{ padding: '0.875rem', display: 'flex', gap: '0.875rem', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.875rem', lineHeight: 1.3 }}>{s.name}</div>
+                        {s.service_contract && <span className="badge warning" style={{ fontSize: '0.6rem', padding: '0 4px' }}>Service contract</span>}
+                        {s.disability_specific && <span className="badge info" style={{ fontSize: '0.6rem', padding: '0 4px' }}>Disability</span>}
+                      </div>
+                      <div className="caption" style={{ fontSize: '0.75rem', lineHeight: 1.4 }}>
+                        {matchReason(s, userAps, householdIncome)}
+                      </div>
+                      <div className="row-between" style={{ marginTop: '0.375rem' }}>
+                        <span className="caption">{s.deadline === 'Rolling' ? 'Rolling deadline' : `Closes ${s.deadline}`}</span>
+                        <span className="badge" style={{ fontSize: '0.5625rem' }}>{s.match}% match</span>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontWeight: 900, fontSize: '1.25rem', color: 'hsl(var(--success))', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em' }}>
+                        {fmtR(s.amount)}
+                      </div>
+                      <div className="caption" style={{ fontSize: '0.625rem' }}>/yr</div>
+                    </div>
                   </div>
-                  <div style={{ fontWeight: 800, fontSize: '1.125rem', color: 'hsl(var(--success))', fontVariantNumeric: 'tabular-nums' }}>
-                    {fmtR(s.amount)}<span className="caption" style={{ fontWeight: 400, fontSize: '0.6875rem' }}>/yr</span>
-                  </div>
-                  <div className="meter sm"><i style={{ width: `${s.match}%` }} /></div>
-                  <div className="caption">{s.match}% match · {s.deadline === 'Rolling' ? 'Rolling deadline' : `closes ${s.deadline}`}</div>
                 </button>
               ))}
             </div>
@@ -259,10 +295,50 @@ export default function ScholarshipsPage({
 
       {tab === 'mine' ? (
         appliedList.length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', padding: '2.5rem' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>🏆</div>
-            <div className="subheading" style={{ marginBottom: '0.5rem' }}>No applications yet</div>
-            <p className="caption">Click &ldquo;Apply&rdquo; on any funding opportunity to start tracking here.</p>
+          <div className="stack">
+            <div className="card">
+              <div className="eyebrow" style={{ marginBottom: '0.875rem' }}><span className="dot" />How this works</div>
+              <div className="row" style={{ gap: '1.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+                {[
+                  { n: '1', label: 'Browse funding', desc: 'Go to the All or Bursaries tab — filter by type, income, or study field' },
+                  { n: '2', label: 'Click Apply', desc: 'Opens the official site and logs your application here automatically' },
+                  { n: '3', label: 'Track here', desc: 'Monitor status, deadlines and any service-contract obligations in one place' },
+                ].map(step => (
+                  <div key={step.n} style={{ flex: '1 1 10rem' }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'hsl(var(--primary) / 0.12)', color: 'hsl(var(--primary))', fontWeight: 800, fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem' }}>
+                      {step.n}
+                    </div>
+                    <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: '0.25rem' }}>{step.label}</div>
+                    <p className="caption" style={{ color: 'hsl(var(--fg))' }}>{step.desc}</p>
+                  </div>
+                ))}
+              </div>
+              <button className="btn btn-primary btn-sm" onClick={() => setTab('all')}>Browse all funding →</button>
+            </div>
+
+            {/* Ghost scholarship example */}
+            <div className="card" style={{ opacity: 0.72, pointerEvents: 'none', position: 'relative' }}>
+              <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem' }}>
+                <span className="badge accent" style={{ fontSize: '0.625rem' }}>Example</span>
+              </div>
+              <div className="row-between" style={{ marginBottom: '0.5rem' }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>Investec Bursary Programme</div>
+                  <div className="caption" style={{ marginTop: '0.25rem' }}>Corporate · Engineering, Commerce, Science</div>
+                </div>
+                <div className="row" style={{ gap: '0.375rem' }}>
+                  <span className="badge info">Applied</span>
+                  <span className="badge success" style={{ fontWeight: 800 }}>R165,000/yr</span>
+                </div>
+              </div>
+              <div className="row" style={{ gap: '0.5rem' }}>
+                <span className="badge warning">Deadline 31 Aug 2026</span>
+                <span className="badge destructive" style={{ fontSize: '0.5625rem' }}>Service contract</span>
+              </div>
+              <div className="caption" style={{ marginTop: '0.875rem', paddingTop: '0.875rem', borderTop: '1px solid hsl(var(--border))', fontStyle: 'italic' }}>
+                Your tracked funding applications will look exactly like this.
+              </div>
+            </div>
           </div>
         ) : (() => {
           const TYPICAL_COST = 165_420;

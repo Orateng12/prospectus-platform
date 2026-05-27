@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition, useState, useMemo } from 'react';
-import type { Subject, Programme, PsychProfileData, CapabilityData } from '@/lib/types';
+import type { Subject, Programme, Career, PsychProfileData, CapabilityData } from '@/lib/types';
 import { PROGRAMMES, CAREERS } from '@/lib/data';
 import { calcAPS, apsPoints, fmtR } from '@/lib/utils';
 import { saveSubjectMarks } from '@/app/actions/saveSubjects';
@@ -18,6 +18,7 @@ interface SimulatorPageProps {
   psychProfile?: PsychProfileData | null;
   capabilityData?: CapabilityData | null;
   householdIncome?: number;
+  careers?: Career[];
 }
 
 // Find minimum mark to reach the next higher NSC point level
@@ -73,6 +74,26 @@ function optimalPathToAps(subjects: Subject[], gap: number): UnlockStep[] | null
   }
   return ptsLeft <= 0 ? chosen : null;
 }
+
+const FUNDING_TIERS: Array<{ minAps: number; name: string; amount: number; type: string }> = [
+  { minAps: 26, name: 'NSFAS (income-tested)',             amount: 115_060, type: 'Government grant' },
+  { minAps: 28, name: 'AGRISETA Bursary',                  amount:  45_000, type: 'SETA bursary' },
+  { minAps: 30, name: 'HWSETA Health Bursary',             amount:  48_000, type: 'SETA bursary' },
+  { minAps: 32, name: 'merSETA Engineering Bursary',       amount:  60_000, type: 'SETA bursary' },
+  { minAps: 32, name: 'FASSET Finance Bursary',            amount:  55_000, type: 'SETA bursary' },
+  { minAps: 34, name: 'MICTS ICT Bursary',                 amount:  55_000, type: 'SETA bursary' },
+  { minAps: 36, name: 'Anglo American Bursary',            amount: 120_000, type: 'Corporate bursary' },
+  { minAps: 36, name: 'Eskom Engineering Bursary',         amount: 100_000, type: 'Corporate bursary' },
+  { minAps: 38, name: 'Standard Bank Bursary',             amount: 142_000, type: 'Corporate bursary' },
+  { minAps: 38, name: 'Nedbank Bursary',                   amount:  65_000, type: 'Corporate bursary' },
+  { minAps: 38, name: 'Old Mutual Bursary',                amount:  55_000, type: 'Corporate bursary' },
+  { minAps: 40, name: 'Discovery Health Bursary',          amount:  70_000, type: 'Corporate bursary' },
+  { minAps: 40, name: 'Transnet Engineering Bursary',      amount:  80_000, type: 'Corporate bursary' },
+  { minAps: 42, name: 'Investec Bursary Programme',        amount: 165_000, type: 'Corporate bursary' },
+  { minAps: 42, name: 'Sasol Bursary (service contract)',  amount: 198_000, type: 'Corporate bursary' },
+  { minAps: 44, name: 'Allan Gray Scholarship',            amount: 280_000, type: 'Merit scholarship' },
+  { minAps: 45, name: 'Mandela Rhodes Scholarship',        amount: 200_000, type: 'Merit scholarship' },
+];
 
 interface GradeBoundaryProps {
   subjects: Subject[];
@@ -229,8 +250,10 @@ export default function SimulatorPage({
   psychProfile,
   capabilityData,
   householdIncome,
+  careers,
 }: SimulatorPageProps) {
   const allProgs = programmes ?? PROGRAMMES;
+  const allCareers = careers && careers.length > 0 ? careers : CAREERS;
   const aps = calcAPS(subjects);
 
   // Capture the APS on first render as the baseline for all delta displays
@@ -240,7 +263,7 @@ export default function SimulatorPage({
   const [baselineCareerData] = useState(() => {
     if (!psychProfile || !capabilityData) return null;
     const initAps = calcAPS(subjects);
-    return CAREERS.map(c => ({
+    return allCareers.map(c => ({
       name: c.name,
       demand: c.demand,
       salary: c.salary,
@@ -974,6 +997,79 @@ export default function SimulatorPage({
           </div>
         )}
       </div>
+
+      {/* ── Funding cascade ─────────────────────────────────────────────────── */}
+      {(() => {
+        const newlyUnlocked = FUNDING_TIERS.filter(f => f.minAps <= aps && f.minAps > baselineAps);
+        const nowLost       = FUNDING_TIERS.filter(f => f.minAps > aps  && f.minAps <= baselineAps);
+        const currentTiers  = FUNDING_TIERS.filter(f => f.minAps <= aps);
+        const nextTier      = FUNDING_TIERS.filter(f => f.minAps > aps).sort((a, b) => a.minAps - b.minAps)[0];
+        if (newlyUnlocked.length === 0 && nowLost.length === 0 && delta === 0) return null;
+        return (
+          <div className="card" style={{ marginTop: '1rem' }}>
+            <div className="row-between" style={{ marginBottom: '0.875rem' }}>
+              <div>
+                <div className="eyebrow"><span className="dot" />Funding eligibility cascade</div>
+                <h3 className="subheading" style={{ marginTop: '0.25rem' }}>
+                  Bursaries and scholarships your APS unlocks
+                </h3>
+              </div>
+              {newlyUnlocked.length > 0 && (
+                <span className="badge success" style={{ height: '1.5rem', fontSize: '0.75rem' }}>
+                  +{newlyUnlocked.length} unlocked
+                </span>
+              )}
+            </div>
+
+            {newlyUnlocked.length > 0 && (
+              <div style={{ marginBottom: '1rem' }}>
+                <div className="caption" style={{ fontWeight: 600, marginBottom: '0.375rem', color: 'hsl(var(--success))' }}>
+                  Newly unlocked with these marks
+                </div>
+                <div className="stack">
+                  {newlyUnlocked.map(f => (
+                    <div key={f.name} className="row-between" style={{ padding: '0.4375rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{f.name}</div>
+                        <div className="caption" style={{ fontSize: '0.6875rem' }}>{f.type} · APS {f.minAps}+ required</div>
+                      </div>
+                      <span className="badge success" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                        R{(f.amount / 1000).toFixed(0)}k/yr
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {nowLost.length > 0 && (
+              <div style={{ marginBottom: '1rem' }}>
+                <div className="caption" style={{ fontWeight: 600, marginBottom: '0.375rem', color: 'hsl(var(--destructive))' }}>
+                  No longer eligible at this APS
+                </div>
+                <div className="stack">
+                  {nowLost.map(f => (
+                    <div key={f.name} className="row-between" style={{ padding: '0.4375rem 0', borderBottom: '1px solid hsl(var(--border))' }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{f.name}</div>
+                      <span className="badge destructive" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                        Need APS {f.minAps}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="row-between" style={{ paddingTop: '0.625rem', borderTop: '1px solid hsl(var(--border))' }}>
+              <div className="caption" style={{ fontSize: '0.6875rem' }}>
+                {currentTiers.length} funding tier{currentTiers.length !== 1 ? 's' : ''} available at APS {aps}
+                {nextTier && ` · APS ${nextTier.minAps} unlocks ${nextTier.name}`}
+              </div>
+              <span className="badge" style={{ fontSize: '0.5625rem', height: '1.125rem' }}>Estimates</span>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Grade Boundary Calculator ───────────────────────────────────────── */}
       <GradeBoundaryCalculator subjects={subjects} aps={aps} allProgs={allProgs} onApply={handleChange} />

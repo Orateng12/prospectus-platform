@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { CAREERS, PROGRAMMES } from '@/lib/data';
 import { fmtR } from '@/lib/utils';
 import { scoreCareerMatch } from '@/lib/scoring';
-import type { Career, CompareItem, PsychProfileData, CapabilityData, Route } from '@/lib/types';
+import type { Career, CompareItem, PsychProfileData, CapabilityData, Route, Programme } from '@/lib/types';
 
 interface CareersPageProps {
   careers?: Career[];
@@ -16,6 +16,7 @@ interface CareersPageProps {
   onOpenDetail?: (career: Career) => void;
   navigate?: (r: Route) => void;
   initialTab?: Tab;
+  programmes?: Programme[];
 }
 
 type Tab = 'fit' | 'demand' | 'growth' | 'salary' | 'discover';
@@ -92,14 +93,20 @@ const CATEGORIES = [
 
 function careerTileClass(name: string): string {
   const n = name.toLowerCase();
-  if (n.includes('software') || n.includes('engineer') && n.includes('soft')) return 'swe';
-  if (n.includes('data scientist')) return 'data';
+  if (n.includes('machine learning') || n.includes('ml eng')) return 'ml';
+  if (n.includes('software') || n.includes('developer') || n.includes('cloud eng') || n.includes('blockchain')) return 'swe';
+  if (n.includes('data scientist') || n.includes('data analyst')) return 'data';
   if (n.includes('actuar')) return 'actuary';
   if (n.includes('quant')) return 'quant';
-  if (n.includes('machine learning') || n.includes('ml ') || n.includes(' ml')) return 'ml';
-  if (n.includes('product manager')) return 'pm';
-  if (n.includes('civil') || n.includes('structural') || n.includes('mechanical')) return 'civil';
-  if (n.includes('doctor') || n.includes('medicine') || n.includes('mbchb')) return 'med';
+  if (n.includes('product manager') || n.includes('ux') || n.includes('ui design')) return 'pm';
+  if (n.includes('civil') || n.includes('structural') || n.includes('mechanical') || n.includes('architect')) return 'civil';
+  if (n.includes('doctor') || n.includes('medicine') || n.includes('mbchb') || n.includes('nurse') ||
+      n.includes('pharma') || n.includes('physio') || n.includes('radiograph') || n.includes('lab tech') ||
+      n.includes('veterinar')) return 'med';
+  if (n.includes('account') || n.includes('chartered') || n.includes('financial') || n.includes('compliance')) return 'finance';
+  if (n.includes('teacher') || n.includes('educator') || n.includes('psycholog') || n.includes('social work')) return 'edu';
+  if (n.includes('electrician') || n.includes('plumber') || n.includes('welder') || n.includes('boilermaker') ||
+      n.includes('instrument') || n.includes('mineral')) return 'trades';
   if (n.includes('data')) return 'data';
   if (n.includes('engineer')) return 'swe';
   return 'default-career';
@@ -114,6 +121,9 @@ const CAREER_ICON: Record<string, string> = {
   pm:             '◈',
   civil:          '△',
   med:            '⚕',
+  finance:        '§',
+  edu:            '✎',
+  trades:         '⚡',
   'default-career':'✦',
 };
 
@@ -129,8 +139,10 @@ export default function CareersPage({
   onOpenDetail,
   navigate,
   initialTab,
+  programmes,
 }: CareersPageProps) {
   const allCareers = propCareers && propCareers.length > 0 ? propCareers : CAREERS;
+  const allProgs = (programmes && programmes.length > 0 ? programmes : PROGRAMMES);
   const [activeTab, setActiveTab] = useState<Tab>(initialTab ?? 'fit');
   const [query, setQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(9);
@@ -161,11 +173,11 @@ export default function CareersPage({
   const highDemandCount = allCareers.filter(c => c.demand === 'High').length;
 
   const filteredProgs = query
-    ? PROGRAMMES.filter(p =>
+    ? allProgs.filter(p =>
         p.name.toLowerCase().includes(query.toLowerCase()) ||
         p.uni.toLowerCase().includes(query.toLowerCase())
       )
-    : PROGRAMMES.slice(0, 4);
+    : allProgs.slice(0, 4);
 
   const filteredCareers = query
     ? allCareers.filter(c =>

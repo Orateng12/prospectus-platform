@@ -4,6 +4,7 @@ import { rankCareersByMatch, getCareerCapRequirements, getCareerBigFiveRanges } 
 import type { CareerBigFiveRanges } from '@/lib/scoring';
 import type { CapabilityData, Capability, PsychProfileData, Career, Route } from '@/lib/types';
 import { DB_TO_CAP, CAP_DB_LABEL, CAP_DESCRIPTIONS, BIG5_LABEL, BIG5_DESC } from '@/lib/capability';
+import { DEVELOPMENT_ACTIONS } from '@/lib/development-actions';
 
 interface SkillsPageProps {
   capabilityData?: CapabilityData | null;
@@ -15,48 +16,6 @@ interface SkillsPageProps {
   onOpenCareer?: (name: string) => void;
 }
 
-const DEVELOPMENT_ACTIONS: Record<string, Array<{ action: string; timeframe: string; resource: string }>> = {
-  Analytical: [
-    { action: 'Solve 3 logic puzzles daily', timeframe: '4 weeks', resource: 'Brilliant.org (free tier)' },
-    { action: 'Study Statistics fundamentals', timeframe: '6 weeks', resource: 'Khan Academy Statistics' },
-    { action: 'Practice data interpretation with past NSC papers', timeframe: 'Ongoing', resource: 'SAAEA exam archive' },
-  ],
-  Technical: [
-    { action: 'Build one complete project from scratch', timeframe: '4–6 weeks', resource: 'freeCodeCamp or The Odin Project' },
-    { action: 'Master Excel / Google Sheets to advanced level', timeframe: '2 weeks', resource: 'ExcelJet tutorials (free)' },
-    { action: 'Complete one structured online course', timeframe: '6–8 weeks', resource: 'Coursera / edX (audit free)' },
-  ],
-  Social: [
-    { action: 'Join one student society or community org', timeframe: 'This term', resource: 'School / campus noticeboard' },
-    { action: 'Practice active listening — paraphrase 3 conversations daily', timeframe: '2 weeks', resource: 'Self-directed practice' },
-    { action: 'Lead a study group or small project team', timeframe: 'Next month', resource: 'Class peers' },
-  ],
-  Creative: [
-    { action: 'Complete a side project on a problem you care about', timeframe: '4–6 weeks', resource: 'Self-directed' },
-    { action: 'Sketch 3 ideas for a random problem every morning (5 min)', timeframe: '3 weeks', resource: 'Notebook' },
-    { action: 'Study one design discipline (UX, architecture, writing)', timeframe: '4 weeks', resource: 'YouTube / Canva Design School' },
-  ],
-  Verbal: [
-    { action: 'Read one non-fiction article and summarise it daily', timeframe: '4 weeks', resource: 'Mail & Guardian, Daily Maverick' },
-    { action: 'Write a 300-word reflection each week on what you learned', timeframe: '6 weeks', resource: 'Personal journal / Google Docs' },
-    { action: 'Complete NSC reading comprehension past papers weekly', timeframe: '3 weeks', resource: 'NSC past papers (SAAEA)' },
-  ],
-  Numerical: [
-    { action: 'Complete 30 min of Maths practice every day', timeframe: 'Ongoing', resource: 'Khan Academy Maths' },
-    { action: 'Attempt a full Maths paper under timed conditions weekly', timeframe: '8 weeks', resource: 'NSC exam papers' },
-    { action: 'Learn financial basics (interest, budgeting, percentages)', timeframe: '2 weeks', resource: 'Investopedia / YouTube' },
-  ],
-  Spatial: [
-    { action: 'Practice 3D visualisation exercises daily (10 min)', timeframe: '3 weeks', resource: 'YouTube tutorials + graph paper' },
-    { action: 'Study one Engineering Graphics or CAD concept weekly', timeframe: '6 weeks', resource: 'Free CAD tutorials (Fusion 360)' },
-    { action: 'Build or assemble a physical model (electrical kit, model)', timeframe: '2 weeks', resource: 'Hardware store / DIY kits' },
-  ],
-  Practical: [
-    { action: 'Complete one real-world task in your area of interest', timeframe: 'Next school holiday', resource: 'Family business or community org' },
-    { action: 'Document 3 problems you solved this week with method + outcome', timeframe: 'Ongoing', resource: 'Personal journal' },
-    { action: 'Shadow someone working in your target career for a day', timeframe: 'Within 1 month', resource: 'School career centre / LinkedIn' },
-  ],
-};
 
 export default function SkillsPage({ capabilityData, psychProfile, careers = [], userAps = 0, onRetake, navigate, onOpenCareer }: SkillsPageProps) {
   let caps: Capability[] = CAPS.map(c => ({ ...c }));
@@ -165,11 +124,31 @@ export default function SkillsPage({ capabilityData, psychProfile, careers = [],
           </div>
           <div className="row">
             <span className="badge brand">Composite: {composite}</span>
-            {hasData && <span className="badge success">Real data</span>}
+            {hasData ? (
+              <span className="badge success">Real data</span>
+            ) : (
+              <span className="badge warning">Example data · take assessment</span>
+            )}
             <button className="btn btn-outline" onClick={onRetake}>Update inputs</button>
           </div>
         </div>
       </div>
+
+      {!hasData && (
+        <div className="card" style={{ marginBottom: '1.25rem', borderLeft: '4px solid hsl(var(--warning))', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '0.9375rem', marginBottom: '0.25rem' }}>
+              You&apos;re seeing an example skills profile
+            </div>
+            <p className="caption" style={{ color: 'hsl(var(--fg))' }}>
+              These scores are illustrative. Complete the capability assessment to see your real eight-dimension breakdown and career gap analysis.
+            </p>
+          </div>
+          <button className="btn btn-primary btn-sm" style={{ flexShrink: 0 }} onClick={() => navigate?.('cognitive')}>
+            Go to assessment →
+          </button>
+        </div>
+      )}
 
       <div className="grid-2-asym">
         <div className="card" style={{ display: 'grid', placeItems: 'center', padding: '1.5rem' }}>
