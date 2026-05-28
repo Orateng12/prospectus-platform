@@ -29,6 +29,7 @@ interface BursaryEntry {
   canApply: boolean;
   tagLabels: string[];
   tagVariants: string[];
+  provinces: string[];
 }
 
 /* ── Data (from Prospectus Bursaries.html) ── */
@@ -51,6 +52,7 @@ const BURSARY_DATA: BursaryEntry[] = [
     canApply: true,
     tagLabels: ['Full cost', 'Tuition · Accom · Living', 'No work-back', 'Direct', 'Extended', 'TVET'],
     tagVariants: ['success', '', 'info', 'pw-direct', 'pw-extended', 'pw-tvet'],
+    provinces: ['all'],
   },
   {
     id: 'sbsa',
@@ -71,6 +73,7 @@ const BURSARY_DATA: BursaryEntry[] = [
     canApply: true,
     tagLabels: ['Full cost', 'Tuition · Accom · Living', 'Work-back · 2 yrs', 'Direct'],
     tagVariants: ['success', '', 'accent', 'pw-direct'],
+    provinces: ['all'],
   },
   {
     id: 'uct-vc',
@@ -90,6 +93,7 @@ const BURSARY_DATA: BursaryEntry[] = [
     canApply: true,
     tagLabels: ['Full tuition', 'Top 5%', 'Tuition only', 'Direct'],
     tagVariants: ['success', 'info', '', 'pw-direct'],
+    provinces: ['western-cape'],
   },
   {
     id: 'sasol',
@@ -110,6 +114,7 @@ const BURSARY_DATA: BursaryEntry[] = [
     canApply: true,
     tagLabels: ['Full cost', 'Tuition · Accom · Living · Travel', 'Work-back · 2 yrs', 'Direct', 'Extended'],
     tagVariants: ['success', '', 'accent', 'pw-direct', 'pw-extended'],
+    provinces: ['all'],
   },
   {
     id: 'allan-gray',
@@ -129,6 +134,7 @@ const BURSARY_DATA: BursaryEntry[] = [
     canApply: false,
     tagLabels: ['Full cost + stipend', 'Tuition · Accom · Living', 'Mentorship · network', 'Direct'],
     tagVariants: ['success', '', 'info', 'pw-direct'],
+    provinces: ['all'],
   },
   {
     id: 'discovery',
@@ -149,6 +155,7 @@ const BURSARY_DATA: BursaryEntry[] = [
     canApply: true,
     tagLabels: ['Full tuition', 'Tuition only', 'Work-back · 1 yr', 'Direct'],
     tagVariants: ['success', '', 'accent', 'pw-direct'],
+    provinces: ['all'],
   },
   {
     id: 'wits-eng',
@@ -168,6 +175,7 @@ const BURSARY_DATA: BursaryEntry[] = [
     canApply: false,
     tagLabels: ['Tuition', 'No work-back', 'Direct'],
     tagVariants: ['', 'info', 'pw-direct'],
+    provinces: ['gauteng'],
   },
   {
     id: 'moshal',
@@ -187,6 +195,7 @@ const BURSARY_DATA: BursaryEntry[] = [
     canApply: false,
     tagLabels: ['Full cost + laptop', 'Tuition · Accom · Living · Books', 'Mentorship', 'Direct', 'Extended'],
     tagVariants: ['success', '', 'info', 'pw-direct', 'pw-extended'],
+    provinces: ['all'],
   },
 ];
 
@@ -263,22 +272,36 @@ export default function BursariesPage() {
   const [matchIncome, setMatchIncome] = useState('350-600');
   const [matchProvince, setMatchProvince] = useState('limpopo');
   const [matchField, setMatchField] = useState('engineering');
+  const [pathwayFilter, setPathwayFilter] = useState('any');
+  const [provinceFilter, setProvinceFilter] = useState('any');
+  const [userAps, setUserAps] = useState<number | null>(null);
 
   /* ── Filtering ── */
   const filtered = useMemo(() => {
+    const pathwayTagMap: Record<string, string[]> = {
+      direct: ['Direct'],
+      'direct-extended': ['Direct', 'Extended'],
+      tvet: ['TVET'],
+      foundation: ['Foundation'],
+    };
     let list = BURSARY_DATA.filter(b => {
       if (!funderTypes.has(b.type)) return false;
       if (b.amount > maxAmount * 1000) return false;
       if (fields.size > 0 && !b.fields.includes('all') && !b.fields.some(f => fields.has(f))) return false;
       if (covers.size > 0 && !b.covers.some(c => covers.has(c))) return false;
       if (obligations.size > 0 && !obligations.has(b.obligation)) return false;
+      if (pathwayFilter !== 'any') {
+        const reqTags = pathwayTagMap[pathwayFilter] ?? [];
+        if (reqTags.length > 0 && !reqTags.some(t => b.tagLabels.includes(t))) return false;
+      }
+      if (provinceFilter !== 'any' && !b.provinces.includes('all') && !b.provinces.includes(provinceFilter)) return false;
       return true;
     });
     if (sort === 'amount')   list = [...list].sort((a, b) => b.amount - a.amount);
     if (sort === 'deadline') list = [...list].sort((a, b) => a.deadlineDays - b.deadlineDays);
     if (sort === 'name')     list = [...list].sort((a, b) => a.name.localeCompare(b.name));
     return list;
-  }, [funderTypes, maxAmount, fields, covers, obligations, sort]);
+  }, [funderTypes, maxAmount, fields, covers, obligations, sort, pathwayFilter, provinceFilter]);
 
   /* ── Helpers ── */
   function toggleFunder(t: FunderType) {
@@ -299,6 +322,8 @@ export default function BursariesPage() {
     setFields(new Set(['engineering', 'health', 'cs']));
     setCovers(new Set(['tuition', 'accommodation', 'living']));
     setObligations(new Set());
+    setPathwayFilter('any');
+    setProvinceFilter('any');
   }
   function handleMatch() {
     const fieldMap: Record<string, string[]> = {
@@ -311,13 +336,40 @@ export default function BursariesPage() {
       agriculture: ['agriculture'],
     };
     setFields(new Set(fieldMap[matchField] ?? [matchField]));
+    setPathwayFilter(matchPathway === 'any' ? 'any' : matchPathway);
+    setProvinceFilter(matchProvince);
     if (matchIncome === 'over-1m') {
       setFunderTypes(new Set(['corp', 'uni']));
-    } else {
+    } else if (matchIncome === 'under-350') {
       setFunderTypes(new Set(['gov', 'corp', 'uni', 'ngo']));
+    } else {
+      setFunderTypes(new Set(['corp', 'uni', 'ngo']));
     }
     document.getElementById('explorer')?.scrollIntoView({ behavior: 'smooth' });
   }
+
+  /* ── APS reading ── */
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const urlAps = url.searchParams.get('aps');
+    if (urlAps) {
+      const n = parseInt(urlAps, 10);
+      if (!isNaN(n) && n >= 18 && n <= 49) { setUserAps(n); return; }
+    }
+    const stored = sessionStorage.getItem('prospectus_aps');
+    if (stored) {
+      const n = parseInt(stored, 10);
+      if (!isNaN(n) && n >= 18 && n <= 49) setUserAps(n);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (userAps === null) return;
+    if (userAps >= 34)      setMatchPathway('direct');
+    else if (userAps >= 28) setMatchPathway('direct-extended');
+    else if (userAps >= 24) setMatchPathway('foundation');
+    else                    setMatchPathway('tvet');
+  }, [userAps]);
 
   /* ── Effects ── */
   useEffect(() => {
@@ -494,6 +546,9 @@ export default function BursariesPage() {
                 <span>Live match · 1,284 sources scanning</span>
               </div>
               <div className="right">
+                {userAps !== null && (
+                  <span className="match-aps-tag">APS · <b>{userAps}</b></span>
+                )}
                 <span><b>R 41.2bn</b> · pool</span>
                 <span><b>04:12 SAST</b> · last index</span>
               </div>

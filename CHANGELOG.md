@@ -4,6 +4,25 @@ All notable changes to the Prospectus platform.
 
 ---
 
+## [Unreleased] — fresh eyes: dead links, incomplete forms, missing navigation (2026-05-28)
+
+### Features
+- **Bursaries match form fully wired** — `handleMatch()` now applies all 4 user inputs. `matchPathway` sets a `pathwayFilter` that gates results on tagLabel pathway markers (Direct/Extended/TVET/Foundation). `matchProvince` sets a `provinceFilter` against new `provinces: string[]` field on every entry (national funders use `['all']`, university-specific ones are geo-tagged: UCT VC → `['western-cape']`, Wits Eng → `['gauteng']`). `matchIncome` now also strips NGO/gov funders for middle-income brackets, not just over-1m.
+- **Bursaries page reads APS** — Reads `?aps=N` URL param (falls back to sessionStorage). Pre-populates `matchPathway` select to the right pathway range for the user's APS. Shows a pill "APS · N" in the match panel header.
+- **Landing page pathway cards are live links** — The 4 scrolling pathway cards (`pd`/`pe`/`pf`/`pt`) now link to `/pathways#direct`, `/pathways#extended`, `/pathways#foundation`, `/pathways#tvet` respectively. Clicking one drops you at that section with the jump nav already highlighted.
+- **Landing page programme rows link to explorer** — The 6 mini programme rows in the "03 / 06 Programmes" section were inert `<div>`s. Now `<Link>` elements routing to `/programmes?aps=N`.
+- **Landing page cockpit feature chips link to signup** — The 12 feature chips (APS calculator, Programme explorer, etc.) were `<span>` with `data-hover` but no target. Now `<Link href="/signup">` elements.
+- **Programmes CTA scrolls to the calculator** — "Calculate my APS →" linked to `/` (top of landing). Fixed to `/#renderer` so it scrolls to the APS input section directly.
+
+### Files changed
+- `app/bursaries/page.tsx`
+- `app/bursaries/bursaries.css`
+- `app/page.tsx`
+- `app/landing-v2.css`
+- `app/programmes/page.tsx`
+
+---
+
 ## [Unreleased] — pathways page: APS-awareness, eligibility indicators, live links (2026-05-28)
 
 ### Features

@@ -673,7 +673,7 @@ export default function ProgrammesPage() {
             Sixty seconds gets you a list. Ten minutes gets you a strategy. The directory is just the index — the platform does the work.
           </p>
           <div className="actions reveal-up">
-            <Link href="/" className="btn btn-accent btn-lg">
+            <Link href="/#renderer" className="btn btn-accent btn-lg">
               Calculate my APS <span className="arr" aria-hidden="true">→</span>
             </Link>
             <Link href="/pathways" className="btn btn-outline btn-lg">

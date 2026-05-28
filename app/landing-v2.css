@@ -695,13 +695,13 @@
 .lp .cockpit-call .cbody { color: hsl(var(--ink-2)); font-size: 1.0625rem; line-height: 1.6; margin-top: 1rem; max-width: 36rem; }
 .lp .cockpit-call .cbody em { font-style: normal; color: hsl(var(--ink)); font-weight: 600; }
 .lp .feat-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 1.25rem; }
-.lp .feat-chips span {
+.lp .feat-chips span, .lp .feat-chips a.feat-chip {
   font-family: var(--font-ibm-plex-mono), monospace; font-size: 0.6875rem;
   padding: 4px 9px; border: 1px solid hsl(var(--line-strong)); border-radius: 6px;
   color: hsl(var(--ink-2)); background: hsl(var(--card)); letter-spacing: 0.04em;
   transition: all .2s;
 }
-.lp .feat-chips span:hover { border-color: hsl(var(--accent)); color: hsl(var(--accent-600)); }
+.lp .feat-chips span:hover, .lp .feat-chips a.feat-chip:hover { border-color: hsl(var(--accent)); color: hsl(var(--accent-600)); }
 
 .lp .cockpit {
   border: 1px solid hsl(var(--line)); border-radius: 16px;
@@ -1143,7 +1143,7 @@
   display: grid; grid-template-columns: 1fr auto auto auto; gap: 1rem;
   align-items: center; padding: 0.75rem 1.25rem;
   border-bottom: 1px solid hsl(var(--line));
-  font-size: 0.875rem; transition: background .15s; cursor: default;
+  font-size: 0.875rem; transition: background .15s; cursor: pointer;
 }
 .lp .prg-mini-row:hover { background: hsl(var(--bg-2)); }
 .lp .prg-mini-row .nm { font-weight: 700; font-size: 0.9375rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

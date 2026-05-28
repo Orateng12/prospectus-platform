@@ -795,31 +795,31 @@ export default function LandingPage() {
           <div className="pw-rail-inner">
             {[
               {
-                cls: 'pd', glyph: 'D', num: '01', count: '30 of 100 programmes',
+                cls: 'pd', anchor: 'direct', glyph: 'D', num: '01', count: '30 of 100 programmes',
                 title: 'Direct entry',
                 lede: "You meet the APS, subject and language requirements. Apply, get in, start in year one. The fastest route — but not the only good one.",
                 aps: '34–46', dur: '3 years', rate: '71%', fund: 'Yes · NSFAS + bursaries',
               },
               {
-                cls: 'pe', glyph: 'E', num: '02', count: '26 of 100 programmes',
+                cls: 'pe', anchor: 'extended', glyph: 'E', num: '02', count: '26 of 100 programmes',
                 title: 'Extended curriculum',
                 lede: 'Same degree, four years instead of three. Built-in academic support for borderline APS students — and a higher graduation rate than direct entry for that cohort.',
                 aps: '28–34', dur: '4 years', rate: '68%', fund: 'Yes · NSFAS + bursaries',
               },
               {
-                cls: 'pf', glyph: 'F', num: '03', count: '18 of 100 programmes',
+                cls: 'pf', anchor: 'foundation', glyph: 'F', num: '03', count: '18 of 100 programmes',
                 title: 'Foundation year',
                 lede: "A bridging year that gets you to the same degree. Most major universities run them, most students don't know they exist. A door, not a detour.",
                 aps: '24–30', dur: '4–5 years', rate: '62%', fund: 'Yes · NSFAS covers',
               },
               {
-                cls: 'pt', glyph: 'T', num: '04', count: '26 of 100 programmes',
+                cls: 'pt', anchor: 'tvet', glyph: 'T', num: '04', count: '26 of 100 programmes',
                 title: 'TVET / FET',
                 lede: "Vocational diplomas, often higher employment outcomes than degrees. NSFAS covers them fully. They're not \"plan B\" — for many careers, they're plan A.",
                 aps: '18–28', dur: '2–3 years', rate: '82%', fund: 'Yes · NSFAS fully covers',
               },
             ].map(card => (
-              <article key={card.cls} className={`pw-card ${card.cls}`} data-hover="">
+              <Link key={card.cls} href={`/pathways#${card.anchor}`} className={`pw-card ${card.cls}`} data-hover="" aria-label={`${card.title} pathway · APS ${card.aps}`}>
                 <span className="glyph">{card.glyph}</span>
                 <div>
                   <div className="num"><span>Pathway · {card.num}</span><span>{card.count}</span></div>
@@ -832,7 +832,7 @@ export default function LandingPage() {
                   <div className="ln"><span className="k">{card.cls === 'pt' ? 'Employment 12 mo' : 'Throughput rate'}</span><span className="v">{card.rate}</span></div>
                   <div className="ln"><span className="k">Funding eligible</span><span className="v">{card.fund}</span></div>
                 </div>
-              </article>
+              </Link>
             ))}
             <article className="pw-card coda">
               <div className="coda-eyebrow">Coda</div>
@@ -874,14 +874,14 @@ export default function LandingPage() {
                 <span>Type</span>
               </div>
               {PROGRAMMES.sort((a, b) => b.aps - a.aps).slice(0, 6).map((p, i) => (
-                <div key={i} className="prg-mini-row">
+                <Link key={i} href={'/programmes?aps=' + aps} className="prg-mini-row">
                   <div className="nm">{p.name}</div>
                   <div className="inst">{p.inst}</div>
                   <div className="aps tabular">{p.aps}</div>
                   <span className={`badge badge-pw-${p.p}`} style={{ fontSize: '0.625rem', padding: '2px 6px' }}>
                     {p.p.charAt(0).toUpperCase()}
                   </span>
-                </div>
+                </Link>
               ))}
               <div className="prg-mini-cta">
                 <Link href={'/programmes?aps=' + aps} data-hover="">
@@ -1032,7 +1032,7 @@ export default function LandingPage() {
               </p>
               <div className="feat-chips">
                 {['APS calculator','Programme explorer','Academic simulator','NSFAS calculator','Funding strategy','Career compare','Application tracker','Documents vault','Deadlines','Skills map','Opportunity map','Future-You simulator'].map(chip => (
-                  <span key={chip} data-hover="">{chip}</span>
+                  <Link key={chip} href="/signup" className="feat-chip" data-hover="">{chip}</Link>
                 ))}
               </div>
             </div>

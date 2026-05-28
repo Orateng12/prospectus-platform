@@ -305,8 +305,16 @@
   width: 6px; height: 6px; border-radius: 99px; background: hsl(var(--success));
   animation: bur-pulse 2.2s ease-in-out infinite;
 }
-.bur-page .match-head .right { display: flex; gap: 1.5rem; }
+.bur-page .match-head .right { display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
 .bur-page .match-head .right b { color: hsl(var(--ink)); font-weight: 500; }
+.bur-page .match-aps-tag {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 0.625rem; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 0.2rem 0.625rem; border-radius: 99px;
+  background: hsl(var(--accent) / 0.1); color: hsl(var(--accent));
+  border: 1px solid hsl(var(--accent) / 0.3);
+}
+.bur-page .match-aps-tag b { font-weight: 700; color: hsl(var(--accent)); }
 .bur-page .match-form {
   display: grid; grid-template-columns: 1fr; gap: 1rem; padding: 1.75rem;
 }
