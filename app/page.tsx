@@ -45,6 +45,13 @@ function pickCareer(aps: number) {
   return best;
 }
 
+const BURSARIES = [
+  { name: 'NSFAS',                    src: 'gov · public',      t: 'gov',  logo: 'NSFAS', fit: 96, fitLevel: 'high', amtStr: '198k' },
+  { name: 'Standard Bank Eng & Tech', src: 'corp · banking',    t: 'corp', logo: 'SBSA',  fit: 92, fitLevel: 'high', amtStr: '218k' },
+  { name: "UCT Vice-Chancellor's",    src: 'uni · merit',       t: 'uni',  logo: 'UC',    fit: 88, fitLevel: 'high', amtStr: '76k'  },
+  { name: 'Sasol Foundation STEM',    src: 'corp · industrial', t: 'corp', logo: 'SAS',   fit: 85, fitLevel: 'high', amtStr: '224k' },
+];
+
 const PROGRAMMES = [
   { name: 'BSc Computer Science',     inst: 'UCT',             aps: 38, p: 'direct'     },
   { name: 'BSc Actuarial Science',    inst: 'Wits',            aps: 40, p: 'direct'     },
@@ -166,16 +173,31 @@ export default function LandingPage() {
 
   /* ── Mobile nav ── */
   const [navOpen, setNavOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
+  const lastScrollY = useRef(0);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setNavOpen(false); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
+  useEffect(() => {
+    const onScroll = () => {
+      if (navOpen) return;
+      const y = window.scrollY;
+      const nav = navRef.current;
+      if (!nav) return;
+      if (y > lastScrollY.current && y > 80) nav.classList.add('nav-hidden');
+      else nav.classList.remove('nav-hidden');
+      lastScrollY.current = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [navOpen]);
 
   /* ── Scroll-spy: track active section for nav highlight ── */
   const [activeSection, setActiveSection] = useState('');
   useEffect(() => {
-    const ids = ['how', 'pathways', 'programmes', 'cockpit', 'pricing'];
+    const ids = ['how', 'pathways', 'programmes', 'bursaries', 'cockpit', 'pricing'];
     const els = ids.map(id => document.getElementById(id)).filter(Boolean) as HTMLElement[];
     const io = new IntersectionObserver(
       entries => { entries.forEach(e => { if (e.isIntersecting) setActiveSection(e.target.id); }); },
@@ -205,6 +227,11 @@ export default function LandingPage() {
       if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
       flashTimerRef.current = setTimeout(() => setApsFlash(null), 2500);
     }
+  }, [aps]);
+
+  /* ── Persist APS to sessionStorage for inner pages ── */
+  useEffect(() => {
+    sessionStorage.setItem('prospectus_aps', String(aps));
   }, [aps]);
 
   /* ── Mobile sticky CTA visibility ── */
@@ -369,7 +396,7 @@ export default function LandingPage() {
       <div className="lp-cursor-ring" ref={ringRef} aria-hidden="true" />
 
       {/* ── NAV ── */}
-      <header className="nav">
+      <header className="nav" ref={navRef}>
         <div className="container nav-row">
           <Link href="/" className="brand" data-hover="" aria-label="Prospectus home">
             <div className="brand-mark" aria-hidden="true">P</div>
@@ -380,6 +407,7 @@ export default function LandingPage() {
             <a href="#how" data-hover="" className={activeSection === 'how' ? 'nav-active' : ''}>The problem</a>
             <a href="#pathways" data-hover="" className={activeSection === 'pathways' ? 'nav-active' : ''}>Pathways</a>
             <a href="#programmes" data-hover="" className={activeSection === 'programmes' ? 'nav-active' : ''}>Programmes</a>
+            <a href="#bursaries" data-hover="" className={activeSection === 'bursaries' ? 'nav-active' : ''}>Bursaries</a>
             <a href="#cockpit" data-hover="" className={activeSection === 'cockpit' ? 'nav-active' : ''}>The cockpit</a>
             <a href="#pricing" data-hover="" className={activeSection === 'pricing' ? 'nav-active' : ''}>Pricing</a>
           </nav>
@@ -399,26 +427,6 @@ export default function LandingPage() {
             </button>
           </div>
         </div>
-        <nav
-          id="mobile-nav"
-          className={`nav-drawer${navOpen ? ' open' : ''}`}
-          aria-label="Mobile navigation"
-          aria-hidden={!navOpen}
-        >
-          <a href="#how" onClick={() => setNavOpen(false)}>The problem</a>
-          <a href="#pathways" onClick={() => setNavOpen(false)}>Pathways</a>
-          <a href="#programmes" onClick={() => setNavOpen(false)}>Programmes</a>
-          <a href="#cockpit" onClick={() => setNavOpen(false)}>The cockpit</a>
-          <a href="#pricing" onClick={() => setNavOpen(false)}>Pricing</a>
-          <div className="drawer-divider" aria-hidden="true" />
-          <Link href="/programmes" className="btn btn-outline" style={{ justifyContent: 'space-between' }} onClick={() => setNavOpen(false)}>
-            Browse all 9,412 programmes <span aria-hidden="true">→</span>
-          </Link>
-          <div className="drawer-cta">
-            <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
-            <Link href="/signup" className="btn btn-primary" onClick={() => setNavOpen(false)}>Start free <span aria-hidden="true">→</span></Link>
-          </div>
-        </nav>
         <div className="container live-strip" aria-hidden="true">
           <span><span className="pulse" /> Live</span>
           <span>·</span>
@@ -431,6 +439,40 @@ export default function LandingPage() {
           <span>9 provinces · 26 universities · 50 TVET</span>
         </div>
       </header>
+
+      <nav
+        id="mobile-nav"
+        className={`nav-drawer${navOpen ? ' open' : ''}`}
+        aria-label="Mobile navigation"
+        aria-hidden={!navOpen}
+        inert={!navOpen ? ('' as unknown as boolean) : undefined}
+      >
+        <div className="nav-drawer-head">
+          <Link href="/" className="brand" onClick={() => setNavOpen(false)}>
+            <div className="brand-mark" aria-hidden="true">P</div>
+            <span className="brand-name">Prospectus</span>
+          </Link>
+          <button className="btn btn-ghost btn-sm" onClick={() => setNavOpen(false)} aria-label="Close menu">✕</button>
+        </div>
+        <div className="nav-drawer-links">
+          <span className="drawer-section-label">Explore</span>
+          <Link href="/pathways" onClick={() => setNavOpen(false)}>Pathways</Link>
+          <Link href="/programmes" onClick={() => setNavOpen(false)}>Programmes</Link>
+          <Link href="/bursaries" onClick={() => setNavOpen(false)}>Bursaries</Link>
+          <div className="drawer-divider" aria-hidden="true" />
+          <span className="drawer-section-label">On this page</span>
+          <a href="#how" onClick={() => setNavOpen(false)}>The problem</a>
+          <a href="#pathways" onClick={() => setNavOpen(false)}>Pathways</a>
+          <a href="#programmes" onClick={() => setNavOpen(false)}>Programmes</a>
+          <a href="#bursaries" onClick={() => setNavOpen(false)}>Bursaries</a>
+          <a href="#cockpit" onClick={() => setNavOpen(false)}>The cockpit</a>
+          <a href="#pricing" onClick={() => setNavOpen(false)}>Pricing</a>
+        </div>
+        <div className="nav-drawer-cta">
+          <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
+          <Link href="/signup" className="btn btn-primary" onClick={() => setNavOpen(false)}>Start free <span aria-hidden="true">→</span></Link>
+        </div>
+      </nav>
 
       <main id="main-content">
 
@@ -660,7 +702,7 @@ export default function LandingPage() {
           <div className="indexed">
             {[
               { sup: 'Indexed', ix: '01', count: '9412',  fmt: 'comma',  label: 'Programmes across every accredited SA university & TVET — updated weekly.' },
-              { sup: 'Indexed', ix: '02', count: '3.2',   fmt: 'zar-bn', label: 'In bursary, scholarship & NSFAS funding — scored to each student profile.' },
+              { sup: 'Indexed', ix: '02', count: '41.2',  fmt: 'zar-bn', label: 'In bursary, scholarship & NSFAS funding — 1,284 sources scored to each student profile.' },
               { sup: 'Tracked', ix: '03', count: '324',   fmt: 'plain',  label: 'Careers with live demand, salary and 10-year growth projections.' },
               { sup: 'Latency', ix: '04', count: null,    fmt: null,     label: 'From first mark in, to a personalised strategy out. No sign-up needed.', val: '<60s' },
             ].map(item => (
@@ -681,7 +723,7 @@ export default function LandingPage() {
       <section className="section" id="how">
         <div className="container">
           <div className="rule reveal-up">
-            <span className="num">01 / 04</span>
+            <span className="num">01 / 06</span>
             <span className="rule-line reveal-line" />
             <span className="lbl">The information gap</span>
           </div>
@@ -732,7 +774,7 @@ export default function LandingPage() {
         <div className="pw-intro">
           <div className="container">
             <div className="rule reveal-up">
-              <span className="num">02 / 04</span>
+              <span className="num">02 / 06</span>
               <span className="rule-line reveal-line" />
               <span className="lbl">Pathway taxonomy · signature</span>
             </div>
@@ -753,31 +795,31 @@ export default function LandingPage() {
           <div className="pw-rail-inner">
             {[
               {
-                cls: 'pd', glyph: 'D', num: '01', count: '30 of 100 programmes',
+                cls: 'pd', anchor: 'direct', glyph: 'D', num: '01', count: '30 of 100 programmes',
                 title: 'Direct entry',
                 lede: "You meet the APS, subject and language requirements. Apply, get in, start in year one. The fastest route — but not the only good one.",
                 aps: '34–46', dur: '3 years', rate: '71%', fund: 'Yes · NSFAS + bursaries',
               },
               {
-                cls: 'pe', glyph: 'E', num: '02', count: '26 of 100 programmes',
+                cls: 'pe', anchor: 'extended', glyph: 'E', num: '02', count: '26 of 100 programmes',
                 title: 'Extended curriculum',
                 lede: 'Same degree, four years instead of three. Built-in academic support for borderline APS students — and a higher graduation rate than direct entry for that cohort.',
                 aps: '28–34', dur: '4 years', rate: '68%', fund: 'Yes · NSFAS + bursaries',
               },
               {
-                cls: 'pf', glyph: 'F', num: '03', count: '18 of 100 programmes',
+                cls: 'pf', anchor: 'foundation', glyph: 'F', num: '03', count: '18 of 100 programmes',
                 title: 'Foundation year',
                 lede: "A bridging year that gets you to the same degree. Most major universities run them, most students don't know they exist. A door, not a detour.",
                 aps: '24–30', dur: '4–5 years', rate: '62%', fund: 'Yes · NSFAS covers',
               },
               {
-                cls: 'pt', glyph: 'T', num: '04', count: '26 of 100 programmes',
+                cls: 'pt', anchor: 'tvet', glyph: 'T', num: '04', count: '26 of 100 programmes',
                 title: 'TVET / FET',
                 lede: "Vocational diplomas, often higher employment outcomes than degrees. NSFAS covers them fully. They're not \"plan B\" — for many careers, they're plan A.",
                 aps: '18–28', dur: '2–3 years', rate: '82%', fund: 'Yes · NSFAS fully covers',
               },
             ].map(card => (
-              <article key={card.cls} className={`pw-card ${card.cls}`} data-hover="">
+              <Link key={card.cls} href={`/pathways#${card.anchor}`} className={`pw-card ${card.cls}`} data-hover="" aria-label={`${card.title} pathway · APS ${card.aps}`}>
                 <span className="glyph">{card.glyph}</span>
                 <div>
                   <div className="num"><span>Pathway · {card.num}</span><span>{card.count}</span></div>
@@ -790,13 +832,13 @@ export default function LandingPage() {
                   <div className="ln"><span className="k">{card.cls === 'pt' ? 'Employment 12 mo' : 'Throughput rate'}</span><span className="v">{card.rate}</span></div>
                   <div className="ln"><span className="k">Funding eligible</span><span className="v">{card.fund}</span></div>
                 </div>
-              </article>
+              </Link>
             ))}
             <article className="pw-card coda">
               <div className="coda-eyebrow">Coda</div>
               <h4>The taxonomy is the index. The index is the product.</h4>
               <p>These four badges appear next to every programme on the platform. Filter by them, compare across them, sort funding against them.</p>
-              <Link href="/programmes" className="btn" data-hover="">Browse all programmes <span className="arr">→</span></Link>
+              <Link href={'/programmes?aps=' + aps} className="btn" data-hover="">Browse all programmes <span className="arr">→</span></Link>
             </article>
           </div>
         </div>
@@ -806,7 +848,7 @@ export default function LandingPage() {
       <section className="section" id="programmes">
         <div className="container">
           <div className="rule reveal-up">
-            <span className="num">03 / 05</span>
+            <span className="num">03 / 06</span>
             <span className="rule-line reveal-line" />
             <span className="lbl">Programmes · the index</span>
           </div>
@@ -819,7 +861,7 @@ export default function LandingPage() {
                 Every accredited programme in SA, tagged by pathway, ranked by fit to your profile. The directory is just the entry point.
               </p>
               <div className="prg-teaser-actions reveal-up">
-                <Link href="/programmes" className="btn btn-primary" data-hover="">
+                <Link href={'/programmes?aps=' + aps} className="btn btn-primary" data-hover="">
                   Browse all programmes <span className="arr">→</span>
                 </Link>
               </div>
@@ -832,21 +874,70 @@ export default function LandingPage() {
                 <span>Type</span>
               </div>
               {PROGRAMMES.sort((a, b) => b.aps - a.aps).slice(0, 6).map((p, i) => (
-                <div key={i} className="prg-mini-row">
+                <Link key={i} href={'/programmes?aps=' + aps} className="prg-mini-row">
                   <div className="nm">{p.name}</div>
                   <div className="inst">{p.inst}</div>
                   <div className="aps tabular">{p.aps}</div>
                   <span className={`badge badge-pw-${p.p}`} style={{ fontSize: '0.625rem', padding: '2px 6px' }}>
                     {p.p.charAt(0).toUpperCase()}
                   </span>
-                </div>
+                </Link>
               ))}
               <div className="prg-mini-cta">
-                <Link href="/programmes" data-hover="">
+                <Link href={'/programmes?aps=' + aps} data-hover="">
                   <span>View all 9,412 programmes</span>
                   <span className="arr">→</span>
                 </Link>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── BURSARIES TEASER ── */}
+      <section className="section" id="bursaries">
+        <div className="container">
+          <div className="rule reveal-up">
+            <span className="num">04 / 06</span>
+            <span className="rule-line reveal-line" />
+            <span className="lbl">Bursaries · live index</span>
+          </div>
+          <div className="bur-teaser-grid">
+            <div className="reveal-up">
+              <h2 className="heading text-balance" style={{ marginTop: '1.5rem' }}>
+                <span className="serif">R 41.2bn</span> is<br />looking for a student.
+              </h2>
+              <p className="sub text-pretty" style={{ marginTop: '1.25rem', maxWidth: '38rem' }}>
+                1,284 funding sources — NSFAS, corporate, university, NGO. Tell us four things,
+                we&apos;ll show you every rand you qualify for.
+              </p>
+              <div className="reveal-up" style={{ marginTop: '1.75rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <Link href={'/bursaries?aps=' + aps} className="btn btn-primary" data-hover="">
+                  Find my funding <span className="arr">→</span>
+                </Link>
+                <Link href="/bursaries#explorer" className="btn btn-outline" data-hover="">
+                  Browse all sources
+                </Link>
+              </div>
+            </div>
+            <div className="bur-mini-list reveal-up">
+              {BURSARIES.map((b, i) => (
+                <div key={i} className="bur-mini-card">
+                  <div className={`bur-mini-logo ${b.t}`}>{b.logo}</div>
+                  <div className="bur-mini-body">
+                    <div className="bur-mini-name">{b.name}</div>
+                    <div className="bur-mini-src">{b.src}</div>
+                  </div>
+                  <div className="bur-mini-right">
+                    <div className={`bur-mini-fit ${b.fitLevel}`}>{b.fit}</div>
+                    <div className="bur-mini-amount">R {b.amtStr}</div>
+                  </div>
+                </div>
+              ))}
+              <Link href="/bursaries" className="bur-mini-cta" data-hover="">
+                <span>See all 1,284 funding sources</span>
+                <span className="arr">→</span>
+              </Link>
             </div>
           </div>
         </div>
@@ -926,7 +1017,7 @@ export default function LandingPage() {
       <section className="section" id="cockpit">
         <div className="container">
           <div className="rule reveal-up">
-            <span className="num">04 / 05</span>
+            <span className="num">05 / 06</span>
             <span className="rule-line reveal-line" />
             <span className="lbl">The student cockpit · 36 pages</span>
           </div>
@@ -941,7 +1032,7 @@ export default function LandingPage() {
               </p>
               <div className="feat-chips">
                 {['APS calculator','Programme explorer','Academic simulator','NSFAS calculator','Funding strategy','Career compare','Application tracker','Documents vault','Deadlines','Skills map','Opportunity map','Future-You simulator'].map(chip => (
-                  <span key={chip} data-hover="">{chip}</span>
+                  <Link key={chip} href="/signup" className="feat-chip" data-hover="">{chip}</Link>
                 ))}
               </div>
             </div>
@@ -992,7 +1083,7 @@ export default function LandingPage() {
               <main className="ck-main">
                 <div className="ck-greet">
                   <div>
-                    <div style={{ fontFamily: 'var(--font-ibm-plex-mono), monospace', fontSize: '0.6875rem', color: 'hsl(var(--mute))', letterSpacing: '0.04em' }}>Tuesday · 27 May 2026</div>
+                    <div style={{ fontFamily: 'var(--font-ibm-plex-mono), monospace', fontSize: '0.6875rem', color: 'hsl(var(--mute))', letterSpacing: '0.04em' }}>{new Date().toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
                     <div className="h">Welcome back, Lerato.</div>
                   </div>
                   <div className="meta"><strong>3 new</strong> scholarships matched overnight</div>
@@ -1071,7 +1162,7 @@ export default function LandingPage() {
       <section className="persona-band">
         <div className="container section">
           <div className="rule reveal-up" style={{ marginBottom: '3rem' }}>
-            <span className="num">05 / 05</span>
+            <span className="num">06 / 06</span>
             <span className="rule-line reveal-line" />
             <span className="lbl">Designed for one student · Lerato</span>
           </div>
@@ -1231,7 +1322,6 @@ export default function LandingPage() {
           <div className="rule reveal-up" style={{ marginBottom: '3rem' }}>
             <span className="lbl">Pricing · free for matric students, always</span>
             <span className="rule-line reveal-line" />
-            <span className="num">07</span>
           </div>
           <h2 className="heading text-balance reveal-up" style={{ maxWidth: '32ch', marginBottom: '3rem' }}>
             Free for the people who need it most.<br /><span className="serif" style={{ color: 'hsl(var(--accent-600))' }}>Pro</span> for those who can pay it forward.
@@ -1325,8 +1415,17 @@ export default function LandingPage() {
               <span className="brand-tag" style={{ color: 'hsl(var(--bg) / 0.6)', borderColor: 'hsl(var(--bg) / 0.2)' }}>marks → future</span>
             </Link>
             <div className="footer-links">
-              {['Programmes','Bursaries','Career explorer','NSFAS guide','For institutions','About','Contact'].map(l => (
-                <Link key={l} href="/signup" data-hover="">{l}</Link>
+              {([
+                ['Programmes',       '/programmes'],
+                ['Bursaries',        '/bursaries'],
+                ['Pathways',         '/pathways'],
+                ['Career explorer',  '/signup'],
+                ['NSFAS guide',      '/signup'],
+                ['For institutions', '/for-institutions'],
+                ['About',            '/#about'],
+                ['Contact',          '/signup'],
+              ] as [string, string][]).map(([label, href]) => (
+                <Link key={label} href={href} data-hover="">{label}</Link>
               ))}
             </div>
           </div>

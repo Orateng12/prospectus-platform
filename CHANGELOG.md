@@ -4,6 +4,127 @@ All notable changes to the Prospectus platform.
 
 ---
 
+## [Unreleased] — fresh eyes: dead links, incomplete forms, missing navigation (2026-05-28)
+
+### Features
+- **Bursaries match form fully wired** — `handleMatch()` now applies all 4 user inputs. `matchPathway` sets a `pathwayFilter` that gates results on tagLabel pathway markers (Direct/Extended/TVET/Foundation). `matchProvince` sets a `provinceFilter` against new `provinces: string[]` field on every entry (national funders use `['all']`, university-specific ones are geo-tagged: UCT VC → `['western-cape']`, Wits Eng → `['gauteng']`). `matchIncome` now also strips NGO/gov funders for middle-income brackets, not just over-1m.
+- **Bursaries page reads APS** — Reads `?aps=N` URL param (falls back to sessionStorage). Pre-populates `matchPathway` select to the right pathway range for the user's APS. Shows a pill "APS · N" in the match panel header.
+- **Landing page pathway cards are live links** — The 4 scrolling pathway cards (`pd`/`pe`/`pf`/`pt`) now link to `/pathways#direct`, `/pathways#extended`, `/pathways#foundation`, `/pathways#tvet` respectively. Clicking one drops you at that section with the jump nav already highlighted.
+- **Landing page programme rows link to explorer** — The 6 mini programme rows in the "03 / 06 Programmes" section were inert `<div>`s. Now `<Link>` elements routing to `/programmes?aps=N`.
+- **Landing page cockpit feature chips link to signup** — The 12 feature chips (APS calculator, Programme explorer, etc.) were `<span>` with `data-hover` but no target. Now `<Link href="/signup">` elements.
+- **Programmes CTA scrolls to the calculator** — "Calculate my APS →" linked to `/` (top of landing). Fixed to `/#renderer` so it scrolls to the APS input section directly.
+
+### Files changed
+- `app/bursaries/page.tsx`
+- `app/bursaries/bursaries.css`
+- `app/page.tsx`
+- `app/landing-v2.css`
+- `app/programmes/page.tsx`
+
+---
+
+## [Unreleased] — pathways page: APS-awareness, eligibility indicators, live links (2026-05-28)
+
+### Features
+- **APS context bar** — `/pathways` now reads `?aps=N` URL param (falls back to `sessionStorage`). When present, a slim bar between the hero and the jump nav shows "Your APS · N / 49" with a colored pill for each of the four pathways (✓ eligible or + locked).
+- **Jump nav eligibility** — Each jump-nav item gains an `.aps-status` line: "✓ eligible" or "need X more" based on the user's APS against each pathway's entry threshold.
+- **Programme sampler rows as links** — All four pathway sections' prog-sampler rows (previously inert `<div>`s) are now `<Link>` elements routing to `/programmes?aps=N`. Sampler head count text is also a link.
+- **Comparison table header highlights** — When the user's APS meets a pathway's threshold, the corresponding column header gets a colored bottom border and stronger font weight.
+
+### Files changed
+- `app/pathways/page.tsx`
+- `app/pathways/pathways.css`
+
+---
+
+## [Unreleased] — deeper UX: APS persistence, compare panel, match wiring, dead button cleanup (2026-05-27)
+
+### Features
+- **APS persistence** — Landing page APS calculator now saves to `sessionStorage` on every change. `/programmes` and future pages read from `sessionStorage` on mount; URL param `?aps=N` takes priority (for deep-linking). All "Browse all programmes" and "Find my funding" CTAs on the landing page now append `?aps=<current>` to the URL so the receiving page picks it up immediately.
+- **Dynamic strategy hint** — Programmes page sidebar hint now shows APS-appropriate advice (changes based on user's APS value: 40+ / 34–39 / 28–33 / <28 thresholds).
+- **Compare panel** — "Compare side-by-side →" button in the compare tray now opens a full-screen overlay panel. Shows the selected programmes (up to 3) in a responsive grid table with rows: APS required, Annual fee, Duration, City, Pathway, Career. Closes on backdrop click, ✕ button, or "Close". "Save comparison →" links to signup.
+- **Bursaries match form wired to filters** — "Match now →" was a passive anchor that only scrolled; it's now a `<button>` that maps `matchField` → `fields` Set and `matchIncome` → `funderTypes` (income > R 1m hides gov/NGO needs-based sources), then scrolls to `#explorer`.
+- **Dead button cleanup** — `/bursaries`: "Save list" → Link to `/signup`; "Apply to all →" → Link to `/signup`; "Show more matches" → "Unlock 1,284 sources →" Link to `/signup`; BCard "Open application" and "Save for later" → Links to `/signup`.
+
+### Files changed
+- `app/page.tsx`
+- `app/programmes/page.tsx`
+- `app/programmes/programmes.css`
+- `app/bursaries/page.tsx`
+
+---
+
+## [Unreleased] — deep review: critical bug fixes + consistency pass (2026-05-27)
+
+### Bug fixes
+- **P0 — `position: fixed` drawer inside `backdrop-filter` header** — `backdrop-filter` on `.nav` creates a new CSS containing block, meaning child `position: fixed; inset: 0` was contained to the ~90px header, not the viewport. Fix: moved all four mobile drawers (`#mobile-nav`, `#prg-mobile-nav`, `#bur-mobile-nav`, `#mobile-nav-pw`) outside `<header>` as siblings. They remain scoped under `.lp`/`.prg-page`/etc. so CSS still applies.
+- **Section numbering** — "The problem" showed `01 / 04` and "Pathways" showed `02 / 04`; both updated to `01 / 06` and `02 / 06` to match the 6-section system added when bursaries was inserted. Pricing rule orphaned `07` removed.
+- **Funding number contradiction** — Index strip claimed "R 3.2bn" while the bursaries teaser section on the same page said "R 41.2bn". Index strip updated to R 41.2bn.
+- **Dead routes** — `/careers` and `/for-institutions` linked from all inner page navs returned 404. Added Next.js redirects to `/signup` for both; also replaced `<a href="#">` placeholders in programmes nav.
+- **Footer links** — All landing page footer links pointed to `/signup`. Fixed to route to their actual destinations (Programmes, Bursaries, Pathways pages; About section anchor; others retained as `/signup` until pages exist).
+- **Cockpit date** — "Tuesday · 27 May 2026" was hardcoded. Now computed dynamically from `new Date()`.
+- **Programmes desktop nav** — "Bursaries" linked to `#` (placeholder). Fixed to `<Link href="/bursaries">`.
+
+### Files changed
+- `next.config.ts`
+- `app/page.tsx`
+- `app/pathways/page.tsx`
+- `app/programmes/page.tsx`
+- `app/bursaries/page.tsx`
+
+---
+
+## [Unreleased] — mobile nav: fix drawer visibility + auto-hide on scroll (2026-05-27)
+
+### Bug fixes
+- **`app/page.tsx` + `app/landing-v2.css`** — Converted landing page mobile drawer from a `display: none` dropdown (living inside the sticky header) to `position: fixed; inset: 0; transform: translateX(100%) → translateX(0)` full-screen overlay, matching the pattern already used on /programmes, /bursaries, /pathways. Restructured drawer JSX to use `nav-drawer-head` (brand + ✕ close), `nav-drawer-links` (Explore page links + On this page anchors), `nav-drawer-cta` (Sign in + Start free).
+- **All four public pages** — Added auto-hide nav on scroll: nav slides up after 80px scroll-down, reappears on scroll-up. Implemented via `navRef` + `lastScrollY` ref + passive scroll listener. Nav stays visible while drawer is open.
+
+### Files changed
+- `app/page.tsx`, `app/landing-v2.css`
+- `app/programmes/page.tsx`, `app/programmes/programmes.css`
+- `app/bursaries/page.tsx`, `app/bursaries/bursaries.css`
+- `app/pathways/page.tsx`, `app/pathways/pathways.css`
+
+---
+
+## [Unreleased] — mobile nav fix across all public pages (2026-05-27)
+
+### Modified pages
+- **`app/programmes/programmes.css`**, **`app/bursaries/bursaries.css`**, **`app/pathways/pathways.css`** — Added `@media (max-width: 939px) { .nav-cta .btn { display: none; } }` so Sign in/Start free are hidden on mobile; only logo + hamburger show in the nav bar.
+- **`app/bursaries/page.tsx`**, **`app/pathways/page.tsx`** — Replaced `nav-mob-btn` + SVG close button inside the drawer with a consistent `btn btn-ghost btn-sm ✕` button matching the programmes page. Pathways hamburger now uses `.bar` spans instead of dynamic SVG for CSS animation support.
+
+---
+
+## [Unreleased] — mobile nav restructure (2026-05-27)
+
+### Modified pages
+- **`app/page.tsx`** — Landing page mobile drawer restructured: logo + hamburger only in nav bar (Sign in/Start free hidden on mobile); drawer now has "Explore" group (page Links to /pathways, /programmes, /bursaries), "On this page" section anchors, and Sign in + Start free CTA at the bottom.
+- **`app/landing-v2.css`** — Added `.drawer-section-label` mono group heading styles; added `.drawer-page-link` bold variant; added `@media (max-width: 939px) { .lp .nav-cta .btn { display: none; } }` to hide buttons from mobile nav bar.
+
+---
+
+## [Unreleased] — /bursaries page + landing teaser integration (2026-05-27)
+
+### New pages
+- **`/bursaries`** — Full public bursary funding explorer with match panel and two-column filter/results layout.
+  - Fund-strip hero with 4 aggregate stats (R 41.2bn / 1,284 sources / 11 avg / R 86k avg).
+  - Match panel with 4 controlled selects (pathway, household income, province, field of study).
+  - Two-column explorer: sticky filter sidebar (funder-type pills, amount slider, field/covers/obligation checkboxes) + results list.
+  - 8-bursary hardcoded dataset (NSFAS, SBSA, UCT VC, Sasol, Allan Gray, Discovery, Wits Eng, Moshal) with live useMemo filtering and sort.
+  - How-it-works section (4 steps), source breakdown grid (6 cells), FAQ accordion (6 native `<details>` items).
+  - Mobile filter overlay via floating FAB button; Escape key closes panels.
+
+### Modified pages
+- **`app/page.tsx`** — Added "Bursaries · live index" teaser section (04/06) with bur-mini-list preview cards. Added `#bursaries` to scroll-spy IDs, desktop nav link, mobile drawer link + "Browse 1,284 funding sources" button. Renumbered cockpit to 05/06 and persona to 06/06.
+- **`app/landing-v2.css`** — Appended `.lp .bur-teaser-grid`, `.bur-mini-list`, `.bur-mini-card`, `.bur-mini-logo` variants, `.bur-mini-name/src/right/fit/amount/cta` CSS.
+
+### Files added
+- `app/bursaries/page.tsx` — `'use client'` page component.
+- `app/bursaries/bursaries.css` — design-system tokens + component styles all scoped under `.bur-page`.
+
+---
+
 ## [Unreleased] — /programmes page + landing teaser + dashboard upgrade (2026-05-27)
 
 ### New pages

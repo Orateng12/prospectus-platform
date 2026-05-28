@@ -1,12 +1,24 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import './pathways.css';
+
+type PathwayKey = 'direct' | 'extended' | 'foundation' | 'tvet';
+
+function isEligible(pw: PathwayKey, aps: number): boolean {
+  if (pw === 'direct')     return aps >= 34;
+  if (pw === 'extended')   return aps >= 28;
+  if (pw === 'foundation') return aps >= 24;
+  return aps >= 18; // tvet always open
+}
 
 export default function PathwaysPage() {
   const [navOpen, setNavOpen] = useState(false);
   const [activePathway, setActivePathway] = useState('');
+  const [userAps, setUserAps] = useState<number | null>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const lastScrollY = useRef(0);
 
   /* scroll reveal */
   useEffect(() => {
@@ -30,18 +42,46 @@ export default function PathwaysPage() {
     return () => io.disconnect();
   }, []);
 
+  /* read APS from URL param or sessionStorage */
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const urlAps = url.searchParams.get('aps');
+    if (urlAps) {
+      const n = parseInt(urlAps, 10);
+      if (!isNaN(n) && n >= 18 && n <= 49) { setUserAps(n); return; }
+    }
+    const stored = sessionStorage.getItem('prospectus_aps');
+    if (stored) {
+      const n = parseInt(stored, 10);
+      if (!isNaN(n) && n >= 18 && n <= 49) setUserAps(n);
+    }
+  }, []);
+
   /* keyboard nav */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setNavOpen(false); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
+  useEffect(() => {
+    const onScroll = () => {
+      if (navOpen) return;
+      const y = window.scrollY;
+      const nav = navRef.current;
+      if (!nav) return;
+      if (y > lastScrollY.current && y > 80) nav.classList.add('nav-hidden');
+      else nav.classList.remove('nav-hidden');
+      lastScrollY.current = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [navOpen]);
 
   return (
     <div className="pw-page">
 
       {/* ══ NAV ══ */}
-      <header className="nav">
+      <header className="nav" ref={navRef}>
         <div className="container nav-row">
           <Link href="/" className="brand" aria-label="Prospectus home">
             <div className="brand-mark" aria-hidden="true">P</div>
@@ -52,8 +92,6 @@ export default function PathwaysPage() {
             <Link href="/programmes">Programmes</Link>
             <Link href="/pathways" className="is-active">Pathways</Link>
             <Link href="/bursaries">Bursaries</Link>
-            <Link href="/careers">Careers</Link>
-            <Link href="/for-institutions">For institutions</Link>
           </nav>
           <div className="nav-cta">
             <Link href="/login" className="btn btn-ghost btn-sm">Sign in</Link>
@@ -65,50 +103,12 @@ export default function PathwaysPage() {
               aria-controls="mobile-nav-pw"
               aria-label={navOpen ? 'Close navigation' : 'Open navigation'}
             >
-              <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-                {navOpen
-                  ? <><line x1="3" y1="3" x2="15" y2="15" /><line x1="15" y1="3" x2="3" y2="15" /></>
-                  : <><line x1="2" y1="5" x2="16" y2="5" /><line x1="2" y1="9" x2="16" y2="9" /><line x1="2" y1="13" x2="16" y2="13" /></>
-                }
-              </svg>
+              <span className="bar" aria-hidden="true" />
+              <span className="bar" aria-hidden="true" />
+              <span className="bar" aria-hidden="true" />
             </button>
           </div>
         </div>
-
-        {/* mobile drawer */}
-        <nav
-          id="mobile-nav-pw"
-          className={`nav-drawer${navOpen ? ' open' : ''}`}
-          aria-label="Mobile navigation"
-          aria-hidden={!navOpen}
-        >
-          <div className="nav-drawer-head">
-            <Link href="/" className="brand" onClick={() => setNavOpen(false)}>
-              <div className="brand-mark" aria-hidden="true">P</div>
-              <span className="brand-name">Prospectus</span>
-            </Link>
-            <button
-              className="nav-mob-btn"
-              onClick={() => setNavOpen(false)}
-              aria-label="Close navigation"
-            >
-              <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-                <line x1="3" y1="3" x2="15" y2="15" /><line x1="15" y1="3" x2="3" y2="15" />
-              </svg>
-            </button>
-          </div>
-          <div className="nav-drawer-links">
-            <Link href="/programmes" onClick={() => setNavOpen(false)}>Programmes</Link>
-            <Link href="/pathways" className="is-active" onClick={() => setNavOpen(false)}>Pathways</Link>
-            <Link href="/bursaries" onClick={() => setNavOpen(false)}>Bursaries</Link>
-            <Link href="/careers" onClick={() => setNavOpen(false)}>Careers</Link>
-            <Link href="/for-institutions" onClick={() => setNavOpen(false)}>For institutions</Link>
-          </div>
-          <div className="nav-drawer-cta">
-            <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
-            <Link href="/signup" className="btn btn-accent" onClick={() => setNavOpen(false)}>Start free →</Link>
-          </div>
-        </nav>
 
         <div className="container live-strip" aria-hidden="true">
           <span><span className="pulse"></span> Live</span>
@@ -120,6 +120,31 @@ export default function PathwaysPage() {
           <span>Last updated 24 May 2026 04:12 SAST</span>
         </div>
       </header>
+
+      <nav
+        id="mobile-nav-pw"
+        className={`nav-drawer${navOpen ? ' open' : ''}`}
+        aria-label="Mobile navigation"
+        aria-hidden={!navOpen}
+        inert={!navOpen ? ('' as unknown as boolean) : undefined}
+      >
+        <div className="nav-drawer-head">
+          <Link href="/" className="brand" onClick={() => setNavOpen(false)}>
+            <div className="brand-mark" aria-hidden="true">P</div>
+            <span className="brand-name">Prospectus</span>
+          </Link>
+          <button className="btn btn-ghost btn-sm" onClick={() => setNavOpen(false)} aria-label="Close menu">✕</button>
+        </div>
+        <div className="nav-drawer-links">
+          <Link href="/programmes" onClick={() => setNavOpen(false)}>Programmes</Link>
+          <Link href="/pathways" className="is-active" onClick={() => setNavOpen(false)}>Pathways</Link>
+          <Link href="/bursaries" onClick={() => setNavOpen(false)}>Bursaries</Link>
+        </div>
+        <div className="nav-drawer-cta">
+          <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
+          <Link href="/signup" className="btn btn-accent" onClick={() => setNavOpen(false)}>Start free <span aria-hidden="true">→</span></Link>
+        </div>
+      </nav>
 
       {/* ══ PAGE HEADER ══ */}
       <section className="page-header">
@@ -137,35 +162,64 @@ export default function PathwaysPage() {
         </div>
       </section>
 
+      {/* ══ APS CONTEXT BAR ══ */}
+      {userAps !== null && (
+        <div className="aps-context-bar" aria-label="Your APS pathway eligibility">
+          <div className="container aps-context-row">
+            <span className="aps-val">Your APS · <strong>{userAps}</strong> / 49</span>
+            <span className="aps-sep" aria-hidden="true">→</span>
+            <span className="aps-paths">
+              {(['direct', 'extended', 'foundation', 'tvet'] as PathwayKey[]).map(pw => (
+                <a key={pw} href={`#${pw}`}
+                  className={`pw-aps-badge ${pw[0]}${isEligible(pw, userAps) ? ' eligible' : ' locked'}`}>
+                  {isEligible(pw, userAps) ? '✓' : '+'} {pw === 'tvet' ? 'TVET' : pw.charAt(0).toUpperCase() + pw.slice(1)}
+                </a>
+              ))}
+            </span>
+            <Link href="/" className="aps-recalc">↻ Recalculate</Link>
+          </div>
+        </div>
+      )}
+
       {/* ══ PATHWAY JUMP NAV ══ */}
       <nav className="pw-jump" aria-label="Jump to pathway">
         <div className="container pw-jump-row">
-          <a href="#direct" className={`d${activePathway === 'direct' ? ' is-active' : ''}`}>
+          <a href="#direct" className={`d${activePathway === 'direct' ? ' is-active' : ''}${userAps !== null && isEligible('direct', userAps) ? ' eligible' : ''}`}>
             <span className="sw"></span>
             <div>
               <div className="k">01 / 04</div>
               <div className="nm">Direct entry</div>
+              {userAps !== null && (
+                <div className="aps-status">{isEligible('direct', userAps) ? '✓ eligible' : `need ${34 - userAps} more`}</div>
+              )}
             </div>
           </a>
-          <a href="#extended" className={`e${activePathway === 'extended' ? ' is-active' : ''}`}>
+          <a href="#extended" className={`e${activePathway === 'extended' ? ' is-active' : ''}${userAps !== null && isEligible('extended', userAps) ? ' eligible' : ''}`}>
             <span className="sw"></span>
             <div>
               <div className="k">02 / 04</div>
               <div className="nm">Extended curriculum</div>
+              {userAps !== null && (
+                <div className="aps-status">{isEligible('extended', userAps) ? '✓ eligible' : `need ${28 - userAps} more`}</div>
+              )}
             </div>
           </a>
-          <a href="#foundation" className={`f${activePathway === 'foundation' ? ' is-active' : ''}`}>
+          <a href="#foundation" className={`f${activePathway === 'foundation' ? ' is-active' : ''}${userAps !== null && isEligible('foundation', userAps) ? ' eligible' : ''}`}>
             <span className="sw"></span>
             <div>
               <div className="k">03 / 04</div>
               <div className="nm">Foundation year</div>
+              {userAps !== null && (
+                <div className="aps-status">{isEligible('foundation', userAps) ? '✓ eligible' : `need ${24 - userAps} more`}</div>
+              )}
             </div>
           </a>
-          <a href="#tvet" className={`t${activePathway === 'tvet' ? ' is-active' : ''}`}>
+          <a href="#tvet" className={`t${activePathway === 'tvet' ? ' is-active' : ''}${userAps !== null ? ' eligible' : ''}`}>
             <span className="sw"></span>
             <div>
               <div className="k">04 / 04</div>
               <div className="nm">TVET / FET</div>
+              {userAps !== null && <div className="aps-status">✓ open</div>}
             </div>
           </a>
         </div>
@@ -260,7 +314,7 @@ export default function PathwaysPage() {
               <div className="prog-sampler">
                 <div className="prog-sampler-head">
                   <span>Sample Direct programmes · APS range 34–46</span>
-                  <span>9,412 indexed · 30%</span>
+                  <Link href={'/programmes' + (userAps !== null ? '?aps=' + userAps : '')} className="sampler-count-link">9,412 indexed · 30%</Link>
                 </div>
                 <div className="prog-sampler-list">
                   {[
@@ -270,12 +324,12 @@ export default function PathwaysPage() {
                     { nm: 'BEng Chemical', inst: 'UP', aps: 'APS 38', fee: 'R 72,400/yr' },
                     { nm: 'LLB Law', inst: 'Wits', aps: 'APS 39', fee: 'R 71,400/yr' },
                   ].map(r => (
-                    <div key={r.nm} className="prog-sampler-row">
+                    <Link key={r.nm} href={'/programmes' + (userAps !== null ? '?aps=' + userAps : '')} className="prog-sampler-row">
                       <div className="nm">{r.nm}<span className="inst">{r.inst}</span></div>
                       <span className="meta">{r.aps}</span>
                       <span className="meta">{r.fee}</span>
                       <span className="arr">→</span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -368,7 +422,7 @@ export default function PathwaysPage() {
               <div className="prog-sampler">
                 <div className="prog-sampler-head">
                   <span>Sample Extended programmes · APS range 28–34</span>
-                  <span>9,412 indexed · 26%</span>
+                  <Link href={'/programmes' + (userAps !== null ? '?aps=' + userAps : '')} className="sampler-count-link">9,412 indexed · 26%</Link>
                 </div>
                 <div className="prog-sampler-list">
                   {[
@@ -378,12 +432,12 @@ export default function PathwaysPage() {
                     { nm: 'BSc Biological Sci · Extended', inst: 'Rhodes', aps: 'APS 30', fee: 'R 56,200/yr' },
                     { nm: 'BSc Health Sci · Extended', inst: 'UFS', aps: 'APS 32', fee: 'R 48,200/yr' },
                   ].map(r => (
-                    <div key={r.nm} className="prog-sampler-row">
+                    <Link key={r.nm} href={'/programmes' + (userAps !== null ? '?aps=' + userAps : '')} className="prog-sampler-row">
                       <div className="nm">{r.nm}<span className="inst">{r.inst}</span></div>
                       <span className="meta">{r.aps}</span>
                       <span className="meta">{r.fee}</span>
                       <span className="arr">→</span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -476,7 +530,7 @@ export default function PathwaysPage() {
               <div className="prog-sampler">
                 <div className="prog-sampler-head">
                   <span>Sample Foundation programmes · APS range 24–30</span>
-                  <span>9,412 indexed · 18%</span>
+                  <Link href={'/programmes' + (userAps !== null ? '?aps=' + userAps : '')} className="sampler-count-link">9,412 indexed · 18%</Link>
                 </div>
                 <div className="prog-sampler-list">
                   {[
@@ -486,12 +540,12 @@ export default function PathwaysPage() {
                     { nm: 'BEng Foundation', inst: 'UP', aps: 'APS 28', fee: 'R 51,200/yr' },
                     { nm: 'B Med Sci Foundation', inst: 'UKZN', aps: 'APS 30', fee: 'R 49,800/yr' },
                   ].map(r => (
-                    <div key={r.nm} className="prog-sampler-row">
+                    <Link key={r.nm} href={'/programmes' + (userAps !== null ? '?aps=' + userAps : '')} className="prog-sampler-row">
                       <div className="nm">{r.nm}<span className="inst">{r.inst}</span></div>
                       <span className="meta">{r.aps}</span>
                       <span className="meta">{r.fee}</span>
                       <span className="arr">→</span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -584,7 +638,7 @@ export default function PathwaysPage() {
               <div className="prog-sampler">
                 <div className="prog-sampler-head">
                   <span>Sample TVET programmes · APS range 18–28</span>
-                  <span>50 colleges · 26%</span>
+                  <Link href={'/programmes' + (userAps !== null ? '?aps=' + userAps : '')} className="sampler-count-link">50 colleges · 26%</Link>
                 </div>
                 <div className="prog-sampler-list">
                   {[
@@ -594,12 +648,12 @@ export default function PathwaysPage() {
                     { nm: 'Dip · Tourism Mgmt', inst: 'TVET Boland', aps: 'APS 20', fee: 'R 15,400/yr' },
                     { nm: 'NCV · Office Admin', inst: 'TVET Coastal KZN', aps: 'APS 18', fee: 'R 13,800/yr' },
                   ].map(r => (
-                    <div key={r.nm} className="prog-sampler-row">
+                    <Link key={r.nm} href={'/programmes' + (userAps !== null ? '?aps=' + userAps : '')} className="prog-sampler-row">
                       <div className="nm">{r.nm}<span className="inst">{r.inst}</span></div>
                       <span className="meta">{r.aps}</span>
                       <span className="meta">{r.fee}</span>
                       <span className="arr">→</span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -650,10 +704,10 @@ export default function PathwaysPage() {
           <div className="compare reveal-up">
             <div className="compare-row head">
               <div className="label-cell">Metric</div>
-              <div className="cell d"><span className="sw"></span>Direct</div>
-              <div className="cell e"><span className="sw"></span>Extended</div>
-              <div className="cell f"><span className="sw"></span>Foundation</div>
-              <div className="cell t"><span className="sw"></span>TVET</div>
+              <div className={`cell d${userAps !== null && isEligible('direct', userAps) ? ' eligible' : ''}`}><span className="sw"></span>Direct</div>
+              <div className={`cell e${userAps !== null && isEligible('extended', userAps) ? ' eligible' : ''}`}><span className="sw"></span>Extended</div>
+              <div className={`cell f${userAps !== null && isEligible('foundation', userAps) ? ' eligible' : ''}`}><span className="sw"></span>Foundation</div>
+              <div className={`cell t${userAps !== null ? ' eligible' : ''}`}><span className="sw"></span>TVET</div>
             </div>
             <div className="compare-row">
               <div className="label-cell">APS range</div>
@@ -741,8 +795,8 @@ export default function PathwaysPage() {
               <nav className="next" aria-label="Related pages">
                 <Link href="/programmes"><span>Browse programmes · filter by pathway</span><span className="arr">→</span></Link>
                 <Link href="/bursaries"><span>NSFAS &amp; bursary funding · all pathways</span><span className="arr">→</span></Link>
-                <Link href="/careers"><span>Careers by pathway · salary &amp; growth</span><span className="arr">→</span></Link>
-                <Link href="/for-institutions"><span>Source: USAf / CHE methodology</span><span className="arr">→</span></Link>
+                <Link href="/signup"><span>Careers by pathway · salary &amp; growth</span><span className="arr">→</span></Link>
+                <a href="https://www.usaf.ac.za" target="_blank" rel="noopener noreferrer"><span>Source: USAf / CHE methodology</span><span className="arr">→</span></a>
               </nav>
             </div>
           </div>
@@ -761,11 +815,10 @@ export default function PathwaysPage() {
             <div className="footer-links">
               <Link href="/programmes">Programmes</Link>
               <Link href="/bursaries">Bursaries</Link>
-              <Link href="/careers">Career explorer</Link>
+              <Link href="/signup">Career explorer</Link>
               <Link href="/pathways">Pathways</Link>
-              <Link href="/for-institutions">For institutions</Link>
-              <Link href="/about">About</Link>
-              <Link href="/contact">Contact</Link>
+              <Link href="/signup">For institutions</Link>
+              <Link href="/">About</Link>
             </div>
           </div>
           <div className="footer-meta">

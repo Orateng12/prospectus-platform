@@ -68,9 +68,15 @@ const FAC_LABELS: Record<string, string> = {
 };
 const FAC_COUNTS: Record<string, number> = { science: 7, commerce: 6, engineering: 7, health: 4, humanities: 4, law: 1, education: 1, arts: 1, vocational: 3 };
 const PW_COUNTS: Record<string, number> = { direct: 22, extended: 4, foundation: 3, tvet: 3 };
-const MY_APS = 42;
 
 function fmtFee(n: number) { return 'R ' + n.toLocaleString(); }
+
+function strategyHint(aps: number): string {
+  if (aps >= 40) return `At APS ${aps}, you're well-positioned for direct entry. Lock in 4 reach, 6 target, 2 safety.`;
+  if (aps >= 34) return `At APS ${aps}, direct entry is within reach. Mix target and safety schools for a strong list.`;
+  if (aps >= 28) return `At APS ${aps}, extended and foundation programmes are strong options. Explore widely.`;
+  return `At APS ${aps}, TVET and foundation routes are your best paths. Apply broadly.`;
+}
 
 /* ── ProgRow sub-component ── */
 function ProgRow({
@@ -143,11 +149,30 @@ export default function ProgrammesPage() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [navOpen, setNavOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [userAps, setUserAps] = useState(42);
+  const [compareOpen, setCompareOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const lastScrollY = useRef(0);
+
+  /* ── Read APS from URL param or sessionStorage on mount ── */
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const urlAps = url.searchParams.get('aps');
+    if (urlAps) {
+      const n = parseInt(urlAps, 10);
+      if (!isNaN(n) && n >= 18 && n <= 49) { setUserAps(n); return; }
+    }
+    const stored = sessionStorage.getItem('prospectus_aps');
+    if (stored) {
+      const n = parseInt(stored, 10);
+      if (!isNaN(n) && n >= 18 && n <= 49) setUserAps(n);
+    }
+  }, []);
 
   /* ── Context counts ── */
-  const eligible = useMemo(() => PROG_DATA.filter(p => p.aps <= MY_APS).length, []);
-  const nearCount = useMemo(() => PROG_DATA.filter(p => p.aps > MY_APS && p.aps <= MY_APS + 2).length, []);
+  const eligible = useMemo(() => PROG_DATA.filter(p => p.aps <= userAps).length, [userAps]);
+  const nearCount = useMemo(() => PROG_DATA.filter(p => p.aps > userAps && p.aps <= userAps + 2).length, [userAps]);
 
   /* ── Filtered + sorted list ── */
   const filtered = useMemo(() => {
@@ -156,8 +181,8 @@ export default function ProgrammesPage() {
       pathways.has(p.pathway) &&
       provinces.has(p.prov) &&
       faculties.has(p.faculty) &&
-      (!eligibleOnly || p.aps <= MY_APS) &&
-      (!nearEligible || p.aps <= MY_APS + 2)
+      (!eligibleOnly || p.aps <= userAps) &&
+      (!nearEligible || p.aps <= userAps + 2)
     );
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -172,12 +197,12 @@ export default function ProgrammesPage() {
       if (sort === 'fee-desc') return b.fee - a.fee;
       if (sort === 'name')     return a.name.localeCompare(b.name);
       /* fit: eligible first, near second, then closest APS */
-      const aE = MY_APS >= a.aps ? 0 : (MY_APS >= a.aps - 2 ? 1 : 2);
-      const bE = MY_APS >= b.aps ? 0 : (MY_APS >= b.aps - 2 ? 1 : 2);
+      const aE = userAps >= a.aps ? 0 : (userAps >= a.aps - 2 ? 1 : 2);
+      const bE = userAps >= b.aps ? 0 : (userAps >= b.aps - 2 ? 1 : 2);
       if (aE !== bE) return aE - bE;
-      return Math.abs(MY_APS - a.aps) - Math.abs(MY_APS - b.aps);
+      return Math.abs(userAps - a.aps) - Math.abs(userAps - b.aps);
     });
-  }, [apsMin, apsMax, pathways, provinces, faculties, eligibleOnly, nearEligible, search, sort]);
+  }, [apsMin, apsMax, pathways, provinces, faculties, eligibleOnly, nearEligible, search, sort, userAps]);
 
   /* ── Toggle helpers ── */
   function togglePathway(pw: string) {
@@ -223,11 +248,24 @@ export default function ProgrammesPage() {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
+  useEffect(() => {
+    const onScroll = () => {
+      if (navOpen) return;
+      const y = window.scrollY;
+      const nav = navRef.current;
+      if (!nav) return;
+      if (y > lastScrollY.current && y > 80) nav.classList.add('nav-hidden');
+      else nav.classList.remove('nav-hidden');
+      lastScrollY.current = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [navOpen]);
 
   return (
     <div className="prg-page">
       {/* ── NAV ── */}
-      <header className="nav">
+      <header className="nav" ref={navRef}>
         <div className="container nav-row">
           <Link href="/" className="brand" aria-label="Prospectus home">
             <div className="brand-mark" aria-hidden="true">P</div>
@@ -237,9 +275,7 @@ export default function ProgrammesPage() {
           <nav className="nav-links" aria-label="Site navigation">
             <Link href="/programmes" className="is-active">Programmes</Link>
             <Link href="/pathways">Pathways</Link>
-            <a href="#">Bursaries</a>
-            <a href="#">Careers</a>
-            <a href="#">For institutions</a>
+            <Link href="/bursaries">Bursaries</Link>
           </nav>
           <div className="nav-cta">
             <Link href="/login" className="btn btn-ghost btn-sm">Sign in</Link>
@@ -257,31 +293,6 @@ export default function ProgrammesPage() {
             </button>
           </div>
         </div>
-        <nav
-          id="prg-mobile-nav"
-          className={`nav-drawer${navOpen ? ' open' : ''}`}
-          aria-label="Mobile navigation"
-          aria-hidden={!navOpen}
-        >
-          <div className="nav-drawer-head">
-            <Link href="/" className="brand" onClick={() => setNavOpen(false)}>
-              <div className="brand-mark" aria-hidden="true">P</div>
-              <span className="brand-name">Prospectus</span>
-            </Link>
-            <button className="btn btn-ghost btn-sm" onClick={() => setNavOpen(false)} aria-label="Close menu">✕</button>
-          </div>
-          <div className="nav-drawer-links">
-            <Link href="/programmes" className="is-active" onClick={() => setNavOpen(false)}>Programmes</Link>
-            <Link href="/pathways" onClick={() => setNavOpen(false)}>Pathways</Link>
-            <a href="#" onClick={() => setNavOpen(false)}>Bursaries</a>
-            <a href="#" onClick={() => setNavOpen(false)}>Careers</a>
-            <a href="#" onClick={() => setNavOpen(false)}>For institutions</a>
-          </div>
-          <div className="nav-drawer-cta">
-            <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
-            <Link href="/signup" className="btn btn-primary" onClick={() => setNavOpen(false)}>Start free <span aria-hidden="true">→</span></Link>
-          </div>
-        </nav>
         <div className="container live-strip" aria-hidden="true">
           <span><span className="pulse" /> Live</span>
           <span>·</span>
@@ -293,13 +304,38 @@ export default function ProgrammesPage() {
         </div>
       </header>
 
+      <nav
+        id="prg-mobile-nav"
+        className={`nav-drawer${navOpen ? ' open' : ''}`}
+        aria-label="Mobile navigation"
+        aria-hidden={!navOpen}
+        inert={!navOpen ? ('' as unknown as boolean) : undefined}
+      >
+        <div className="nav-drawer-head">
+          <Link href="/" className="brand" onClick={() => setNavOpen(false)}>
+            <div className="brand-mark" aria-hidden="true">P</div>
+            <span className="brand-name">Prospectus</span>
+          </Link>
+          <button className="btn btn-ghost btn-sm" onClick={() => setNavOpen(false)} aria-label="Close menu">✕</button>
+        </div>
+        <div className="nav-drawer-links">
+          <Link href="/programmes" className="is-active" onClick={() => setNavOpen(false)}>Programmes</Link>
+          <Link href="/pathways" onClick={() => setNavOpen(false)}>Pathways</Link>
+          <Link href="/bursaries" onClick={() => setNavOpen(false)}>Bursaries</Link>
+        </div>
+        <div className="nav-drawer-cta">
+          <Link href="/login" className="btn btn-outline" onClick={() => setNavOpen(false)}>Sign in</Link>
+          <Link href="/signup" className="btn btn-primary" onClick={() => setNavOpen(false)}>Start free <span aria-hidden="true">→</span></Link>
+        </div>
+      </nav>
+
       {/* ── APS Context strip ── */}
       <section className="aps-context" aria-label="Your APS context">
         <div className="container">
           <div className="l">
             <div className="my-aps">
               <span className="lbl">Your APS</span>
-              <span className="v tabular">{MY_APS}</span>
+              <span className="v tabular">{userAps}</span>
               <span className="out">/ 49</span>
             </div>
             <span className="summary">
@@ -426,7 +462,7 @@ export default function ProgrammesPage() {
           {/* Strategy hint */}
           <div className="strategy-hint">
             <div className="hint-label">Strategy hint</div>
-            <p>&ldquo;At APS 42, you&rsquo;re well-positioned for direct entry. Lock in 4 reach, 6 target, 2 safety.&rdquo;</p>
+            <p>&ldquo;{strategyHint(userAps)}&rdquo;</p>
             <p className="hint-attr">— Strategy AI · based on your profile</p>
           </div>
         </aside>
@@ -513,7 +549,7 @@ export default function ProgrammesPage() {
                 <ProgRow
                   key={p.id}
                   p={p}
-                  userAps={MY_APS}
+                  userAps={userAps}
                   compareSet={compareSet}
                   onToggleCompare={toggleCompare}
                 />
@@ -522,6 +558,66 @@ export default function ProgrammesPage() {
           </div>
         </section>
       </main>
+
+      {/* ── Compare overlay ── */}
+      {compareOpen && (() => {
+        const ids = [...compareSet];
+        const progs = ids.map(id => PROG_DATA.find(x => x.id === id)!);
+        const cols = `140px repeat(${ids.length}, 1fr)`;
+        const rows: [string, (p: ProgEntry) => string][] = [
+          ['APS required', p => String(p.aps)],
+          ['Annual fee',   p => fmtFee(p.fee)],
+          ['Duration',     p => p.dur + ' yr'],
+          ['City',         p => p.city],
+          ['Pathway',      p => p.pathway],
+          ['Career',       p => p.career],
+        ];
+        return (
+          <div
+            className="compare-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Compare programmes"
+            onClick={e => { if (e.target === e.currentTarget) setCompareOpen(false); }}
+          >
+            <div className="compare-panel">
+              <div className="compare-panel-head">
+                <h2>Compare programmes <span className="ct">· {ids.length} selected</span></h2>
+                <button className="compare-close" onClick={() => setCompareOpen(false)} aria-label="Close compare">✕</button>
+              </div>
+              <div className="compare-table-wrap">
+                <div className="compare-row compare-header" style={{ gridTemplateColumns: cols }}>
+                  <div className="compare-label" />
+                  {progs.map((p, i) => (
+                    <div key={i} className="compare-col">
+                      <div className="compare-prog-name">{p.name}</div>
+                      <div className="compare-prog-inst">{p.inst}</div>
+                    </div>
+                  ))}
+                </div>
+                {rows.map(([label, fn]) => (
+                  <div key={label} className="compare-row" style={{ gridTemplateColumns: cols }}>
+                    <div className="compare-label">{label}</div>
+                    {progs.map((p, i) => (
+                      <div key={i} className="compare-col">{fn(p)}</div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+              <div className="compare-actions">
+                <button className="btn btn-ghost" onClick={() => setCompareOpen(false)}>Close</button>
+                <button
+                  className="btn btn-outline"
+                  onClick={() => { setCompareSet(new Set()); setCompareOpen(false); }}
+                >Clear selection</button>
+                <Link href="/signup" className="btn btn-primary">
+                  Save comparison <span aria-hidden="true">→</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Mobile filter button ── */}
       <button
@@ -551,7 +647,7 @@ export default function ProgrammesPage() {
             ) : null;
           })}
         </div>
-        <button className="compare-btn">
+        <button className="compare-btn" onClick={() => setCompareOpen(true)}>
           Compare side-by-side <span aria-hidden="true">→</span>
         </button>
         <button
@@ -577,7 +673,7 @@ export default function ProgrammesPage() {
             Sixty seconds gets you a list. Ten minutes gets you a strategy. The directory is just the index — the platform does the work.
           </p>
           <div className="actions reveal-up">
-            <Link href="/" className="btn btn-accent btn-lg">
+            <Link href="/#renderer" className="btn btn-accent btn-lg">
               Calculate my APS <span className="arr" aria-hidden="true">→</span>
             </Link>
             <Link href="/pathways" className="btn btn-outline btn-lg">
@@ -594,9 +690,9 @@ export default function ProgrammesPage() {
               <h4>Related</h4>
               <nav className="next">
                 <Link href="/pathways"><span>The four pathways · in depth</span><span className="arr" aria-hidden="true">→</span></Link>
-                <a href="#"><span>Bursaries &amp; funding strategy</span><span className="arr" aria-hidden="true">→</span></a>
-                <a href="#"><span>Career explorer · salary &amp; growth data</span><span className="arr" aria-hidden="true">→</span></a>
-                <a href="#"><span>For institutions — get listed</span><span className="arr" aria-hidden="true">→</span></a>
+                <Link href="/bursaries"><span>Bursaries &amp; funding strategy</span><span className="arr" aria-hidden="true">→</span></Link>
+                <Link href="/signup"><span>Career explorer · salary &amp; growth data</span><span className="arr" aria-hidden="true">→</span></Link>
+                <Link href="/signup"><span>For institutions — get listed</span><span className="arr" aria-hidden="true">→</span></Link>
               </nav>
             </div>
           </div>
@@ -614,12 +710,11 @@ export default function ProgrammesPage() {
             </Link>
             <div className="footer-links">
               <Link href="/programmes">Programmes</Link>
-              <a href="#">Bursaries</a>
-              <a href="#">Career explorer</a>
+              <Link href="/bursaries">Bursaries</Link>
+              <Link href="/signup">Career explorer</Link>
               <Link href="/pathways">Pathways</Link>
-              <a href="#">For institutions</a>
-              <a href="#">About</a>
-              <a href="#">Contact</a>
+              <Link href="/signup">For institutions</Link>
+              <Link href="/">About</Link>
             </div>
           </div>
           <div className="footer-meta">
