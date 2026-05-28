@@ -4,6 +4,20 @@ All notable changes to the Prospectus platform.
 
 ---
 
+## [Unreleased] — pathways page: APS-awareness, eligibility indicators, live links (2026-05-28)
+
+### Features
+- **APS context bar** — `/pathways` now reads `?aps=N` URL param (falls back to `sessionStorage`). When present, a slim bar between the hero and the jump nav shows "Your APS · N / 49" with a colored pill for each of the four pathways (✓ eligible or + locked).
+- **Jump nav eligibility** — Each jump-nav item gains an `.aps-status` line: "✓ eligible" or "need X more" based on the user's APS against each pathway's entry threshold.
+- **Programme sampler rows as links** — All four pathway sections' prog-sampler rows (previously inert `<div>`s) are now `<Link>` elements routing to `/programmes?aps=N`. Sampler head count text is also a link.
+- **Comparison table header highlights** — When the user's APS meets a pathway's threshold, the corresponding column header gets a colored bottom border and stronger font weight.
+
+### Files changed
+- `app/pathways/page.tsx`
+- `app/pathways/pathways.css`
+
+---
+
 ## [Unreleased] — deeper UX: APS persistence, compare panel, match wiring, dead button cleanup (2026-05-27)
 
 ### Features

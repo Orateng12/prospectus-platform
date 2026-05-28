@@ -4,9 +4,19 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import './pathways.css';
 
+type PathwayKey = 'direct' | 'extended' | 'foundation' | 'tvet';
+
+function isEligible(pw: PathwayKey, aps: number): boolean {
+  if (pw === 'direct')     return aps >= 34;
+  if (pw === 'extended')   return aps >= 28;
+  if (pw === 'foundation') return aps >= 24;
+  return aps >= 18; // tvet always open
+}
+
 export default function PathwaysPage() {
   const [navOpen, setNavOpen] = useState(false);
   const [activePathway, setActivePathway] = useState('');
+  const [userAps, setUserAps] = useState<number | null>(null);
   const navRef = useRef<HTMLElement>(null);
   const lastScrollY = useRef(0);
 
@@ -30,6 +40,21 @@ export default function PathwaysPage() {
     );
     els.forEach(el => io.observe(el));
     return () => io.disconnect();
+  }, []);
+
+  /* read APS from URL param or sessionStorage */
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const urlAps = url.searchParams.get('aps');
+    if (urlAps) {
+      const n = parseInt(urlAps, 10);
+      if (!isNaN(n) && n >= 18 && n <= 49) { setUserAps(n); return; }
+    }
+    const stored = sessionStorage.getItem('prospectus_aps');
+    if (stored) {
+      const n = parseInt(stored, 10);
+      if (!isNaN(n) && n >= 18 && n <= 49) setUserAps(n);
+    }
   }, []);
 
   /* keyboard nav */
@@ -137,35 +162,64 @@ export default function PathwaysPage() {
         </div>
       </section>
 
+      {/* ══ APS CONTEXT BAR ══ */}
+      {userAps !== null && (
+        <div className="aps-context-bar" aria-label="Your APS pathway eligibility">
+          <div className="container aps-context-row">
+            <span className="aps-val">Your APS · <strong>{userAps}</strong> / 49</span>
+            <span className="aps-sep" aria-hidden="true">→</span>
+            <span className="aps-paths">
+              {(['direct', 'extended', 'foundation', 'tvet'] as PathwayKey[]).map(pw => (
+                <a key={pw} href={`#${pw}`}
+                  className={`pw-aps-badge ${pw[0]}${isEligible(pw, userAps) ? ' eligible' : ' locked'}`}>
+                  {isEligible(pw, userAps) ? '✓' : '+'} {pw === 'tvet' ? 'TVET' : pw.charAt(0).toUpperCase() + pw.slice(1)}
+                </a>
+              ))}
+            </span>
+            <Link href="/" className="aps-recalc">↻ Recalculate</Link>
+          </div>
+        </div>
+      )}
+
       {/* ══ PATHWAY JUMP NAV ══ */}
       <nav className="pw-jump" aria-label="Jump to pathway">
         <div className="container pw-jump-row">
-          <a href="#direct" className={`d${activePathway === 'direct' ? ' is-active' : ''}`}>
+          <a href="#direct" className={`d${activePathway === 'direct' ? ' is-active' : ''}${userAps !== null && isEligible('direct', userAps) ? ' eligible' : ''}`}>
             <span className="sw"></span>
             <div>
               <div className="k">01 / 04</div>
               <div className="nm">Direct entry</div>
+              {userAps !== null && (
+                <div className="aps-status">{isEligible('direct', userAps) ? '✓ eligible' : `need ${34 - userAps} more`}</div>
+              )}
             </div>
           </a>
-          <a href="#extended" className={`e${activePathway === 'extended' ? ' is-active' : ''}`}>
+          <a href="#extended" className={`e${activePathway === 'extended' ? ' is-active' : ''}${userAps !== null && isEligible('extended', userAps) ? ' eligible' : ''}`}>
             <span className="sw"></span>
             <div>
               <div className="k">02 / 04</div>
               <div className="nm">Extended curriculum</div>
+              {userAps !== null && (
+                <div className="aps-status">{isEligible('extended', userAps) ? '✓ eligible' : `need ${28 - userAps} more`}</div>
+              )}
             </div>
           </a>
-          <a href="#foundation" className={`f${activePathway === 'foundation' ? ' is-active' : ''}`}>
+          <a href="#foundation" className={`f${activePathway === 'foundation' ? ' is-active' : ''}${userAps !== null && isEligible('foundation', userAps) ? ' eligible' : ''}`}>
             <span className="sw"></span>
             <div>
               <div className="k">03 / 04</div>
               <div className="nm">Foundation year</div>
+              {userAps !== null && (
+                <div className="aps-status">{isEligible('foundation', userAps) ? '✓ eligible' : `need ${24 - userAps} more`}</div>
+              )}
             </div>
           </a>
-          <a href="#tvet" className={`t${activePathway === 'tvet' ? ' is-active' : ''}`}>
+          <a href="#tvet" className={`t${activePathway === 'tvet' ? ' is-active' : ''}${userAps !== null ? ' eligible' : ''}`}>
             <span className="sw"></span>
             <div>
               <div className="k">04 / 04</div>
               <div className="nm">TVET / FET</div>
+              {userAps !== null && <div className="aps-status">✓ open</div>}
             </div>
           </a>
         </div>
@@ -260,7 +314,7 @@ export default function PathwaysPage() {
               <div className="prog-sampler">
                 <div className="prog-sampler-head">
                   <span>Sample Direct programmes · APS range 34–46</span>
-                  <span>9,412 indexed · 30%</span>
+                  <Link href={'/programmes' + (userAps !== null ? '?aps=' + userAps : '')} className="sampler-count-link">9,412 indexed · 30%</Link>
                 </div>
                 <div className="prog-sampler-list">
                   {[
@@ -270,12 +324,12 @@ export default function PathwaysPage() {
                     { nm: 'BEng Chemical', inst: 'UP', aps: 'APS 38', fee: 'R 72,400/yr' },
                     { nm: 'LLB Law', inst: 'Wits', aps: 'APS 39', fee: 'R 71,400/yr' },
                   ].map(r => (
-                    <div key={r.nm} className="prog-sampler-row">
+                    <Link key={r.nm} href={'/programmes' + (userAps !== null ? '?aps=' + userAps : '')} className="prog-sampler-row">
                       <div className="nm">{r.nm}<span className="inst">{r.inst}</span></div>
                       <span className="meta">{r.aps}</span>
                       <span className="meta">{r.fee}</span>
                       <span className="arr">→</span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -368,7 +422,7 @@ export default function PathwaysPage() {
               <div className="prog-sampler">
                 <div className="prog-sampler-head">
                   <span>Sample Extended programmes · APS range 28–34</span>
-                  <span>9,412 indexed · 26%</span>
+                  <Link href={'/programmes' + (userAps !== null ? '?aps=' + userAps : '')} className="sampler-count-link">9,412 indexed · 26%</Link>
                 </div>
                 <div className="prog-sampler-list">
                   {[
@@ -378,12 +432,12 @@ export default function PathwaysPage() {
                     { nm: 'BSc Biological Sci · Extended', inst: 'Rhodes', aps: 'APS 30', fee: 'R 56,200/yr' },
                     { nm: 'BSc Health Sci · Extended', inst: 'UFS', aps: 'APS 32', fee: 'R 48,200/yr' },
                   ].map(r => (
-                    <div key={r.nm} className="prog-sampler-row">
+                    <Link key={r.nm} href={'/programmes' + (userAps !== null ? '?aps=' + userAps : '')} className="prog-sampler-row">
                       <div className="nm">{r.nm}<span className="inst">{r.inst}</span></div>
                       <span className="meta">{r.aps}</span>
                       <span className="meta">{r.fee}</span>
                       <span className="arr">→</span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -476,7 +530,7 @@ export default function PathwaysPage() {
               <div className="prog-sampler">
                 <div className="prog-sampler-head">
                   <span>Sample Foundation programmes · APS range 24–30</span>
-                  <span>9,412 indexed · 18%</span>
+                  <Link href={'/programmes' + (userAps !== null ? '?aps=' + userAps : '')} className="sampler-count-link">9,412 indexed · 18%</Link>
                 </div>
                 <div className="prog-sampler-list">
                   {[
@@ -486,12 +540,12 @@ export default function PathwaysPage() {
                     { nm: 'BEng Foundation', inst: 'UP', aps: 'APS 28', fee: 'R 51,200/yr' },
                     { nm: 'B Med Sci Foundation', inst: 'UKZN', aps: 'APS 30', fee: 'R 49,800/yr' },
                   ].map(r => (
-                    <div key={r.nm} className="prog-sampler-row">
+                    <Link key={r.nm} href={'/programmes' + (userAps !== null ? '?aps=' + userAps : '')} className="prog-sampler-row">
                       <div className="nm">{r.nm}<span className="inst">{r.inst}</span></div>
                       <span className="meta">{r.aps}</span>
                       <span className="meta">{r.fee}</span>
                       <span className="arr">→</span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -584,7 +638,7 @@ export default function PathwaysPage() {
               <div className="prog-sampler">
                 <div className="prog-sampler-head">
                   <span>Sample TVET programmes · APS range 18–28</span>
-                  <span>50 colleges · 26%</span>
+                  <Link href={'/programmes' + (userAps !== null ? '?aps=' + userAps : '')} className="sampler-count-link">50 colleges · 26%</Link>
                 </div>
                 <div className="prog-sampler-list">
                   {[
@@ -594,12 +648,12 @@ export default function PathwaysPage() {
                     { nm: 'Dip · Tourism Mgmt', inst: 'TVET Boland', aps: 'APS 20', fee: 'R 15,400/yr' },
                     { nm: 'NCV · Office Admin', inst: 'TVET Coastal KZN', aps: 'APS 18', fee: 'R 13,800/yr' },
                   ].map(r => (
-                    <div key={r.nm} className="prog-sampler-row">
+                    <Link key={r.nm} href={'/programmes' + (userAps !== null ? '?aps=' + userAps : '')} className="prog-sampler-row">
                       <div className="nm">{r.nm}<span className="inst">{r.inst}</span></div>
                       <span className="meta">{r.aps}</span>
                       <span className="meta">{r.fee}</span>
                       <span className="arr">→</span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -650,10 +704,10 @@ export default function PathwaysPage() {
           <div className="compare reveal-up">
             <div className="compare-row head">
               <div className="label-cell">Metric</div>
-              <div className="cell d"><span className="sw"></span>Direct</div>
-              <div className="cell e"><span className="sw"></span>Extended</div>
-              <div className="cell f"><span className="sw"></span>Foundation</div>
-              <div className="cell t"><span className="sw"></span>TVET</div>
+              <div className={`cell d${userAps !== null && isEligible('direct', userAps) ? ' eligible' : ''}`}><span className="sw"></span>Direct</div>
+              <div className={`cell e${userAps !== null && isEligible('extended', userAps) ? ' eligible' : ''}`}><span className="sw"></span>Extended</div>
+              <div className={`cell f${userAps !== null && isEligible('foundation', userAps) ? ' eligible' : ''}`}><span className="sw"></span>Foundation</div>
+              <div className={`cell t${userAps !== null ? ' eligible' : ''}`}><span className="sw"></span>TVET</div>
             </div>
             <div className="compare-row">
               <div className="label-cell">APS range</div>

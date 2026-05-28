@@ -990,3 +990,67 @@
     margin-bottom: 0.375rem;
   }
 }
+
+/* ── APS context bar ── */
+.pw-page .aps-context-bar {
+  background: hsl(var(--bg-2)); border-bottom: 1px solid hsl(var(--line));
+  padding: 0.5rem 0;
+}
+.pw-page .aps-context-row {
+  display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+}
+.pw-page .aps-val {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 0.6875rem; color: hsl(var(--mute)); letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.pw-page .aps-val strong { color: hsl(var(--ink)); font-weight: 700; }
+.pw-page .aps-sep { color: hsl(var(--mute)); font-family: var(--font-ibm-plex-mono), monospace; font-size: 0.75rem; }
+.pw-page .aps-paths { display: flex; gap: 0.375rem; flex-wrap: wrap; }
+.pw-page .pw-aps-badge {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 0.5625rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 0.2rem 0.625rem; border-radius: 99px;
+  border: 1px solid hsl(var(--line-strong));
+  color: hsl(var(--mute)); transition: background .15s, color .15s;
+}
+.pw-page .pw-aps-badge.eligible.d { background: hsl(var(--pw-direct) / 0.1); color: hsl(var(--pw-direct)); border-color: hsl(var(--pw-direct) / 0.4); }
+.pw-page .pw-aps-badge.eligible.e { background: hsl(var(--pw-extended) / 0.1); color: hsl(var(--pw-extended)); border-color: hsl(var(--pw-extended) / 0.4); }
+.pw-page .pw-aps-badge.eligible.f { background: hsl(var(--pw-foundation) / 0.1); color: hsl(var(--pw-foundation)); border-color: hsl(var(--pw-foundation) / 0.4); }
+.pw-page .pw-aps-badge.eligible.t { background: hsl(var(--pw-tvet) / 0.1); color: hsl(var(--pw-tvet)); border-color: hsl(var(--pw-tvet) / 0.4); }
+.pw-page .pw-aps-badge.locked { opacity: 0.45; }
+.pw-page .aps-recalc {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 0.625rem; color: hsl(var(--mute)); margin-left: auto;
+  transition: color .15s; white-space: nowrap;
+}
+.pw-page .aps-recalc:hover { color: hsl(var(--accent)); }
+
+/* ── Jump nav eligibility status ── */
+.pw-page .pw-jump a .aps-status {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 0.5625rem; letter-spacing: 0.08em; text-transform: uppercase;
+  margin-top: 0.125rem; color: hsl(var(--mute));
+}
+.pw-page .pw-jump a.d.eligible .aps-status { color: hsl(var(--pw-direct)); }
+.pw-page .pw-jump a.e.eligible .aps-status { color: hsl(var(--pw-extended)); }
+.pw-page .pw-jump a.f.eligible .aps-status { color: hsl(var(--pw-foundation)); }
+.pw-page .pw-jump a.t.eligible .aps-status { color: hsl(var(--pw-tvet)); }
+
+/* ── Programme sampler row as link ── */
+.pw-page a.prog-sampler-row { display: grid; color: inherit; }
+.pw-page a.prog-sampler-row:hover { background: hsl(var(--bg-2)); }
+.pw-page .sampler-count-link {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 0.6875rem; color: hsl(var(--mute));
+  text-decoration: underline; text-decoration-color: hsl(var(--line-strong));
+  text-underline-offset: 3px; transition: color .15s;
+}
+.pw-page .sampler-count-link:hover { color: hsl(var(--ink)); }
+
+/* ── Comparison table eligible header cells ── */
+.pw-page .compare .cell.eligible { font-weight: 800; }
+.pw-page .compare .cell.d.eligible { color: hsl(var(--pw-direct)); border-bottom: 2px solid hsl(var(--pw-direct)); }
+.pw-page .compare .cell.e.eligible { color: hsl(var(--pw-extended)); border-bottom: 2px solid hsl(var(--pw-extended)); }
+.pw-page .compare .cell.f.eligible { color: hsl(var(--pw-foundation)); border-bottom: 2px solid hsl(var(--pw-foundation)); }
+.pw-page .compare .cell.t.eligible { color: hsl(var(--pw-tvet)); border-bottom: 2px solid hsl(var(--pw-tvet)); }
